@@ -1,0 +1,55 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36804.6
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ReplicaGuard.Core", "ReplicaGuard.Domain\ReplicaGuard.Core.csproj", "{76304A48-DC61-494A-9E5F-B529BA649FC7}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{8EC462FD-D22E-90A8-E5CE-7E832BA40C5D}"
+	ProjectSection(SolutionItems) = preProject
+		Directory.Build.props = Directory.Build.props
+		Directory.Packages.props = Directory.Packages.props
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ReplicaGuard.Application", "ReplicaGuard.Application\ReplicaGuard.Application.csproj", "{3E562B7A-CDDC-4EF6-A808-261BE678BF79}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ReplicaGuard.Infrastructure", "ReplicaGuard.Infrastructure\ReplicaGuard.Infrastructure.csproj", "{B1E6BE0C-0FB5-4772-8694-939BBD33EAE2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ReplicaGuard.Api", "ReplicaGuard.Api\ReplicaGuard.Api.csproj", "{9DA0B90D-987B-498F-A420-F2C1D2D77F09}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ReplicaGuard.Application.Tests", "ReplicaGuard.Application.Tests\ReplicaGuard.Application.Tests.csproj", "{426381AD-5477-82CE-D7E8-4427A53AF7F1}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{76304A48-DC61-494A-9E5F-B529BA649FC7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{76304A48-DC61-494A-9E5F-B529BA649FC7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{76304A48-DC61-494A-9E5F-B529BA649FC7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{76304A48-DC61-494A-9E5F-B529BA649FC7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3E562B7A-CDDC-4EF6-A808-261BE678BF79}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3E562B7A-CDDC-4EF6-A808-261BE678BF79}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3E562B7A-CDDC-4EF6-A808-261BE678BF79}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3E562B7A-CDDC-4EF6-A808-261BE678BF79}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B1E6BE0C-0FB5-4772-8694-939BBD33EAE2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B1E6BE0C-0FB5-4772-8694-939BBD33EAE2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B1E6BE0C-0FB5-4772-8694-939BBD33EAE2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B1E6BE0C-0FB5-4772-8694-939BBD33EAE2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9DA0B90D-987B-498F-A420-F2C1D2D77F09}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9DA0B90D-987B-498F-A420-F2C1D2D77F09}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9DA0B90D-987B-498F-A420-F2C1D2D77F09}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9DA0B90D-987B-498F-A420-F2C1D2D77F09}.Release|Any CPU.Build.0 = Release|Any CPU
+		{426381AD-5477-82CE-D7E8-4427A53AF7F1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{426381AD-5477-82CE-D7E8-4427A53AF7F1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{426381AD-5477-82CE-D7E8-4427A53AF7F1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{426381AD-5477-82CE-D7E8-4427A53AF7F1}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {69DC1423-D28D-486E-9A4A-81F9187AA246}
+	EndGlobalSection
+EndGlobal

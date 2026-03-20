@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <RootNamespace>ReplicaGuard.Api</RootNamespace>
+    <AssemblyName>ReplicaGuard.Api</AssemblyName>
+    <UserSecretsId>05f2ce0c-db82-4652-a8a0-aa9cd5b59bbd</UserSecretsId>
+    <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" />
+    <PackageReference Include="Swashbuckle.AspNetCore" />
+    <PackageReference Include="Serilog" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ReplicaGuard.Application\ReplicaGuard.Application.csproj" />
+    <ProjectReference Include="..\ReplicaGuard.Infrastructure\ReplicaGuard.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>

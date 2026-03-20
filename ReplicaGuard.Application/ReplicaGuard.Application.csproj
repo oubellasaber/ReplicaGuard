@@ -1,0 +1,17 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>ReplicaGuard.Application</RootNamespace>
+    <AssemblyName>ReplicaGuard.Application</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ReplicaGuard.Domain\ReplicaGuard.Core.csproj" />
+    <PackageReference Include="MediatR" />
+    <PackageReference Include="FluentValidation.AspNetCore" />
+    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" />
+    <PackageReference Include="Serilog" />
+  </ItemGroup>
+
+</Project>
