@@ -4,7 +4,7 @@ using NSubstitute;
 using ReplicaGuard.Application.Abstractions.Authentication;
 using ReplicaGuard.Application.Abstractions.Data;
 using ReplicaGuard.Application.Users.LogInUser;
-using ReplicaGuard.Core.Abstractions;
+using ReplicaGuard.Core.Domain.User;
 
 namespace ReplicaGuard.Application.Tests.Users.LogInUser;
 
@@ -43,7 +43,7 @@ public class LogInUserCommandHandlerTests
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Code.Should().Be("User.InvalidCredentials");
+        result.Error.Code.Should().Be(UserErrors.InvalidCredentials.Code);
     }
 
     [Fact]
@@ -63,7 +63,7 @@ public class LogInUserCommandHandlerTests
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Code.Should().Be("User.InvalidCredentials");
+        result.Error.Code.Should().Be(UserErrors.InvalidCredentials.Code);
     }
 
     [Fact]

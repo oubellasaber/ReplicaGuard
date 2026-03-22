@@ -2,7 +2,7 @@ using FluentValidation;
 
 namespace ReplicaGuard.Application.Assets.CreateAsset;
 
-internal sealed class CreateAssetCommandValidator : AbstractValidator<CreateAssetCommand>
+public sealed class CreateAssetCommandValidator : AbstractValidator<CreateAssetCommand>
 {
     public CreateAssetCommandValidator()
     {

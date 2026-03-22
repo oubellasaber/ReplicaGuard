@@ -4,6 +4,7 @@ using NSubstitute;
 using ReplicaGuard.Application.Abstractions.Authentication;
 using ReplicaGuard.Application.Abstractions.Clock;
 using ReplicaGuard.Application.Abstractions.Data;
+using ReplicaGuard.Application.Users;
 using ReplicaGuard.Application.Users.RefreshToken;
 using ReplicaGuard.Core.Abstractions;
 
@@ -50,7 +51,7 @@ public class RefreshTokenCommandHandlerTests
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Code.Should().Be("Authentication.InvalidRefreshToken");
+        result.Error.Code.Should().Be(AuthenticationErrors.InvalidRefreshToken.Code);
     }
 
     [Fact]
@@ -75,7 +76,7 @@ public class RefreshTokenCommandHandlerTests
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Code.Should().Be("Authentication.InvalidRefreshToken");
+        result.Error.Code.Should().Be(AuthenticationErrors.InvalidRefreshToken.Code);
     }
 
     [Fact]

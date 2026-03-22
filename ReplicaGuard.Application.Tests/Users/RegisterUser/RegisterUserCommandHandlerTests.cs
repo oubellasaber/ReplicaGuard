@@ -48,7 +48,7 @@ public class RegisterUserCommandHandlerTests
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Code.Should().Be("User.EmailAlreadyTaken");
+        result.Error.Code.Should().Be(UserErrors.EmailAlreadyTaken(string.Empty).Code);
     }
 
     [Fact]
@@ -82,7 +82,7 @@ public class RegisterUserCommandHandlerTests
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Code.Should().Be("User.UsernameAlreadyTaken");
+        result.Error.Code.Should().Be(UserErrors.UsernameAlreadyTaken(string.Empty).Code);
     }
 
     [Fact]
