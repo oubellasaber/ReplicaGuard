@@ -192,7 +192,7 @@ public sealed class UploadReplicaConsumer : IConsumer<UploadReplicaCommand>
         ConsumeContext context,
         CancellationToken ct)
     {
-        // 1. Remote source → try letting hoster fetch from URL directly
+        // 1. Remote source => try letting hoster fetch from URL directly
         if (asset.Source is RemoteFileSource remoteSource)
         {
             Result<UploadResponse> remoteResult = await uploader.UploadFromRemoteUrlAsync(
@@ -213,11 +213,11 @@ public sealed class UploadReplicaConsumer : IConsumer<UploadReplicaCommand>
                 return remoteResult;
             }
 
-            // Real failure (not just "unsupported") → return it
+            // Real failure (not just "unsupported") => return it
             if (!remoteResult.Error.Code.Contains("MethodNotSupported"))
                 return remoteResult;
 
-            // Hoster doesn't support remote URL → need local file
+            // Hoster doesn't support remote URL => need local file
             _logger.LogInformation("{Hoster} doesn't support remote URL, need local file", hosterCode);
 
             // Is a sibling already downloading? Wait for it to spool the file
@@ -244,7 +244,7 @@ public sealed class UploadReplicaConsumer : IConsumer<UploadReplicaCommand>
                 return null;
             }
 
-            // Nobody downloading or file already spooled → download ourselves
+            // Nobody downloading or file already spooled => download ourselves
             Result<FetchedFile> fetchResult = await _fileFetcher.DownloadAsync(asset.Id, remoteSource, ct);
             if (fetchResult.IsFailure)
                 return Result.Failure<UploadResponse>(fetchResult.Error);

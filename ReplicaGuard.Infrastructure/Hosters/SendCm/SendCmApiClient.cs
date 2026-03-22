@@ -290,7 +290,7 @@ internal class SendCmApiClient : HosterApiClientBase<SendCmHoster>, IValidateCre
             }
 
             string updateStatUrl = $"{new Uri(uploadServerResult.Value).GetLeftPart(UriPartial.Authority)}/tmp/{uploadId}.json";
-            using var updateStatResponse = await _httpClient.PostAsync(updateStatUrl, content, ct);
+            using var updateStatResponse = await _httpClient.GetAsync(updateStatUrl, ct);
             string updateStatBody = await updateStatResponse.Content.ReadAsStringAsync(ct);
 
             Result<UpdateStat> updateStatResult = ParseUpdateStat(updateStatBody);
