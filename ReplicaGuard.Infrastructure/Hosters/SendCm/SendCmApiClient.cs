@@ -87,27 +87,19 @@ internal class SendCmApiClient : HosterApiClientBase<SendCmHoster>, IValidateCre
 
         try
         {
-            Result<string> sessionIdResult = await GetSessionIdAsync(credentials.ApiKey, ct);
-            if (sessionIdResult.IsFailure)
+            Result<UploadSessionContext> uploadSessionResult = await GetUploadSessionContextAsync(credentials.ApiKey, ct);
+            if (uploadSessionResult.IsFailure)
             {
                 _logger.LogWarning(
-                    "Local upload to hoster {HosterCode} failed before upload start: could not resolve session ID",
+                    "Local upload to hoster {HosterCode} failed before upload start: could not resolve upload session context",
                     Code);
 
-                return Result.Failure<UploadResponse>(sessionIdResult.Error);
+                return Result.Failure<UploadResponse>(uploadSessionResult.Error);
             }
 
-            Result<string> uploadServerResult = await GetUploadServerAsync(credentials.ApiKey, ct);
-            if (uploadServerResult.IsFailure)
-            {
-                _logger.LogWarning(
-                    "Local upload to hoster {HosterCode} failed before upload start: could not resolve upload server",
-                    Code);
+            UploadSessionContext uploadSession = uploadSessionResult.Value;
 
-                return Result.Failure<UploadResponse>(uploadServerResult.Error);
-            }
-
-            string uploadUrl = $"{uploadServerResult.Value}?upload_type=file&utype=reg";
+            string uploadUrl = $"{uploadSession.UploadServer}?upload_type=file&utype=reg";
 
             _logger.LogDebug(
                 "Resolved upload server for hoster {HosterCode}: {UploadUrl}",
@@ -116,18 +108,29 @@ internal class SendCmApiClient : HosterApiClientBase<SendCmHoster>, IValidateCre
 
             using MultipartFormDataContent content = new()
             {
-                { new StringContent(sessionIdResult.Value), "sess_id" },
-                { new StringContent("reg"), "utype" },
-                { new StringContent("1"), "file_public" },
+                { new StringContent("null"), "relativePath" },
+                { new StringContent(fileName), "name" },
+                { new StringContent("text/plain"), "type" },
+                { new StringContent(""), "file_expire_unit" },
+                { new StringContent(""), "file_max_dl" },
+                { new StringContent(""), "link_rcpt" },
+                { new StringContent(""), "file_expire_time" },
+                { new StringContent("0"), "to_folder" },
                 { new StringContent("", Encoding.UTF8), "link_pass" },
-                { new StringContent(""), "to_folder" },
-                { new StringContent("1"), "add_my_acc" },
-                { new StringContent("1"), "keepalive" }
+                { new StringContent(""), "file_public" },
+                { new StringContent(uploadSession.SessionId), "sess_id" },
+                { new StringContent("reg"), "utype" }
             };
 
             StreamContent fileContent = new(fileStream);
-            fileContent.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
-            content.Add(fileContent, "file_0", fileName);
+            fileContent.Headers.ContentType = new MediaTypeHeaderValue("text/plain");
+            fileContent.Headers.ContentDisposition = new ContentDispositionHeaderValue("form-data")
+            {
+                Name = "\"my_file\"",
+                FileName = $"\"{Path.GetFileName(fileName)}\""
+            };
+
+            content.Add(fileContent);
 
             // Execute the long-running upload via _uploadClient instead of _httpClient
             using var response = await _uploadClient.PostAsync(uploadUrl, content, ct);
@@ -221,28 +224,20 @@ internal class SendCmApiClient : HosterApiClientBase<SendCmHoster>, IValidateCre
 
         try
         {
-            Result<string> sessionIdResult = await GetSessionIdAsync(credentials.ApiKey, ct);
-            if (sessionIdResult.IsFailure)
+            Result<UploadSessionContext> uploadSessionResult = await GetUploadSessionContextAsync(credentials.ApiKey, ct);
+            if (uploadSessionResult.IsFailure)
             {
                 _logger.LogWarning(
-                    "Remote URL upload to hoster {HosterCode} failed before upload start: could not resolve session ID",
+                    "Remote URL upload to hoster {HosterCode} failed before upload start: could not resolve upload session context",
                     Code);
 
-                return Result.Failure<UploadResponse>(sessionIdResult.Error);
+                return Result.Failure<UploadResponse>(uploadSessionResult.Error);
             }
 
-            Result<string> uploadServerResult = await GetUploadServerAsync(credentials.ApiKey, ct);
-            if (uploadServerResult.IsFailure)
-            {
-                _logger.LogWarning(
-                    "Remote URL upload to hoster {HosterCode} failed before upload start: could not resolve upload server",
-                    Code);
-
-                return Result.Failure<UploadResponse>(uploadServerResult.Error);
-            }
+            UploadSessionContext uploadSession = uploadSessionResult.Value;
 
             string uploadId = GenerateRandomUploadId();
-            string uploadUrl = $"{uploadServerResult.Value}?upload_type=url&upload_id={uploadId}";
+            string uploadUrl = $"{uploadSession.UploadServer}?upload_type=url&upload_id={uploadId}";
 
             _logger.LogDebug(
                 "Resolved remote upload server for hoster {HosterCode}: {UploadUrl}, UploadId={UploadId}",
@@ -252,7 +247,7 @@ internal class SendCmApiClient : HosterApiClientBase<SendCmHoster>, IValidateCre
 
             using MultipartFormDataContent content = new()
             {
-                { new StringContent(sessionIdResult.Value), "sess_id" },
+                { new StringContent(uploadSession.SessionId), "sess_id" },
                 { new StringContent("reg"), "utype" },
                 { new StringContent("1"), "file_public" },
                 { new StringContent(remoteUrl.Url.Value.ToString()), "url_mass" },
@@ -289,7 +284,7 @@ internal class SendCmApiClient : HosterApiClientBase<SendCmHoster>, IValidateCre
                 return Result.Failure<UploadResponse>(fileCodeResult.Error);
             }
 
-            string updateStatUrl = $"{new Uri(uploadServerResult.Value).GetLeftPart(UriPartial.Authority)}/tmp/{uploadId}.json";
+            string updateStatUrl = $"{new Uri(uploadSession.UploadServer).GetLeftPart(UriPartial.Authority)}/tmp/{uploadId}.json";
             using var updateStatResponse = await _httpClient.GetAsync(updateStatUrl, ct);
             string updateStatBody = await updateStatResponse.Content.ReadAsStringAsync(ct);
 
@@ -340,7 +335,7 @@ internal class SendCmApiClient : HosterApiClientBase<SendCmHoster>, IValidateCre
             return Result.Failure<UploadResponse>(
                 HosterUploadErrors.UploadFailed(Code, $"Unexpected error: {ex.Message}"));
         }
-            }
+    }
 
     private async Task<Result> IsApiKeyValidAsync(string apiKey, CancellationToken ct)
     {
@@ -392,126 +387,44 @@ internal class SendCmApiClient : HosterApiClientBase<SendCmHoster>, IValidateCre
         return Result.Success();
     }
 
-    private async Task<Result<string>> GetSessionIdAsync(string apiKey, CancellationToken ct)
+    private readonly record struct UploadSessionContext(
+        string SessionId,
+        string UploadServer);
+
+    private async Task<Result<UploadSessionContext>> GetUploadSessionContextAsync(string apiKey, CancellationToken ct)
     {
         try
         {
             string url = QueryHelpers.AddQueryString(_options.UploadServerEndpoint, "key", apiKey);
 
-            _logger.LogDebug(
-                "Requesting session ID for hoster {HosterCode}",
-                Code);
-
             using var response = await _httpClient.GetAsync(url, ct);
 
             if (!response.IsSuccessStatusCode)
-            {
-                _logger.LogWarning(
-                    "Failed to resolve session ID for hoster {HosterCode}. StatusCode={StatusCode}",
-                    Code,
-                    (int)response.StatusCode);
-
-                return Result.Failure<string>(SendCmUploadErrors.MissingSessionId());
-            }
+                return Result.Failure<UploadSessionContext>(SendCmUploadErrors.MissingUploadServer());
 
             await using Stream stream = await response.Content.ReadAsStreamAsync(ct);
             using JsonDocument doc = await JsonDocument.ParseAsync(stream, cancellationToken: ct);
 
             if (!doc.RootElement.TryGetProperty("sess_id", out JsonElement sessIdProp))
-            {
-                _logger.LogWarning(
-                    "Failed to resolve session ID for hoster {HosterCode}: response missing sess_id",
-                    Code);
-
-                return Result.Failure<string>(SendCmUploadErrors.MissingSessionId());
-            }
-
-            string? sessionId = sessIdProp.GetString();
-            if (string.IsNullOrWhiteSpace(sessionId))
-            {
-                _logger.LogWarning(
-                    "Failed to resolve session ID for hoster {HosterCode}: sess_id was empty",
-                    Code);
-
-                return Result.Failure<string>(SendCmUploadErrors.MissingSessionId());
-            }
-
-            _logger.LogDebug(
-                "Resolved session ID for hoster {HosterCode}",
-                Code);
-
-            return Result.Success(sessionId);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(
-                ex,
-                "Unexpected error while resolving session ID for hoster {HosterCode}",
-                Code);
-
-            return Result.Failure<string>(SendCmUploadErrors.MissingSessionId());
-        }
-    }
-
-    private async Task<Result<string>> GetUploadServerAsync(string apiKey, CancellationToken ct)
-    {
-        try
-        {
-            string url = QueryHelpers.AddQueryString(_options.UploadServerEndpoint, "key", apiKey);
-
-            _logger.LogDebug(
-                "Requesting upload server for hoster {HosterCode}",
-                Code);
-
-            using var response = await _httpClient.GetAsync(url, ct);
-
-            if (!response.IsSuccessStatusCode)
-            {
-                _logger.LogWarning(
-                    "Failed to resolve upload server for hoster {HosterCode}. StatusCode={StatusCode}",
-                    Code,
-                    (int)response.StatusCode);
-
-                return Result.Failure<string>(SendCmUploadErrors.MissingUploadServer());
-            }
-
-            await using Stream stream = await response.Content.ReadAsStreamAsync(ct);
-            using JsonDocument doc = await JsonDocument.ParseAsync(stream, cancellationToken: ct);
+                return Result.Failure<UploadSessionContext>(SendCmUploadErrors.MissingSessionId());
 
             if (!doc.RootElement.TryGetProperty("result", out JsonElement uploadServerProp))
-            {
-                _logger.LogWarning(
-                    "Failed to resolve upload server for hoster {HosterCode}: response missing result",
-                    Code);
+                return Result.Failure<UploadSessionContext>(SendCmUploadErrors.MissingUploadServer());
 
-                return Result.Failure<string>(SendCmUploadErrors.MissingUploadServer());
-            }
+            string? sessionId = sessIdProp.GetString();
+            string? uploadServer = uploadServerProp.GetString()?.Split('?').FirstOrDefault();
 
-            string? uploadServer = uploadServerProp.GetString()?.Split('?').First();
+            if (string.IsNullOrWhiteSpace(sessionId))
+                return Result.Failure<UploadSessionContext>(SendCmUploadErrors.MissingSessionId());
+
             if (string.IsNullOrWhiteSpace(uploadServer))
-            {
-                _logger.LogWarning(
-                    "Failed to resolve upload server for hoster {HosterCode}: result was empty",
-                    Code);
+                return Result.Failure<UploadSessionContext>(SendCmUploadErrors.MissingUploadServer());
 
-                return Result.Failure<string>(SendCmUploadErrors.MissingUploadServer());
-            }
-
-            _logger.LogDebug(
-                "Resolved upload server for hoster {HosterCode}: {UploadServer}",
-                Code,
-                uploadServer);
-
-            return Result.Success(uploadServer);
+            return Result.Success(new UploadSessionContext(sessionId, uploadServer));
         }
-        catch (Exception ex)
+        catch
         {
-            _logger.LogError(
-                ex,
-                "Unexpected error while resolving upload server for hoster {HosterCode}",
-                Code);
-
-            return Result.Failure<string>(SendCmUploadErrors.MissingUploadServer());
+            return Result.Failure<UploadSessionContext>(SendCmUploadErrors.MissingUploadServer());
         }
     }
 
@@ -519,8 +432,15 @@ internal class SendCmApiClient : HosterApiClientBase<SendCmHoster>, IValidateCre
     {
         try
         {
-            int lastNewline = response.LastIndexOf('\n');
-            string json = lastNewline >= 0 ? response[(lastNewline + 1)..].Trim() : response.Trim();
+            ArgumentNullException.ThrowIfNull(response);
+
+            string trimmed = response.Trim();
+
+            int jsonStart = trimmed.IndexOf('[');
+            if (jsonStart < 0)
+                return Result.Failure<string>(SendCmUploadErrors.InvalidJsonResponse("Expected a JSON array payload."));
+
+            string json = trimmed[jsonStart..];
 
             using JsonDocument doc = JsonDocument.Parse(json);
             if (doc.RootElement.ValueKind != JsonValueKind.Array)
@@ -529,13 +449,39 @@ internal class SendCmApiClient : HosterApiClientBase<SendCmHoster>, IValidateCre
             if (doc.RootElement.GetArrayLength() == 0)
                 return Result.Failure<string>(SendCmUploadErrors.InvalidJsonResponse("Empty array returned."));
 
-            if (!doc.RootElement[0].TryGetProperty("file_code", out JsonElement fileCodeProp))
+            JsonElement first = doc.RootElement[0];
+
+            if (!first.TryGetProperty("file_code", out JsonElement fileCodeProp))
                 return Result.Failure<string>(SendCmUploadErrors.EmptyFileCode());
 
             string? fileCode = fileCodeProp.GetString();
-            return string.IsNullOrWhiteSpace(fileCode)
-                ? Result.Failure<string>(SendCmUploadErrors.EmptyFileCode())
-                : Result.Success(fileCode);
+            if (!string.IsNullOrWhiteSpace(fileCode)
+                && !string.Equals(fileCode, "undef", StringComparison.OrdinalIgnoreCase))
+            {
+                return Result.Success(fileCode);
+            }
+
+            string? fileStatus = null;
+            if (first.TryGetProperty("file_status", out JsonElement fileStatusProp))
+                fileStatus = fileStatusProp.GetString();
+
+            if (!string.IsNullOrWhiteSpace(fileStatus))
+            {
+                if (string.Equals(fileStatus, "this file is banned by administrator", StringComparison.OrdinalIgnoreCase))
+                    return Result.Failure<string>(SendCmUploadErrors.FileBannedByAdministrator());
+
+                if (string.Equals(
+                        fileStatus,
+                        "This file has reached the maximum duplicate limit. Please upload an unique file.",
+                        StringComparison.OrdinalIgnoreCase))
+                {
+                    return Result.Failure<string>(SendCmUploadErrors.DuplicateLimitReached());
+                }
+
+                return Result.Failure<string>(SendCmUploadErrors.InvalidJsonResponse(fileStatus));
+            }
+
+            return Result.Failure<string>(SendCmUploadErrors.EmptyFileCode());
         }
         catch (JsonException ex)
         {
