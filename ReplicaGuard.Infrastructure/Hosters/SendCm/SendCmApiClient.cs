@@ -79,11 +79,13 @@ internal class SendCmApiClient : HosterApiClientBase<SendCmHoster>, IValidateCre
         ArgumentNullException.ThrowIfNullOrEmpty(fileName);
         ArgumentNullException.ThrowIfNull(fileStream);
 
+        var sizeBytes = fileStream.Length;
+
         _logger.LogInformation(
             "Starting local upload to hoster {HosterCode} for file {FileName} ({Bytes} bytes)",
             Code,
             fileName,
-            fileStream.Length);
+            sizeBytes);
 
         try
         {
@@ -158,20 +160,8 @@ internal class SendCmApiClient : HosterApiClientBase<SendCmHoster>, IValidateCre
                 return Result.Failure<UploadResponse>(fileCodeResult.Error);
             }
 
-            Result<UpdateStat> updateStatResult = ParseUpdateStat(body);
-            if (updateStatResult.IsFailure)
-            {
-                _logger.LogWarning(
-                    "Local upload to hoster {HosterCode} returned an invalid update_stat payload: {ErrorCode}",
-                    Code,
-                    updateStatResult.Error.Code);
-
-                return Result.Failure<UploadResponse>(updateStatResult.Error);
-            }
-
             string fileCode = fileCodeResult.Value;
             Uri fileUrl = new($"{_options.ApiBaseUrl}/{fileCode}");
-            long sizeBytes = updateStatResult.Value.Total;
 
             _logger.LogInformation(
                 "Local upload to hoster {HosterCode} succeeded for file {FileName}. FileCode={FileCode}, SizeBytes={SizeBytes}, Url={FileUrl}",
