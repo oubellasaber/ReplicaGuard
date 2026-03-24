@@ -519,8 +519,15 @@ internal class SendCmApiClient : HosterApiClientBase<SendCmHoster>, IValidateCre
     {
         try
         {
-            int lastNewline = response.LastIndexOf('\n');
-            string json = lastNewline >= 0 ? response[(lastNewline + 1)..].Trim() : response.Trim();
+            ArgumentNullException.ThrowIfNull(response);
+
+            string trimmed = response.Trim();
+
+            int jsonStart = trimmed.IndexOf('[');
+            if (jsonStart < 0)
+                return Result.Failure<string>(SendCmUploadErrors.InvalidJsonResponse("Expected a JSON array payload."));
+
+            string json = trimmed[jsonStart..];
 
             using JsonDocument doc = JsonDocument.Parse(json);
             if (doc.RootElement.ValueKind != JsonValueKind.Array)
@@ -529,13 +536,39 @@ internal class SendCmApiClient : HosterApiClientBase<SendCmHoster>, IValidateCre
             if (doc.RootElement.GetArrayLength() == 0)
                 return Result.Failure<string>(SendCmUploadErrors.InvalidJsonResponse("Empty array returned."));
 
-            if (!doc.RootElement[0].TryGetProperty("file_code", out JsonElement fileCodeProp))
+            JsonElement first = doc.RootElement[0];
+
+            if (!first.TryGetProperty("file_code", out JsonElement fileCodeProp))
                 return Result.Failure<string>(SendCmUploadErrors.EmptyFileCode());
 
             string? fileCode = fileCodeProp.GetString();
-            return string.IsNullOrWhiteSpace(fileCode)
-                ? Result.Failure<string>(SendCmUploadErrors.EmptyFileCode())
-                : Result.Success(fileCode);
+            if (!string.IsNullOrWhiteSpace(fileCode)
+                && !string.Equals(fileCode, "undef", StringComparison.OrdinalIgnoreCase))
+            {
+                return Result.Success(fileCode);
+            }
+
+            string? fileStatus = null;
+            if (first.TryGetProperty("file_status", out JsonElement fileStatusProp))
+                fileStatus = fileStatusProp.GetString();
+
+            if (!string.IsNullOrWhiteSpace(fileStatus))
+            {
+                if (string.Equals(fileStatus, "this file is banned by administrator", StringComparison.OrdinalIgnoreCase))
+                    return Result.Failure<string>(SendCmUploadErrors.FileBannedByAdministrator());
+
+                if (string.Equals(
+                        fileStatus,
+                        "This file has reached the maximum duplicate limit. Please upload an unique file.",
+                        StringComparison.OrdinalIgnoreCase))
+                {
+                    return Result.Failure<string>(SendCmUploadErrors.DuplicateLimitReached());
+                }
+
+                return Result.Failure<string>(SendCmUploadErrors.InvalidJsonResponse(fileStatus));
+            }
+
+            return Result.Failure<string>(SendCmUploadErrors.EmptyFileCode());
         }
         catch (JsonException ex)
         {
