@@ -13,6 +13,14 @@ internal static class SendCmUploadErrors
         new Error("Hoster.SendCm.Upload.EmptyFileCode", "The server returned an empty file code.")
             .WithType(ErrorType.Failure);
 
+    public static Error FileBannedByAdministrator() =>
+        new Error("Hoster.SendCm.Upload.FileBanned", "The file is banned by the hoster administrator.")
+            .WithType(ErrorType.Forbidden);
+
+    public static Error DuplicateLimitReached() =>
+        new Error("Hoster.SendCm.Upload.DuplicateLimitReached", "The file reached the maximum duplicate limit. Upload a unique file.")
+            .WithType(ErrorType.Conflict);
+
     public static Error MissingSessionId() =>
         new Error("Hoster.SendCm.Upload.MissingSessionId", "Failed to retrieve session ID from the server.")
             .WithType(ErrorType.Failure);
