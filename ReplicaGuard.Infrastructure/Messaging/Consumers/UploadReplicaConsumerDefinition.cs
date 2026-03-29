@@ -14,7 +14,6 @@ public sealed class UploadReplicaConsumerDefinition : ConsumerDefinition<UploadR
         IConsumerConfigurator<UploadReplicaConsumer> consumerConfigurator,
         IRegistrationContext context)
     {
-        endpointConfigurator.ConcurrentMessageLimit = 1;
         endpointConfigurator.UseMessageRetry(r => r.Exponential(
             retryLimit: 3,
             minInterval: TimeSpan.FromSeconds(5),
