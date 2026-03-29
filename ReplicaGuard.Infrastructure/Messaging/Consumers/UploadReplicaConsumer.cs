@@ -201,15 +201,17 @@ public sealed class UploadReplicaConsumer : IConsumer<UploadReplicaCommand>
             if (remoteResult.IsSuccess)
             {
                 _logger.LogInformation("{Hoster} fetched from remote URL directly", hosterCode);
-                var markUploadingResult = replica.MarkUploading();
+
+                Result markUploadingResult = replica.MarkUploading();
                 if (markUploadingResult.IsFailure)
                     return Result.Failure<UploadResponse>(markUploadingResult.Error);
 
-                // Best-effort: record size from hoster if we don't have it yet
                 if (remoteResult.Value.SizeBytes.HasValue)
                     asset.RecordFileSize(remoteResult.Value.SizeBytes.Value);
 
+                asset.RecalculateState();
                 await _unitOfWork.SaveChangesAsync(ct);
+
                 return remoteResult;
             }
 
@@ -222,7 +224,7 @@ public sealed class UploadReplicaConsumer : IConsumer<UploadReplicaCommand>
 
             // Is a sibling already downloading? Wait for it to spool the file
             Replica? busySibling = asset.Replicas.FirstOrDefault(r =>
-                r.Id != replica.Id && r.State == ReplicaState.Uploading);
+                r.Id != replica.Id && r.State == ReplicaState.Downloading);
 
             if (busySibling != null && !_fileFetcher.IsSpooled(asset.Id))
             {
@@ -234,6 +236,7 @@ public sealed class UploadReplicaConsumer : IConsumer<UploadReplicaCommand>
                 if (waitingResult.IsFailure)
                     return Result.Failure<UploadResponse>(waitingResult.Error);
 
+                asset.RecalculateState();
                 await _unitOfWork.SaveChangesAsync(ct);
 
                 // Safety timeout in case sibling fails silently
@@ -245,6 +248,13 @@ public sealed class UploadReplicaConsumer : IConsumer<UploadReplicaCommand>
             }
 
             // Nobody downloading or file already spooled => download ourselves
+            Result markDownloadingResult = replica.MarkDownloading();
+            if (markDownloadingResult.IsFailure)
+                return Result.Failure<UploadResponse>(markDownloadingResult.Error);
+
+            asset.RecalculateState();
+            await _unitOfWork.SaveChangesAsync(ct);
+
             Result<FetchedFile> fetchResult = await _fileFetcher.DownloadAsync(asset.Id, remoteSource, ct);
             if (fetchResult.IsFailure)
                 return Result.Failure<UploadResponse>(fetchResult.Error);

@@ -16,17 +16,27 @@ public enum ReplicaState
     WaitingForPeer = 1,
 
     /// <summary>
+    /// Replica is downloading/spooling the source file.
+    /// </summary>
+    Downloading = 2,
+
+    /// <summary>
     /// Replica is currently being uploaded by a worker.
     /// </summary>
-    Uploading = 2,
+    Uploading = 3,
 
     /// <summary>
     /// Replica was successfully uploaded and is accessible.
     /// </summary>
-    Completed = 3,
+    Completed = 4,
 
     /// <summary>
-    /// Replica upload failed.
+    /// Replica upload failed permanently (no retries remaining).
     /// </summary>
-    Failed = 4
+    Failed = 5,
+
+    /// <summary>
+    /// Replica failed but is scheduled for another attempt.
+    /// </summary>
+    Retrying = 6
 }

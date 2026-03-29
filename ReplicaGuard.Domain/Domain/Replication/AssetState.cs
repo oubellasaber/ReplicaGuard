@@ -11,17 +11,22 @@ public enum AssetState
     Created = 0,
 
     /// <summary>
-    /// At least one replica is currently being uploaded.
+    /// At least one replica is currently being uploaded, waiting, or retrying.
     /// </summary>
     Uploading = 1,
 
     /// <summary>
-    /// All replicas have been successfully uploaded.
+    /// No work is in progress and at least one replica is available.
     /// </summary>
     Completed = 2,
 
     /// <summary>
     /// All replicas have failed permanently.
     /// </summary>
-    Failed = 3
+    Failed = 3,
+
+    /// <summary>
+    /// At least one replica is currently downloading/spooling source data.
+    /// </summary>
+    Downloading = 4
 }
