@@ -484,6 +484,48 @@ internal class SendCmApiClient : HosterApiClientBase<SendCmHoster>, IValidateCre
         return Result.Success();
     }
 
+    private static Result ParseRenameResponse(string response)
+    {
+        try
+        {
+            ArgumentNullException.ThrowIfNull(response);
+
+            using JsonDocument doc = JsonDocument.Parse(response);
+            JsonElement root = doc.RootElement;
+
+            if (!root.TryGetProperty("status", out JsonElement statusProp))
+                return Result.Failure(SendCmFileErrors.RenameInvalidResponse("Missing 'status'."));
+
+            int status = statusProp.GetInt32();
+            if (status != 200)
+            {
+                string detail = root.TryGetProperty("msg", out JsonElement msgProp)
+                    ? msgProp.GetString() ?? "Rename failed."
+                    : "Rename failed.";
+
+                return Result.Failure(SendCmFileErrors.RenameFailed(detail));
+            }
+
+            if (!root.TryGetProperty("result", out JsonElement resultProp))
+                return Result.Failure(SendCmFileErrors.RenameInvalidResponse("Missing 'result'."));
+
+            bool success = resultProp.ValueKind switch
+            {
+                JsonValueKind.True => true,
+                JsonValueKind.String => string.Equals(resultProp.GetString(), "true", StringComparison.OrdinalIgnoreCase),
+                _ => false
+            };
+
+            return success
+                ? Result.Success()
+                : Result.Failure(SendCmFileErrors.RenameFailed("Provider returned an unsuccessful rename result."));
+        }
+        catch (JsonException ex)
+        {
+            return Result.Failure(SendCmFileErrors.RenameInvalidResponse(ex.Message));
+        }
+    }
+
     private readonly record struct UploadSessionContext(
         string SessionId,
         string UploadServer);
