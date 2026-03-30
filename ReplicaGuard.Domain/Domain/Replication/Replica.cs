@@ -37,7 +37,7 @@ public sealed class Replica : Entity<Guid>
     {
         bool canTransition =
             State == ReplicaState.Pending ||
-            (State == ReplicaState.Failed && CanRetry());
+            State == ReplicaState.Retrying;
 
         if (!canTransition)
             return Result.Failure(ReplicationErrors.InvalidReplicaStateTransition(State, ReplicaState.WaitingForPeer));
@@ -48,12 +48,30 @@ public sealed class Replica : Entity<Guid>
         return Result.Success();
     }
 
+    public Result MarkDownloading()
+    {
+        bool canTransition =
+            State == ReplicaState.Pending ||
+            State == ReplicaState.WaitingForPeer ||
+            State == ReplicaState.Retrying;
+
+        if (!canTransition)
+            return Result.Failure(ReplicationErrors.InvalidReplicaStateTransition(State, ReplicaState.Downloading));
+
+        State = ReplicaState.Downloading;
+        WaitingForReplicaId = null;
+        LastError = null;
+        UpdatedAtUtc = DateTime.UtcNow;
+        return Result.Success();
+    }
+
     public Result MarkUploading()
     {
         bool canTransition =
             State == ReplicaState.Pending ||
             State == ReplicaState.WaitingForPeer ||
-            (State == ReplicaState.Failed && CanRetry());
+            State == ReplicaState.Downloading ||
+            State == ReplicaState.Retrying;
 
         if (!canTransition)
             return Result.Failure(ReplicationErrors.InvalidReplicaStateTransition(State, ReplicaState.Uploading));
@@ -83,27 +101,56 @@ public sealed class Replica : Entity<Guid>
         return Result.Success();
     }
 
-    public Result MarkFailed(string reason)
+    /// <summary>
+    /// Records a failed attempt.
+    /// If retries remain => Retrying; otherwise => Failed.
+    /// </summary>
+    public Result MarkAttemptFailed(string reason)
     {
-        if (State != ReplicaState.Uploading &&
-            State != ReplicaState.Pending &&
-            State != ReplicaState.WaitingForPeer &&
-            State != ReplicaState.Failed)
+        bool canTransition =
+            State == ReplicaState.Pending ||
+            State == ReplicaState.WaitingForPeer ||
+            State == ReplicaState.Downloading ||
+            State == ReplicaState.Uploading ||
+            State == ReplicaState.Retrying;
+
+        if (!canTransition)
             return Result.Failure(ReplicationErrors.InvalidReplicaStateTransition(State, ReplicaState.Failed));
 
+        if (string.IsNullOrWhiteSpace(reason))
+            return Result.Failure(ReplicationErrors.ErrorReasonEmpty);
+
+        RetryCount++;
+        LastError = reason;
+        WaitingForReplicaId = null;
+        UpdatedAtUtc = DateTime.UtcNow;
+
+        State = CanRetry() ? ReplicaState.Retrying : ReplicaState.Failed;
+
+        if (State == ReplicaState.Failed)
+        {
+            RaiseDomainEvent(new ReplicaFailed(Id, AssetId, HosterId, reason));
+        }
+
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Marks an unrecoverable failure directly (no retry scheduling).
+    /// </summary>
+    public Result MarkFailed(string reason)
+    {
         if (string.IsNullOrWhiteSpace(reason))
             return Result.Failure(ReplicationErrors.ErrorReasonEmpty);
 
         State = ReplicaState.Failed;
         LastError = reason;
         WaitingForReplicaId = null;
-        RetryCount++;
         UpdatedAtUtc = DateTime.UtcNow;
 
         RaiseDomainEvent(new ReplicaFailed(Id, AssetId, HosterId, reason));
         return Result.Success();
     }
 
-    public bool CanRetry() =>
-        State == ReplicaState.Failed && RetryCount < MaxRetries;
+    public bool CanRetry() => RetryCount < MaxRetries;
 }

@@ -128,28 +128,29 @@ public sealed class Asset : Entity<Guid>
         if (_replicas.Count == 0)
             return;
 
-        // A replica implies progress if it's explicitly in progress, OR failed but can still be retried.
-        bool anyInProgress = _replicas.Any(r =>
-            r.State is ReplicaState.Uploading or ReplicaState.Pending or ReplicaState.WaitingForPeer ||
-            (r.State == ReplicaState.Failed && r.CanRetry()));
-            
-        // We only consider the overall asset failed if EVERY replica is permanently failed (no retries left)
-        bool allPermanentlyFailed = _replicas.All(r => r.State == ReplicaState.Failed && !r.CanRetry());
+        bool anyDownloading = _replicas.Any(r => r.State == ReplicaState.Downloading);
+
+        bool anyUploading = _replicas.Any(r =>
+            r.State is ReplicaState.Pending or ReplicaState.WaitingForPeer or ReplicaState.Uploading or ReplicaState.Retrying);
+
+        bool allPermanentlyFailed = _replicas.All(r => r.State == ReplicaState.Failed);
         bool anyCompleted = _replicas.Any(r => r.State == ReplicaState.Completed);
+        bool allCompleted = _replicas.All(r => r.State == ReplicaState.Completed);
 
         AssetState previousState = State;
 
-        State = (anyInProgress, allPermanentlyFailed, anyCompleted) switch
+        State = (anyDownloading, anyUploading, allPermanentlyFailed, anyCompleted) switch
         {
-            (true, _, _) => AssetState.Uploading,
-            (false, true, _) => AssetState.Failed,
-            (false, false, true) => AssetState.Completed,
-            _ => State
+            (true, _, _, _) => AssetState.Downloading,
+            (false, true, _, _) => AssetState.Uploading,
+            (false, false, true, false) => AssetState.Failed,
+            (false, false, false, true) => AssetState.Completed,
+            _ => AssetState.Created
         };
 
         UpdatedAtUtc = DateTime.UtcNow;
 
-        if (State == AssetState.Completed && previousState != AssetState.Completed)
+        if (allCompleted && previousState != AssetState.Completed)
         {
             RaiseDomainEvent(new AllReplicasCompleted(Id, UserId));
         }
