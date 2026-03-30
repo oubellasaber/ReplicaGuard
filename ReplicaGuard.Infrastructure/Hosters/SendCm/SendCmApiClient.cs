@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ReplicaGuard.Core.Abstractions;
 using ReplicaGuard.Core.Capabilities.Credentials;
+using ReplicaGuard.Core.Capabilities.Rename;
 using ReplicaGuard.Core.Capabilities.Upload;
 using ReplicaGuard.Core.Domain.Credentials;
 using ReplicaGuard.Core.Domain.Replication;
@@ -14,7 +15,7 @@ using SendCmHoster = ReplicaGuard.Core.Domain.Hoster.SendCm;
 
 namespace ReplicaGuard.Infrastructure.Hosters.SendCm;
 
-internal class SendCmApiClient : HosterApiClientBase<SendCmHoster>, IValidateCredentials, IUploadFile
+internal class SendCmApiClient : HosterApiClientBase<SendCmHoster>, IValidateCredentials, IUploadFile, IRenameFile
 {
     private readonly HttpClient _httpClient;
     private readonly HttpClient _uploadClient;
@@ -136,7 +137,7 @@ internal class SendCmApiClient : HosterApiClientBase<SendCmHoster>, IValidateCre
 
             // Execute the long-running upload via _uploadClient instead of _httpClient
             using var response = await _uploadClient.PostAsync(uploadUrl, content, ct);
-            
+
             if (!response.IsSuccessStatusCode)
             {
                 _logger.LogWarning(
@@ -240,6 +241,7 @@ internal class SendCmApiClient : HosterApiClientBase<SendCmHoster>, IValidateCre
                 { new StringContent(uploadSession.SessionId), "sess_id" },
                 { new StringContent("reg"), "utype" },
                 { new StringContent("1"), "file_public" },
+                { new StringContent(fileName), "name" },
                 { new StringContent(remoteUrl.Url.Value.ToString()), "url_mass" },
                 { new StringContent("", Encoding.UTF8), "link_pass" },
                 { new StringContent(""), "to_folder" },
@@ -247,7 +249,7 @@ internal class SendCmApiClient : HosterApiClientBase<SendCmHoster>, IValidateCre
                 { new StringContent("1"), "keepalive" }
             };
 
-            using var response = await _httpClient.PostAsync(uploadUrl, content, ct);
+            using HttpResponseMessage response = await _httpClient.PostAsync(uploadUrl, content, ct);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -260,7 +262,6 @@ internal class SendCmApiClient : HosterApiClientBase<SendCmHoster>, IValidateCre
                     HosterUploadErrors.UploadFailed(Code, UploadMethod.RemoteUrl, response.StatusCode));
             }
 
-            // Handle ("# Keep-Alive\n[{\"file_code\":\"undef\",\"file_status\":\"this file is banned by administrator\"}]")
             string body = await response.Content.ReadAsStringAsync(ct);
 
             Result<string> fileCodeResult = ExtractFileCode(body);
@@ -275,7 +276,7 @@ internal class SendCmApiClient : HosterApiClientBase<SendCmHoster>, IValidateCre
             }
 
             string updateStatUrl = $"{new Uri(uploadSession.UploadServer).GetLeftPart(UriPartial.Authority)}/tmp/{uploadId}.json";
-            using var updateStatResponse = await _httpClient.GetAsync(updateStatUrl, ct);
+            using HttpResponseMessage updateStatResponse = await _httpClient.GetAsync(updateStatUrl, ct);
             string updateStatBody = await updateStatResponse.Content.ReadAsStringAsync(ct);
 
             Result<UpdateStat> updateStatResult = ParseUpdateStat(updateStatBody);
@@ -290,6 +291,19 @@ internal class SendCmApiClient : HosterApiClientBase<SendCmHoster>, IValidateCre
             }
 
             string fileCode = fileCodeResult.Value;
+
+            Result renameResult = await RenameFileAsync(credentials, fileCode, fileName, ct);
+            if (renameResult.IsFailure)
+            {
+                _logger.LogWarning(
+                    "Remote URL upload to hoster {HosterCode} could not enforce filename via rename. FileCode={FileCode}, ErrorCode={ErrorCode}",
+                    Code,
+                    fileCode,
+                    renameResult.Error.Code);
+
+                return Result.Failure<UploadResponse>(renameResult.Error);
+            }
+
             Uri fileUrl = new($"{_options.ApiBaseUrl}/{fileCode}");
             long sizeBytes = updateStatResult.Value.Total;
 
@@ -324,6 +338,99 @@ internal class SendCmApiClient : HosterApiClientBase<SendCmHoster>, IValidateCre
 
             return Result.Failure<UploadResponse>(
                 HosterUploadErrors.UploadFailed(Code, $"Unexpected error: {ex.Message}"));
+        }
+    }
+
+    public async Task<Result> RenameFileAsync(
+        CredentialSet credentials,
+        string fileCode,
+        string newFileName,
+        CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(credentials);
+        ArgumentNullException.ThrowIfNullOrEmpty(credentials.ApiKey);
+        ArgumentNullException.ThrowIfNullOrEmpty(fileCode);
+        ArgumentNullException.ThrowIfNullOrEmpty(newFileName);
+
+        _logger.LogInformation(
+            "Starting rename on hoster {HosterCode}. FileCode={FileCode}, NewName={NewName}",
+            Code,
+            fileCode,
+            newFileName);
+
+        try
+        {
+            Dictionary<string, string?> query = new()
+            {
+                ["key"] = credentials.ApiKey,
+                ["file_code"] = fileCode,
+                ["name"] = newFileName
+            };
+
+            string url = QueryHelpers.AddQueryString(_options.RenameFileEndpoint, query);
+
+            using HttpResponseMessage response = await _httpClient.GetAsync(url, ct);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning(
+                    "Rename failed on hoster {HosterCode}. FileCode={FileCode}, StatusCode={StatusCode}",
+                    Code,
+                    fileCode,
+                    (int)response.StatusCode);
+
+                return response.StatusCode switch
+                {
+                    System.Net.HttpStatusCode.BadRequest => Result.Failure(SendCmFileErrors.RenameBadRequest()),
+                    System.Net.HttpStatusCode.Forbidden => Result.Failure(SendCmFileErrors.RenameForbidden()),
+                    System.Net.HttpStatusCode.NotFound => Result.Failure(SendCmFileErrors.RenameFileNotFound(fileCode)),
+                    (System.Net.HttpStatusCode)451 => Result.Failure(SendCmFileErrors.RenameUnavailable()),
+                    _ => Result.Failure(SendCmFileErrors.RenameFailed(
+                        $"HTTP {(int)response.StatusCode} {response.StatusCode}"))
+                };
+            }
+
+            string body = await response.Content.ReadAsStringAsync(ct);
+            Result parseResult = ParseRenameResponse(body);
+
+            if (parseResult.IsFailure)
+            {
+                _logger.LogWarning(
+                    "Rename response invalid on hoster {HosterCode}. FileCode={FileCode}, ErrorCode={ErrorCode}",
+                    Code,
+                    fileCode,
+                    parseResult.Error.Code);
+
+                return parseResult;
+            }
+
+            _logger.LogInformation(
+                "Rename succeeded on hoster {HosterCode}. FileCode={FileCode}, NewName={NewName}",
+                Code,
+                fileCode,
+                newFileName);
+
+            return Result.Success();
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(
+                ex,
+                "Network error during rename on hoster {HosterCode}. FileCode={FileCode}",
+                Code,
+                fileCode);
+
+            return Result.Failure(SendCmFileErrors.RenameFailed($"Network error: {ex.Message}"));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(
+                ex,
+                "Unexpected error during rename on hoster {HosterCode}. FileCode={FileCode}",
+                Code,
+                fileCode);
+
+            return Result.Failure(SendCmFileErrors.RenameFailed($"Unexpected error: {ex.Message}"));
         }
     }
 
