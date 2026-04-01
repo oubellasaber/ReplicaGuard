@@ -4,9 +4,9 @@
 
 This repository must never contain real credentials in tracked files, including:
 
-- `ReplicaGuard.Api/appsettings.Development.json`
-- `ReplicaGuard.Api/appsettings.json`
-- `ReplicaGuard.Api/Properties/launchSettings.json`
+- `src/ReplicaGuard.Api/appsettings.Development.json`
+- `src/ReplicaGuard.Api/appsettings.json`
+- `src/ReplicaGuard.Api/Properties/launchSettings.json`
 
 Use placeholders only in committed config files.
 
@@ -17,8 +17,8 @@ Use placeholders only in committed config files.
 From the solution root, run:
 
 ```powershell
-dotnet user-secrets --project .\ReplicaGuard.Api set "ConnectionStrings:Database" "Host=localhost;Port=5432;Database=replicaguard;Username=postgres;Password=<your-password>"
-dotnet user-secrets --project .\ReplicaGuard.Api set "Jwt:Key" "<your-strong-base64-key>"
+dotnet user-secrets --project .\src\ReplicaGuard.Api set "ConnectionStrings:Database" "Host=localhost;Port=5432;Database=replicaguard;Username=postgres;Password=<your-password>"
+dotnet user-secrets --project .\src\ReplicaGuard.Api set "Jwt:Key" "<your-strong-base64-key>"
 ```
 
 ## Environment variables (.env / CI / containers)
