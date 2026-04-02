@@ -28,7 +28,7 @@ ReplicaGuard is a self-hosted `.NET 8` backend for managing asset replication ac
 ```powershell
 dotnet restore
 dotnet build
-dotnet run --project .\ReplicaGuard.Api
+dotnet run --project .\src\ReplicaGuard.Api
 ```
 
 The API starts with Swagger enabled in development.
