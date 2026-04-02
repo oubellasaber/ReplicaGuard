@@ -46,7 +46,7 @@ public class RefreshTokenCommandHandler : ICommandHandler<RefreshTokenCommand, A
         var accessTokens = _tokenProvider.Create(refreshToken.UserId, refreshToken.User.Email!, [.. roles]);
 
         refreshToken.Token = accessTokens.RefreshToken;
-        refreshToken.ExpiresAtUtc = _dateTimeProvider.UtcNow.AddMinutes(_jwtAuthOptionsProvider.RefreshTokenExpirationInDays);
+        refreshToken.ExpiresAtUtc = _dateTimeProvider.UtcNow.AddDays(_jwtAuthOptionsProvider.RefreshTokenExpirationInDays);
 
         _refreshTokenRepository.Update(refreshToken);
 
