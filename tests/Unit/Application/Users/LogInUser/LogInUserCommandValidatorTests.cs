@@ -8,12 +8,10 @@ public class LogInUserCommandValidatorTests
     private readonly LogInUserCommandValidator _sut = new();
 
     [Fact]
-    public void Validate_ValidCommand_ShouldPass()
+    public void Validate_Passes_WhenCommandIsValid()
     {
         // Arrange
-        var command = new LogInUserCommand(
-            "john@example.com",
-            "SecurePassword123!");
+        LogInUserCommand command = CreateCommand();
 
         // Act
         var result = _sut.TestValidate(command);
@@ -25,12 +23,10 @@ public class LogInUserCommandValidatorTests
     [Theory]
     [InlineData("")]
     [InlineData(null)]
-    public void Validate_EmptyEmail_ShouldFail(string? email)
+    public void Validate_Fails_WhenEmailIsEmpty(string? email)
     {
         // Arrange
-        var command = new LogInUserCommand(
-            email!,
-            "Password123!");
+        LogInUserCommand command = CreateCommand(email: email!);
 
         // Act
         var result = _sut.TestValidate(command);
@@ -41,13 +37,11 @@ public class LogInUserCommandValidatorTests
     }
 
     [Fact]
-    public void Validate_EmailExceeds256Chars_ShouldFail()
+    public void Validate_Fails_WhenEmailExceedsMaxLength()
     {
         // Arrange
-        var email = new string('a', 245) + "@example.com"; // 257 chars
-        var command = new LogInUserCommand(
-            email,
-            "Password123!");
+        string email = new string('a', 245) + "@example.com";
+        LogInUserCommand command = CreateCommand(email: email);
 
         // Act
         var result = _sut.TestValidate(command);
@@ -58,13 +52,11 @@ public class LogInUserCommandValidatorTests
     }
 
     [Fact]
-    public void Validate_EmailIsExactly256Chars_ShouldPass()
+    public void Validate_Passes_WhenEmailIsAtMaxLength()
     {
         // Arrange
-        var email = new string('a', 244) + "@example.com"; // 256 chars
-        var command = new LogInUserCommand(
-            email,
-            "Password123!");
+        string email = new string('a', 244) + "@example.com";
+        LogInUserCommand command = CreateCommand(email: email);
 
         // Act
         var result = _sut.TestValidate(command);
@@ -77,12 +69,10 @@ public class LogInUserCommandValidatorTests
     [InlineData("invalid")]
     [InlineData("invalid@")]
     [InlineData("@invalid.com")]
-    public void Validate_InvalidEmailFormat_ShouldFail(string email)
+    public void Validate_Fails_WhenEmailFormatIsInvalid(string email)
     {
         // Arrange
-        var command = new LogInUserCommand(
-            email,
-            "Password123!");
+        LogInUserCommand command = CreateCommand(email: email);
 
         // Act
         var result = _sut.TestValidate(command);
@@ -95,12 +85,10 @@ public class LogInUserCommandValidatorTests
     [Theory]
     [InlineData("")]
     [InlineData(null)]
-    public void Validate_EmptyPassword_ShouldFail(string? password)
+    public void Validate_Fails_WhenPasswordIsEmpty(string? password)
     {
         // Arrange
-        var command = new LogInUserCommand(
-            "john@example.com",
-            password!);
+        LogInUserCommand command = CreateCommand(password: password!);
 
         // Act
         var result = _sut.TestValidate(command);
@@ -108,5 +96,12 @@ public class LogInUserCommandValidatorTests
         // Assert
         result.ShouldHaveValidationErrorFor(x => x.Password)
             .WithErrorMessage("Password must not be empty");
+    }
+
+    private static LogInUserCommand CreateCommand(
+        string email = "john@example.com",
+        string password = "SecurePassword123!")
+    {
+        return new LogInUserCommand(email, password);
     }
 }

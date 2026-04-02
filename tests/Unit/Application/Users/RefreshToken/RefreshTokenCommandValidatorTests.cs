@@ -1,4 +1,3 @@
-using FluentAssertions;
 using FluentValidation.TestHelper;
 using ReplicaGuard.Application.Users.RefreshToken;
 
@@ -9,10 +8,10 @@ public class RefreshTokenCommandValidatorTests
     private readonly RefreshTokenCommandValidator _sut = new();
 
     [Fact]
-    public void Validate_ValidCommand_ShouldPass()
+    public void Validate_Passes_WhenRefreshTokenIsProvided()
     {
         // Arrange
-        var command = new RefreshTokenCommand("valid-refresh-token-12345");
+        RefreshTokenCommand command = new("valid-refresh-token-12345");
 
         // Act
         var result = _sut.TestValidate(command);
@@ -24,10 +23,10 @@ public class RefreshTokenCommandValidatorTests
     [Theory]
     [InlineData("")]
     [InlineData(null)]
-    public void Validate_EmptyRefreshToken_ShouldFail(string? token)
+    public void Validate_Fails_WhenRefreshTokenIsEmpty(string? token)
     {
         // Arrange
-        var command = new RefreshTokenCommand(token!);
+        RefreshTokenCommand command = new(token!);
 
         // Act
         var result = _sut.TestValidate(command);

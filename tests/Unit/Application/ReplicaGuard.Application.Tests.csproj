@@ -21,7 +21,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\ReplicaGuard.Application\ReplicaGuard.Application.csproj" />
+    <ProjectReference Include="..\..\..\src\ReplicaGuard.Application\ReplicaGuard.Application.csproj" />
   </ItemGroup>
 
   <ItemGroup>

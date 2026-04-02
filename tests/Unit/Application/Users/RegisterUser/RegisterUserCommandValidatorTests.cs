@@ -1,4 +1,3 @@
-using FluentAssertions;
 using FluentValidation.TestHelper;
 using ReplicaGuard.Application.Users.RegisterUser;
 
@@ -9,14 +8,10 @@ public class RegisterUserCommandValidatorTests
     private readonly RegisterUserCommandValidator _sut = new();
 
     [Fact]
-    public void Validate_ValidCommand_ShouldPass()
+    public void Validate_Passes_WhenCommandIsValid()
     {
         // Arrange
-        var command = new RegisterUserCommand(
-            "JohnDoe",
-            "john@example.com",
-            "SecurePassword123!",
-            "SecurePassword123!");
+        RegisterUserCommand command = CreateCommand();
 
         // Act
         var result = _sut.TestValidate(command);
@@ -28,14 +23,10 @@ public class RegisterUserCommandValidatorTests
     [Theory]
     [InlineData("")]
     [InlineData(null)]
-    public void Validate_EmptyName_ShouldFail(string? name)
+    public void Validate_Fails_WhenNameIsEmpty(string? name)
     {
         // Arrange
-        var command = new RegisterUserCommand(
-            name!,
-            "john@example.com",
-            "Password123!",
-            "Password123!");
+        RegisterUserCommand command = CreateCommand(name: name!);
 
         // Act
         var result = _sut.TestValidate(command);
@@ -46,14 +37,10 @@ public class RegisterUserCommandValidatorTests
     }
 
     [Fact]
-    public void Validate_NameExceeds256Chars_ShouldFail()
+    public void Validate_Fails_WhenNameExceedsMaxLength()
     {
         // Arrange
-        var command = new RegisterUserCommand(
-            new string('a', 257),
-            "john@example.com",
-            "Password123!",
-            "Password123!");
+        RegisterUserCommand command = CreateCommand(name: new string('a', 257));
 
         // Act
         var result = _sut.TestValidate(command);
@@ -63,14 +50,10 @@ public class RegisterUserCommandValidatorTests
     }
 
     [Fact]
-    public void Validate_NameIsExactly256Chars_ShouldPass()
+    public void Validate_Passes_WhenNameIsAtMaxLength()
     {
         // Arrange
-        var command = new RegisterUserCommand(
-            new string('a', 256),
-            "john@example.com",
-            "Password123!",
-            "Password123!");
+        RegisterUserCommand command = CreateCommand(name: new string('a', 256));
 
         // Act
         var result = _sut.TestValidate(command);
@@ -82,14 +65,10 @@ public class RegisterUserCommandValidatorTests
     [Theory]
     [InlineData("")]
     [InlineData(null)]
-    public void Validate_EmptyEmail_ShouldFail(string? email)
+    public void Validate_Fails_WhenEmailIsEmpty(string? email)
     {
         // Arrange
-        var command = new RegisterUserCommand(
-            "JohnDoe",
-            email!,
-            "Password123!",
-            "Password123!");
+        RegisterUserCommand command = CreateCommand(email: email!);
 
         // Act
         var result = _sut.TestValidate(command);
@@ -100,15 +79,11 @@ public class RegisterUserCommandValidatorTests
     }
 
     [Fact]
-    public void Validate_EmailExceeds256Chars_ShouldFail()
+    public void Validate_Fails_WhenEmailExceedsMaxLength()
     {
         // Arrange
-        var email = new string('a', 245) + "@example.com";
-        var command = new RegisterUserCommand(
-            "JohnDoe",
-            email,
-            "Password123!",
-            "Password123!");
+        string email = new string('a', 245) + "@example.com";
+        RegisterUserCommand command = CreateCommand(email: email);
 
         // Act
         var result = _sut.TestValidate(command);
@@ -121,15 +96,10 @@ public class RegisterUserCommandValidatorTests
     [InlineData("invalid")]
     [InlineData("invalid@")]
     [InlineData("@invalid.com")]
-    //[InlineData("invalid@.com")]
-    public void Validate_InvalidEmailFormat_ShouldFail(string email)
+    public void Validate_Fails_WhenEmailFormatIsInvalid(string email)
     {
         // Arrange
-        var command = new RegisterUserCommand(
-            "JohnDoe",
-            email,
-            "Password123!",
-            "Password123!");
+        RegisterUserCommand command = CreateCommand(email: email);
 
         // Act
         var result = _sut.TestValidate(command);
@@ -142,14 +112,10 @@ public class RegisterUserCommandValidatorTests
     [Theory]
     [InlineData("")]
     [InlineData(null)]
-    public void Validate_EmptyPassword_ShouldFail(string? password)
+    public void Validate_Fails_WhenPasswordIsEmpty(string? password)
     {
         // Arrange
-        var command = new RegisterUserCommand(
-            "JohnDoe",
-            "john@example.com",
-            password!,
-            "Password123!");
+        RegisterUserCommand command = CreateCommand(password: password!);
 
         // Act
         var result = _sut.TestValidate(command);
@@ -162,14 +128,10 @@ public class RegisterUserCommandValidatorTests
     [Theory]
     [InlineData("")]
     [InlineData(null)]
-    public void Validate_EmptyConfirmationPassword_ShouldFail(string? confirmationPassword)
+    public void Validate_Fails_WhenConfirmationPasswordIsEmpty(string? confirmationPassword)
     {
         // Arrange
-        var command = new RegisterUserCommand(
-            "JohnDoe",
-            "john@example.com",
-            "Password123!",
-            confirmationPassword!);
+        RegisterUserCommand command = CreateCommand(confirmationPassword: confirmationPassword!);
 
         // Act
         var result = _sut.TestValidate(command);
@@ -180,14 +142,10 @@ public class RegisterUserCommandValidatorTests
     }
 
     [Fact]
-    public void Validate_PasswordsMismatch_ShouldFail()
+    public void Validate_Fails_WhenPasswordsDoNotMatch()
     {
         // Arrange
-        var command = new RegisterUserCommand(
-            "JohnDoe",
-            "john@example.com",
-            "Password123!",
-            "DifferentPassword!");
+        RegisterUserCommand command = CreateCommand(confirmationPassword: "DifferentPassword!");
 
         // Act
         var result = _sut.TestValidate(command);
@@ -195,5 +153,14 @@ public class RegisterUserCommandValidatorTests
         // Assert
         result.ShouldHaveValidationErrorFor(x => x.ConfirmationPassword)
             .WithErrorMessage("Passwords do not match");
+    }
+
+    private static RegisterUserCommand CreateCommand(
+        string name = "JohnDoe",
+        string email = "john@example.com",
+        string password = "Password123!",
+        string confirmationPassword = "Password123!")
+    {
+        return new RegisterUserCommand(name, email, password, confirmationPassword);
     }
 }

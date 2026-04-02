@@ -8,13 +8,10 @@ public class CreateAssetCommandValidatorTests
     private readonly CreateAssetCommandValidator _sut = new();
 
     [Fact]
-    public void Validate_ValidCommand_ShouldPass()
+    public void Validate_Passes_WhenCommandIsValid()
     {
         // Arrange
-        var command = new CreateAssetCommand(
-            "https://example.com/file.zip",
-            "file.zip",
-            new List<Guid> { Guid.NewGuid() });
+        CreateAssetCommand command = CreateCommand();
 
         // Act
         var result = _sut.TestValidate(command);
@@ -26,13 +23,10 @@ public class CreateAssetCommandValidatorTests
     [Theory]
     [InlineData("")]
     [InlineData(null)]
-    public void Validate_EmptySource_ShouldFail(string? source)
+    public void Validate_Fails_WhenSourceIsEmpty(string? source)
     {
         // Arrange
-        var command = new CreateAssetCommand(
-            source!,
-            "file.zip",
-            new List<Guid> { Guid.NewGuid() });
+        CreateAssetCommand command = CreateCommand(source: source!);
 
         // Act
         var result = _sut.TestValidate(command);
@@ -43,13 +37,10 @@ public class CreateAssetCommandValidatorTests
     }
 
     [Fact]
-    public void Validate_SourceExceeds2048Chars_ShouldFail()
+    public void Validate_Fails_WhenSourceExceedsMaxLength()
     {
         // Arrange
-        var command = new CreateAssetCommand(
-            new string('a', 2049),
-            "file.zip",
-            new List<Guid> { Guid.NewGuid() });
+        CreateAssetCommand command = CreateCommand(source: new string('a', 2049));
 
         // Act
         var result = _sut.TestValidate(command);
@@ -62,13 +53,10 @@ public class CreateAssetCommandValidatorTests
     [Theory]
     [InlineData("")]
     [InlineData(null)]
-    public void Validate_EmptyFileName_ShouldFail(string? fileName)
+    public void Validate_Fails_WhenFileNameIsEmpty(string? fileName)
     {
         // Arrange
-        var command = new CreateAssetCommand(
-            "https://example.com/file.zip",
-            fileName!,
-            new List<Guid> { Guid.NewGuid() });
+        CreateAssetCommand command = CreateCommand(fileName: fileName!);
 
         // Act
         var result = _sut.TestValidate(command);
@@ -79,13 +67,10 @@ public class CreateAssetCommandValidatorTests
     }
 
     [Fact]
-    public void Validate_FileNameExceeds255Chars_ShouldFail()
+    public void Validate_Fails_WhenFileNameExceedsMaxLength()
     {
         // Arrange
-        var command = new CreateAssetCommand(
-            "https://example.com/file.zip",
-            new string('a', 256),
-            new List<Guid> { Guid.NewGuid() });
+        CreateAssetCommand command = CreateCommand(fileName: new string('a', 256));
 
         // Act
         var result = _sut.TestValidate(command);
@@ -96,13 +81,10 @@ public class CreateAssetCommandValidatorTests
     }
 
     [Fact]
-    public void Validate_EmptyHosterIds_ShouldFail()
+    public void Validate_Fails_WhenHosterIdsListIsEmpty()
     {
         // Arrange
-        var command = new CreateAssetCommand(
-            "https://example.com/file.zip",
-            "file.zip",
-            new List<Guid>());
+        CreateAssetCommand command = CreateCommand(hosterIds: []);
 
         // Act
         var result = _sut.TestValidate(command);
@@ -113,13 +95,10 @@ public class CreateAssetCommandValidatorTests
     }
 
     [Fact]
-    public void Validate_HosterIdsContainsEmptyGuid_ShouldFail()
+    public void Validate_Fails_WhenHosterIdsContainsEmptyGuid()
     {
         // Arrange
-        var command = new CreateAssetCommand(
-            "https://example.com/file.zip",
-            "file.zip",
-            new List<Guid> { Guid.Empty });
+        CreateAssetCommand command = CreateCommand(hosterIds: [Guid.Empty]);
 
         // Act
         var result = _sut.TestValidate(command);
@@ -130,14 +109,11 @@ public class CreateAssetCommandValidatorTests
     }
 
     [Fact]
-    public void Validate_DuplicateHosterIds_ShouldFail()
+    public void Validate_Fails_WhenHosterIdsContainDuplicates()
     {
         // Arrange
         Guid hosterId = Guid.NewGuid();
-        var command = new CreateAssetCommand(
-            "https://example.com/file.zip",
-            "file.zip",
-            new List<Guid> { hosterId, hosterId });
+        CreateAssetCommand command = CreateCommand(hosterIds: [hosterId, hosterId]);
 
         // Act
         var result = _sut.TestValidate(command);
@@ -145,5 +121,13 @@ public class CreateAssetCommandValidatorTests
         // Assert
         result.ShouldHaveValidationErrorFor(x => x.HosterIds)
             .WithErrorMessage("Duplicate hoster IDs are not allowed.");
+    }
+
+    private static CreateAssetCommand CreateCommand(
+        string source = "https://example.com/file.zip",
+        string fileName = "file.zip",
+        List<Guid>? hosterIds = null)
+    {
+        return new CreateAssetCommand(source, fileName, hosterIds ?? [Guid.NewGuid()]);
     }
 }

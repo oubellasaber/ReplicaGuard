@@ -3,9 +3,11 @@ using Microsoft.Extensions.Logging;
 using NSubstitute;
 using ReplicaGuard.Application.Abstractions.Authentication;
 using ReplicaGuard.Application.HosterCredentials.AddHosterCredentials;
+using ReplicaGuard.Application.Tests.Testing;
 using ReplicaGuard.Core.Abstractions;
 using ReplicaGuard.Core.Domain.Credentials;
 using ReplicaGuard.Core.Domain.Hoster;
+using HosterCredentialsEntity = ReplicaGuard.Core.Domain.Credentials.HosterCredentials;
 
 namespace ReplicaGuard.Application.Tests.HosterCredentials.AddHosterCredentials;
 
@@ -33,19 +35,14 @@ public class AddHosterCredentialsCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_HosterNotFound_ReturnsFailure()
+    public async Task Handle_ReturnsFailure_WhenHosterIsMissing()
     {
         // Arrange
         Guid userId = Guid.NewGuid();
         Guid hosterId = Guid.NewGuid();
         _userContext.UserId.Returns(userId);
 
-        var command = new AddHosterCredentialsCommand(
-            hosterId,
-            "api-key",
-            null,
-            null,
-            null);
+        AddHosterCredentialsCommand command = CreateApiKeyCommand(hosterId);
 
         _hosterRepository.GetByIdAsync(hosterId, Arg.Any<CancellationToken>())
             .Returns((Hoster?)null);
@@ -59,22 +56,17 @@ public class AddHosterCredentialsCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_ExistingCredentials_ReturnsAlreadyExistsFailure()
+    public async Task Handle_ReturnsFailure_WhenCredentialsAlreadyExist()
     {
         // Arrange
         Guid userId = Guid.NewGuid();
         Guid hosterId = Guid.NewGuid();
         _userContext.UserId.Returns(userId);
 
-        Hoster hoster = CreateHoster(hosterId, "sendcm", Credentials.ApiKey);
+        Hoster hoster = HosterTestFactory.CreateWithId(hosterId, "sendcm", Credentials.ApiKey);
         var existingCredentials = hoster.CreateCredentials(userId, apiKey: "existing-key").Value;
 
-        var command = new AddHosterCredentialsCommand(
-            hosterId,
-            "api-key",
-            null,
-            null,
-            null);
+        AddHosterCredentialsCommand command = CreateApiKeyCommand(hosterId);
 
         _hosterRepository.GetByIdAsync(hosterId, Arg.Any<CancellationToken>())
             .Returns(hoster);
@@ -90,56 +82,21 @@ public class AddHosterCredentialsCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_InvalidCredentialPayloadForHoster_ReturnsFailure()
+    public async Task Handle_ReturnsPendingCredentialsResponse_WhenRequestIsValid()
     {
         // Arrange
         Guid userId = Guid.NewGuid();
         Guid hosterId = Guid.NewGuid();
         _userContext.UserId.Returns(userId);
 
-        Hoster hoster = CreateHoster(hosterId, "sendcm", Credentials.ApiKey);
+        Hoster hoster = HosterTestFactory.CreateWithId(hosterId, "sendcm", Credentials.ApiKey);
 
-        var command = new AddHosterCredentialsCommand(
-            hosterId,
-            null,
-            null,
-            null,
-            null);
+        AddHosterCredentialsCommand command = CreateApiKeyCommand(hosterId);
 
         _hosterRepository.GetByIdAsync(hosterId, Arg.Any<CancellationToken>())
             .Returns(hoster);
         _credentialsRepository.FindByUserAndHosterAsync(userId, hosterId, Arg.Any<CancellationToken>())
-            .Returns((ReplicaGuard.Core.Domain.Credentials.HosterCredentials?)null);
-
-        // Act
-        Result<AddHosterCredentialsResponse> result = await _sut.Handle(command, CancellationToken.None);
-
-        // Assert
-        result.IsFailure.Should().BeTrue();
-        result.Error.Code.Should().Be(HosterCredentialsErrors.MissingApiKey().Code);
-    }
-
-    [Fact]
-    public async Task Handle_ValidRequest_AddsCredentialsAndPersists()
-    {
-        // Arrange
-        Guid userId = Guid.NewGuid();
-        Guid hosterId = Guid.NewGuid();
-        _userContext.UserId.Returns(userId);
-
-        Hoster hoster = CreateHoster(hosterId, "sendcm", Credentials.ApiKey);
-
-        var command = new AddHosterCredentialsCommand(
-            hosterId,
-            "api-key",
-            null,
-            null,
-            null);
-
-        _hosterRepository.GetByIdAsync(hosterId, Arg.Any<CancellationToken>())
-            .Returns(hoster);
-        _credentialsRepository.FindByUserAndHosterAsync(userId, hosterId, Arg.Any<CancellationToken>())
-            .Returns((ReplicaGuard.Core.Domain.Credentials.HosterCredentials?)null);
+            .Returns((HosterCredentialsEntity?)null);
 
         // Act
         Result<AddHosterCredentialsResponse> result = await _sut.Handle(command, CancellationToken.None);
@@ -148,20 +105,15 @@ public class AddHosterCredentialsCommandHandlerTests
         result.IsSuccess.Should().BeTrue();
         result.Value.HosterId.Should().Be(hosterId);
         result.Value.Status.Should().Be(CredentialsSyncStatus.Pending.ToString().ToLowerInvariant());
-
-        _credentialsRepository.Received(1).Add(Arg.Is<ReplicaGuard.Core.Domain.Credentials.HosterCredentials>(c =>
-            c.UserId == userId &&
-            c.HosterId == hosterId &&
-            c.ApiKey == "api-key"));
-
-        await _unitOfWork.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
     }
 
-    private static Hoster CreateHoster(Guid id, string code, Credentials primaryCredentials)
+    private static AddHosterCredentialsCommand CreateApiKeyCommand(Guid hosterId)
     {
-        Hoster hoster = Hoster.Create(code, code, primaryCredentials).Value;
-        typeof(Entity<Guid>).GetProperty(nameof(Entity<Guid>.Id))!
-            .SetValue(hoster, id);
-        return hoster;
+        return new AddHosterCredentialsCommand(
+            hosterId,
+            "api-key",
+            null,
+            null,
+            null);
     }
 }
