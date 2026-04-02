@@ -17,11 +17,21 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ReplicaGuard.Infrastructure
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ReplicaGuard.Api", "src\ReplicaGuard.Api\ReplicaGuard.Api.csproj", "{9DA0B90D-987B-498F-A420-F2C1D2D77F09}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ReplicaGuard.Application.Tests", "tests\ReplicaGuard.Application.Tests\ReplicaGuard.Application.Tests.csproj", "{426381AD-5477-82CE-D7E8-4427A53AF7F1}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ReplicaGuard.Application.Tests", "tests\Unit\Application\ReplicaGuard.Application.Tests.csproj", "{426381AD-5477-82CE-D7E8-4427A53AF7F1}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{1DCB3F1F-ED13-4F65-B899-712F86BE6FF8}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ReplicaGuard.Domain.Tests", "tests\Unit\Domain\ReplicaGuard.Domain.Tests.csproj", "{87C45EA7-6C49-4E38-AEDE-BED4B3758F49}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Integration", "Integration", "{9E01FFA3-6839-4765-93BF-BCF2F0362E81}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ReplicaGuard.Application.IntegrationTests", "tests\Integration\Application\ReplicaGuard.Application.IntegrationTests.csproj", "{E2B95B5A-544E-4B8F-8B5F-8DFAF0122D5D}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "TestInfrastructure", "TestInfrastructure", "{7E27CFA0-0201-4105-9A50-1E6C9E85BB67}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ReplicaGuard.TestInfrastructure", "tests\TestInfrastructure\ReplicaGuard.TestInfrastructure\ReplicaGuard.TestInfrastructure.csproj", "{FBCA8862-21FB-4A50-A572-5AE9C4856691}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -49,6 +59,18 @@ Global
 		{426381AD-5477-82CE-D7E8-4427A53AF7F1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{426381AD-5477-82CE-D7E8-4427A53AF7F1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{426381AD-5477-82CE-D7E8-4427A53AF7F1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{87C45EA7-6C49-4E38-AEDE-BED4B3758F49}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{87C45EA7-6C49-4E38-AEDE-BED4B3758F49}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{87C45EA7-6C49-4E38-AEDE-BED4B3758F49}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{87C45EA7-6C49-4E38-AEDE-BED4B3758F49}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E2B95B5A-544E-4B8F-8B5F-8DFAF0122D5D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E2B95B5A-544E-4B8F-8B5F-8DFAF0122D5D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E2B95B5A-544E-4B8F-8B5F-8DFAF0122D5D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E2B95B5A-544E-4B8F-8B5F-8DFAF0122D5D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FBCA8862-21FB-4A50-A572-5AE9C4856691}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FBCA8862-21FB-4A50-A572-5AE9C4856691}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FBCA8862-21FB-4A50-A572-5AE9C4856691}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FBCA8862-21FB-4A50-A572-5AE9C4856691}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -59,6 +81,11 @@ Global
 		{B1E6BE0C-0FB5-4772-8694-939BBD33EAE2} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 		{9DA0B90D-987B-498F-A420-F2C1D2D77F09} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 		{426381AD-5477-82CE-D7E8-4427A53AF7F1} = {1DCB3F1F-ED13-4F65-B899-712F86BE6FF8}
+		{87C45EA7-6C49-4E38-AEDE-BED4B3758F49} = {1DCB3F1F-ED13-4F65-B899-712F86BE6FF8}
+		{9E01FFA3-6839-4765-93BF-BCF2F0362E81} = {1DCB3F1F-ED13-4F65-B899-712F86BE6FF8}
+		{E2B95B5A-544E-4B8F-8B5F-8DFAF0122D5D} = {9E01FFA3-6839-4765-93BF-BCF2F0362E81}
+		{7E27CFA0-0201-4105-9A50-1E6C9E85BB67} = {1DCB3F1F-ED13-4F65-B899-712F86BE6FF8}
+		{FBCA8862-21FB-4A50-A572-5AE9C4856691} = {7E27CFA0-0201-4105-9A50-1E6C9E85BB67}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {69DC1423-D28D-486E-9A4A-81F9187AA246}
