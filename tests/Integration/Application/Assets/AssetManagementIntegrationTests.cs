@@ -2,6 +2,7 @@ using FluentAssertions;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using ReplicaGuard.Application.Assets;
 using ReplicaGuard.Application.Assets.CreateAsset;
 using ReplicaGuard.Application.Assets.GetAsset;
@@ -21,6 +22,8 @@ namespace ReplicaGuard.Application.IntegrationTests.Assets;
 [Collection(PostgresIntegrationCollection.Name)]
 public sealed class AssetManagementIntegrationTests
 {
+    private static readonly string PreferredHosterCode = Pixeldrain.Code.ToUpperInvariant();
+
     [Fact]
     public async Task CreateAsset_WithSyncedCredentials_CreatesAssetAndReplica()
     {
@@ -252,11 +255,61 @@ public sealed class AssetManagementIntegrationTests
 
     private static async Task<HosterEntity> GetSeededHosterAsync(IServiceProvider services)
     {
+        ILogger<AssetManagementIntegrationTests>? logger =
+            services.GetService<ILogger<AssetManagementIntegrationTests>>();
         ApplicationDbContext appDbContext = services.GetRequiredService<ApplicationDbContext>();
 
-        return await appDbContext.Set<HosterEntity>()
-            .OrderBy(hoster => hoster.Code)
-            .FirstAsync();
+        try
+        {
+            HosterEntity? anySeededHoster = await appDbContext.Set<HosterEntity>()
+                .AsNoTracking()
+                .FirstOrDefaultAsync();
+
+            if (anySeededHoster is null)
+            {
+                throw new InvalidOperationException("No seeded hosters found - check seeding logic.");
+            }
+
+            HosterEntity? preferredHoster = await appDbContext.Set<HosterEntity>()
+                .Include(hoster => hoster.Requirements)
+                .SingleOrDefaultAsync(hoster => hoster.Code == PreferredHosterCode);
+
+            if (preferredHoster is null)
+            {
+                List<string> availableCodes = await appDbContext.Set<HosterEntity>()
+                    .AsNoTracking()
+                    .OrderBy(hoster => hoster.Code)
+                    .Select(hoster => hoster.Code)
+                    .ToListAsync();
+
+                throw new InvalidOperationException(
+                    $"Seeded hoster '{PreferredHosterCode}' was not found. Available hosters: {string.Join(", ", availableCodes)}.");
+            }
+
+            if ((preferredHoster.PrimaryCredentials & Credentials.ApiKey) == 0)
+            {
+                throw new InvalidOperationException(
+                    $"Seeded hoster '{preferredHoster.Code}' is not suitable for asset integration tests because it does not support API key credentials.");
+            }
+
+            bool supportsUploadCapability = preferredHoster.Requirements.Any(requirement =>
+                requirement.Feature is CapabilityCode.SpooledUpload or CapabilityCode.RemoteUpload);
+
+            if (!supportsUploadCapability)
+            {
+                throw new InvalidOperationException(
+                    $"Seeded hoster '{preferredHoster.Code}' is not suitable for asset integration tests because it does not expose upload capabilities.");
+            }
+
+            return preferredHoster;
+        }
+        catch (Exception ex)
+        {
+            string errorMessage =
+                $"Failed to resolve a suitable seeded hoster for asset integration tests. {ex.Message}";
+            logger?.LogError(ex, errorMessage);
+            throw new InvalidOperationException(errorMessage, ex);
+        }
     }
 
     private static async Task AddCredentialsAsync(
