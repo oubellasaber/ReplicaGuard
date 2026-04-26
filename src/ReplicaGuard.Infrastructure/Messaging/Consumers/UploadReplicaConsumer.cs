@@ -1,3 +1,4 @@
+using System.Net;
 using MassTransit;
 using Microsoft.Extensions.Logging;
 using ReplicaGuard.Core.Abstractions;
@@ -101,7 +102,7 @@ public sealed class UploadReplicaConsumer : IConsumer<UploadReplicaCommand>
                 "Hoster {HosterCode} does not expose an upload capability; failing Replica {ReplicaId}",
                 hoster.Code,
                 replica.Id);
-            FailReplica(replica, asset, $"Hoster '{hoster.Code}' does not support uploads");
+            asset.RecordFailure(replica, PermanentErrors.UploadNotSupported);
             await _unitOfWork.SaveChangesAsync(ct);
             return;
         }
@@ -116,7 +117,7 @@ public sealed class UploadReplicaConsumer : IConsumer<UploadReplicaCommand>
                 hoster.Code,
                 asset.UserId,
                 replica.Id);
-            FailReplica(replica, asset, $"No credentials for hoster '{hoster.Code}'");
+            asset.RecordFailure(replica, PermanentErrors.NoCredentials);
             await _unitOfWork.SaveChangesAsync(ct);
             return;
         }
@@ -145,7 +146,7 @@ public sealed class UploadReplicaConsumer : IConsumer<UploadReplicaCommand>
                     result.Error.Code,
                     result.Error.Message);
 
-                FailReplica(replica, asset, result.Error.Message);
+                asset.RecordFailure(replica, result.Error);
                 await _unitOfWork.SaveChangesAsync(ct);
 
                 if (replica.CanRetry())
@@ -163,8 +164,7 @@ public sealed class UploadReplicaConsumer : IConsumer<UploadReplicaCommand>
                 return;
             }
 
-            replica.MarkCompleted(result.Value.FileUrl);
-            asset.RecalculateState();
+            asset.Complete(replica, result.Value.FileUrl);
             await _unitOfWork.SaveChangesAsync(ct);
 
             _logger.LogInformation("Replica {ReplicaId} completed: {Url}",
@@ -173,7 +173,7 @@ public sealed class UploadReplicaConsumer : IConsumer<UploadReplicaCommand>
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unexpected error for Replica {ReplicaId}", replica.Id);
-            FailReplica(replica, asset, ex.Message);
+            asset.RecordFailure(replica, new Error("UnexpectedError", ex.Message));
             await _unitOfWork.SaveChangesAsync(ct);
             throw;
         }
@@ -202,15 +202,13 @@ public sealed class UploadReplicaConsumer : IConsumer<UploadReplicaCommand>
             {
                 _logger.LogInformation("{Hoster} fetched from remote URL directly", hosterCode);
 
-                Result markUploadingResult = replica.MarkUploading();
-                if (markUploadingResult.IsFailure)
-                    return Result.Failure<UploadResponse>(markUploadingResult.Error);
-
                 if (remoteResult.Value.SizeBytes.HasValue)
                     asset.RecordFileSize(remoteResult.Value.SizeBytes.Value);
 
-                asset.RecalculateState();
+                Result markUploadingResult = asset.StartUploading(replica);
                 await _unitOfWork.SaveChangesAsync(ct);
+                if (markUploadingResult.IsFailure)
+                    return Result.Failure<UploadResponse>(markUploadingResult.Error);
 
                 return remoteResult;
             }
@@ -223,6 +221,8 @@ public sealed class UploadReplicaConsumer : IConsumer<UploadReplicaCommand>
             _logger.LogInformation("{Hoster} doesn't support remote URL, need local file", hosterCode);
 
             // Is a sibling already downloading? Wait for it to spool the file
+            // TODO: bug here if a sibling is downloading but actually from a remote url not to spool then this will return an id where it should have returned NULL
+            // Solution: We should track each method used by a replica in the database so we can check if the sibling is downloading from a remote url or a source
             Replica? busySibling = asset.Replicas.FirstOrDefault(r =>
                 r.Id != replica.Id && r.State == ReplicaState.Downloading);
 
@@ -232,14 +232,13 @@ public sealed class UploadReplicaConsumer : IConsumer<UploadReplicaCommand>
                     "Replica {ReplicaId} waiting for sibling {SiblingId} to finish downloading",
                     replica.Id, busySibling.Id);
 
-                Result waitingResult = replica.MarkWaitingForPeer(busySibling.Id);
+                Result waitingResult = asset.MarkWaitingForPeer(replica, busySibling.Id);
+                await _unitOfWork.SaveChangesAsync(ct);
                 if (waitingResult.IsFailure)
                     return Result.Failure<UploadResponse>(waitingResult.Error);
 
-                asset.RecalculateState();
-                await _unitOfWork.SaveChangesAsync(ct);
-
                 // Safety timeout in case sibling fails silently
+                // TODO: timeout should be configurable and probably adaptive based on file size or just a basic backoff strategy
                 await context.SchedulePublish(
                     TimeSpan.FromMinutes(10),
                     new UploadReplicaCommand(replica.Id, asset.Id, replica.HosterId));
@@ -248,12 +247,9 @@ public sealed class UploadReplicaConsumer : IConsumer<UploadReplicaCommand>
             }
 
             // Nobody downloading or file already spooled => download ourselves
-            Result markDownloadingResult = replica.MarkDownloading();
+            Result markDownloadingResult = asset.StartDownloading(replica);
             if (markDownloadingResult.IsFailure)
                 return Result.Failure<UploadResponse>(markDownloadingResult.Error);
-
-            asset.RecalculateState();
-            await _unitOfWork.SaveChangesAsync(ct);
 
             Result<FetchedFile> fetchResult = await _fileFetcher.DownloadAsync(asset.Id, remoteSource, ct);
             if (fetchResult.IsFailure)
@@ -277,7 +273,7 @@ public sealed class UploadReplicaConsumer : IConsumer<UploadReplicaCommand>
         // For local files, record size from disk
         asset.RecordFileSize(new FileInfo(filePath).Length);
 
-        replica.MarkUploading();
+        asset.StartUploading(replica);
         await _unitOfWork.SaveChangesAsync(ct);
 
         _logger.LogInformation("{Hoster} uploading from {Path}", hosterCode, filePath);
@@ -285,12 +281,6 @@ public sealed class UploadReplicaConsumer : IConsumer<UploadReplicaCommand>
         await using FileStream stream = File.OpenRead(filePath);
         return await uploader.UploadFromLocalStorageAsync(
             credentials, asset.FileName.Value, stream, ct);
-    }
-
-    private static void FailReplica(Replica replica, Asset asset, string reason)
-    {
-        replica.MarkFailed(reason);
-        asset.RecalculateState();
     }
 
     private static TimeSpan CalculateRetryDelay(int retryCount)

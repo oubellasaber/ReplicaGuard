@@ -8,90 +8,80 @@ namespace ReplicaGuard.Domain.Tests.Replication;
 public class AssetTests
 {
     [Fact]
-    public void AddReplica_WithDuplicateHoster_ReturnsFailure()
+    public void add_replica_fails_when_hoster_already_exists()
     {
         // Arrange
-        Asset asset = CreateRemoteAsset();
+        Asset sut = CreateRemoteAsset();
         Guid hosterId = Guid.NewGuid();
 
-        Result<Replica> firstAddResult = asset.AddReplica(hosterId);
-        firstAddResult.IsSuccess.Should().BeTrue();
+        sut.AddReplica(hosterId).IsSuccess.Should().BeTrue();
 
         // Act
-        Result<Replica> result = asset.AddReplica(hosterId);
+        Result<Replica> result = sut.AddReplica(hosterId);
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Code.Should().Be(ReplicationErrors.DuplicateReplica(asset.Id, hosterId).Code);
+        result.Error.Code.Should().Be(ReplicationErrors.DuplicateReplica(sut.Id, hosterId).Code);
     }
 
     [Fact]
-    public void RecalculateState_WithDownloadingReplica_SetsDownloadingState()
+    public void starting_download_moves_asset_into_in_progress()
     {
         // Arrange
-        Asset asset = CreateRemoteAsset();
-        Replica replica = AddReplica(asset);
-        replica.MarkDownloading().IsSuccess.Should().BeTrue();
+        Asset sut = CreateRemoteAsset();
+        Replica replica = AddReplica(sut);
 
         // Act
-        asset.RecalculateState();
+        Result result = sut.StartDownloading(replica);
 
         // Assert
-        asset.State.Should().Be(AssetState.Downloading);
+        result.IsSuccess.Should().BeTrue();
+        replica.State.Should().Be(ReplicaState.Downloading);
+        sut.State.Should().Be(AssetState.InProgress);
     }
 
     [Fact]
-    public void RecalculateState_WithPendingReplica_SetsUploadingState()
+    public void asset_becomes_failed_when_all_replicas_fail()
     {
         // Arrange
-        Asset asset = CreateRemoteAsset();
-        AddReplica(asset);
+        Asset sut = CreateRemoteAsset();
+        Replica r1 = AddReplica(sut);
+        Replica r2 = AddReplica(sut);
+
+        Error e1 = new("FirstFailure", "first failure");
+        Error e2 = new("SecondFailure", "second failure");
 
         // Act
-        asset.RecalculateState();
+        sut.Fail(r1, e1).IsSuccess.Should().BeTrue();
+        sut.Fail(r2, e2).IsSuccess.Should().BeTrue();
 
         // Assert
-        asset.State.Should().Be(AssetState.Uploading);
+        r1.State.Should().Be(ReplicaState.Failed);
+        r2.State.Should().Be(ReplicaState.Failed);
+        sut.State.Should().Be(AssetState.Failed);
     }
 
     [Fact]
-    public void RecalculateState_WithAllReplicasFailed_SetsFailedState()
+    public void completing_all_replicas_sets_asset_completed_and_raises_event()
     {
         // Arrange
-        Asset asset = CreateRemoteAsset();
-        Replica firstReplica = AddReplica(asset);
-        Replica secondReplica = AddReplica(asset);
+        Asset sut = CreateRemoteAsset();
+        Replica r1 = AddReplica(sut);
+        Replica r2 = AddReplica(sut);
 
-        firstReplica.MarkFailed("first failure").IsSuccess.Should().BeTrue();
-        secondReplica.MarkFailed("second failure").IsSuccess.Should().BeTrue();
-
-        // Act
-        asset.RecalculateState();
-
-        // Assert
-        asset.State.Should().Be(AssetState.Failed);
-    }
-
-    [Fact]
-    public void RecalculateState_WhenAllReplicasCompleted_RaisesAllReplicasCompletedEvent()
-    {
-        // Arrange
-        Asset asset = CreateRemoteAsset();
-        Replica firstReplica = AddReplica(asset);
-        Replica secondReplica = AddReplica(asset);
-
-        firstReplica.MarkUploading().IsSuccess.Should().BeTrue();
-        firstReplica.MarkCompleted(new Uri("https://example.com/first")).IsSuccess.Should().BeTrue();
-
-        secondReplica.MarkUploading().IsSuccess.Should().BeTrue();
-        secondReplica.MarkCompleted(new Uri("https://example.com/second")).IsSuccess.Should().BeTrue();
+        Uri link1 = new("https://example.com/first");
+        Uri link2 = new("https://example.com/second");
 
         // Act
-        asset.RecalculateState();
+        sut.StartUploading(r1).IsSuccess.Should().BeTrue();
+        sut.Complete(r1, link1).IsSuccess.Should().BeTrue();
+
+        sut.StartUploading(r2).IsSuccess.Should().BeTrue();
+        sut.Complete(r2, link2).IsSuccess.Should().BeTrue();
 
         // Assert
-        asset.State.Should().Be(AssetState.Completed);
-        asset.GetDomainEvents().OfType<AllReplicasCompleted>().Should().ContainSingle();
+        sut.State.Should().Be(AssetState.Completed);
+        sut.GetDomainEvents().OfType<AllReplicasCompleted>().Should().ContainSingle();
     }
 
     private static Asset CreateRemoteAsset()

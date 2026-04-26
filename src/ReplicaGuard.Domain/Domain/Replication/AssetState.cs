@@ -13,7 +13,7 @@ public enum AssetState
     /// <summary>
     /// At least one replica is currently being uploaded, waiting, or retrying.
     /// </summary>
-    Uploading = 1,
+    InProgress = 1,
 
     /// <summary>
     /// No work is in progress and at least one replica is available.
@@ -23,10 +23,5 @@ public enum AssetState
     /// <summary>
     /// All replicas have failed permanently.
     /// </summary>
-    Failed = 3,
-
-    /// <summary>
-    /// At least one replica is currently downloading/spooling source data.
-    /// </summary>
-    Downloading = 4
+    Failed = 3
 }

@@ -2,4 +2,4 @@ using ReplicaGuard.Core.Abstractions;
 
 namespace ReplicaGuard.Core.Domain.Replication.DomainEvents;
 
-public sealed record AllReplicasCompleted(Guid AssetId, Guid UserId) : IDomainEvent;
+public sealed record AllReplicasCompleted(Guid AssetId) : IDomainEvent;

@@ -1,11 +1,12 @@
 using ReplicaGuard.Core.Abstractions;
+using ReplicaGuard.Core.Domain.Hoster;
 using ReplicaGuard.Core.Domain.Replication.DomainEvents;
 
 namespace ReplicaGuard.Core.Domain.Replication;
 
 public sealed class Asset : Entity<Guid>
 {
-    private readonly List<Replica> _replicas = new();
+    private readonly HashSet<Replica> _replicas = new();
 
     public Guid UserId { get; private set; }
     public FileSource? Source { get; private set; }
@@ -15,14 +16,14 @@ public sealed class Asset : Entity<Guid>
     public DateTime CreatedAtUtc { get; private set; }
     public DateTime? UpdatedAtUtc { get; private set; }
 
-    public IReadOnlyList<Replica> Replicas => _replicas.AsReadOnly();
+    public IReadOnlyList<Replica> Replicas => _replicas.ToList().AsReadOnly();
 
     // EF Core
     private Asset() : base(Guid.NewGuid()) { }
 
     /// <summary>
-    /// Creates an asset from a remote URL.
-    /// File needs to be downloaded first (Created -> Spooled states).
+    /// Creates an asset from a remote Download URL.
+    /// File needs to be downloaded first (Downloading state).
     /// </summary>
     public static Result<Asset> CreateFromRemoteUrl(
         Guid userId,
@@ -123,36 +124,124 @@ public sealed class Asset : Entity<Guid>
         UpdatedAtUtc = DateTime.UtcNow;
     }
 
-    public void RecalculateState()
+    public Result StartDownloading(Replica replica)
     {
-        if (_replicas.Count == 0)
-            return;
-
-        bool anyDownloading = _replicas.Any(r => r.State == ReplicaState.Downloading);
-
-        bool anyUploading = _replicas.Any(r =>
-            r.State is ReplicaState.Pending or ReplicaState.WaitingForPeer or ReplicaState.Uploading or ReplicaState.Retrying);
-
-        bool allPermanentlyFailed = _replicas.All(r => r.State == ReplicaState.Failed);
-        bool anyCompleted = _replicas.Any(r => r.State == ReplicaState.Completed);
-        bool allCompleted = _replicas.All(r => r.State == ReplicaState.Completed);
-
-        AssetState previousState = State;
-
-        State = (anyDownloading, anyUploading, allPermanentlyFailed, anyCompleted) switch
-        {
-            (true, _, _, _) => AssetState.Downloading,
-            (false, true, _, _) => AssetState.Uploading,
-            (false, false, true, false) => AssetState.Failed,
-            (false, false, false, true) => AssetState.Completed,
-            _ => AssetState.Created
-        };
-
-        UpdatedAtUtc = DateTime.UtcNow;
-
-        if (allCompleted && previousState != AssetState.Completed)
-        {
-            RaiseDomainEvent(new AllReplicasCompleted(Id, UserId));
-        }
+        if (!_replicas.Contains(replica))
+            return Result.Failure<Replica>(new Error("Replica.NotFound", "Replica does not belong to this asset."));
+        if (replica.IsTerminal)
+            return Result.Failure<Replica>(new Error("Replica.TerminalState", "Replica is already in terminal state, forbidden transition."));
+        replica.State = ReplicaState.Downloading;
+        replica.UpdatedAtUtc = DateTime.UtcNow;
+        RecalculateState();
+        return Result.Success(replica);
     }
+
+    public Result StartUploading(Replica replica)
+    {
+        if (!_replicas.Contains(replica))
+            return Result.Failure<Replica>(new Error("Replica.NotFound", "Replica does not belong to this asset."));
+        if (replica.IsTerminal)
+            return Result.Failure<Replica>(new Error("Replica.TerminalState", "Replica is already in terminal state, forbidden transition."));
+        replica.State = ReplicaState.Uploading;
+        replica.UpdatedAtUtc = DateTime.UtcNow;
+        RecalculateState();
+        return Result.Success(replica);
+    }
+
+    public Result Complete(Replica replica, Uri fileUrl)
+    {
+        if (!_replicas.Contains(replica))
+            return Result.Failure<Replica>(new Error("Replica.NotFound", "Replica does not belong to this asset."));
+        if (replica.IsTerminal)
+            return Result.Failure<Replica>(new Error("Replica.TerminalState", "Replica is already in terminal state, forbidden transition."));
+        replica.State = ReplicaState.Completed;
+        replica.Link = fileUrl;
+        replica.UpdatedAtUtc = DateTime.UtcNow;
+        RecalculateState();
+        RaiseDomainEvent(new ReplicaCompleted(replica.Id, Id, replica.HosterId, fileUrl));
+        return Result.Success(replica);
+    }
+
+    public Result<FailureDecision> RecordFailure(Replica replica, Error error)
+    {
+        if (!_replicas.Contains(replica))
+            return Result.Failure<FailureDecision>(new Error("Replica.NotFound", "Replica does not belong to this asset."));
+        if (replica.IsTerminal)
+            return Result.Failure<FailureDecision>(new Error("Replica.TerminalState", "Replica is already in terminal state, forbidden transition."));
+        
+        replica.RetryCount++;
+        replica.LastError = error.Code;
+        replica.UpdatedAtUtc = DateTime.UtcNow;
+
+        if (error.IsPermanent() || !replica.HasRetriesRemaining)
+        {
+            replica.State = ReplicaState.Failed;
+            RaiseDomainEvent(new ReplicaFailed(replica.Id, Id, replica.HosterId, error.Code));
+            return Result.Success(FailureDecision.Permanent);
+        }
+
+        replica.State = ReplicaState.Retrying;
+        RecalculateState();
+        return Result.Success(FailureDecision.Retryable);
+    }
+
+    public Result Fail(Replica replica, Error error)
+    {
+        if (!_replicas.Contains(replica))
+            return Result.Failure(new Error("Replica.NotFound", "Replica does not belong to this asset."));
+        if (replica.IsTerminal)
+            return Result.Failure(new Error("Replica.TerminalState", "Replica is already in terminal state, forbidden transition."));
+        
+        replica.LastError = error.Code;
+        replica.State = ReplicaState.Failed;
+        replica.UpdatedAtUtc = DateTime.UtcNow;
+        RecalculateState();
+        RaiseDomainEvent(new ReplicaFailed(replica.Id, Id, replica.HosterId, error.Code));
+        return Result.Success();
+    }
+
+    public Result MarkWaitingForPeer(Replica replica, Guid peerReplicaId)
+    {
+        if (!_replicas.Contains(replica))
+            return Result.Failure(new Error("Replica.NotFound", "Replica does not belong to this asset."));
+        if (replica.IsTerminal)
+            return Result.Failure(new Error("Replica.TerminalState", "Replica is already in terminal state, forbidden transition."));
+        
+        replica.State = ReplicaState.WaitingForPeer;
+        replica.WaitingForReplicaId = peerReplicaId;
+        replica.UpdatedAtUtc = DateTime.UtcNow;
+        RecalculateState();
+        return Result.Success();
+    }
+
+    private void RecalculateState()
+    {
+        if (_replicas.Count == 0 || _replicas.All(r => r.State == ReplicaState.Pending))
+        {
+            return;
+        }
+
+        if (_replicas.All(r => r.State == ReplicaState.Completed))
+        {
+            var prev = State;
+            State = AssetState.Completed;
+            if (prev != AssetState.Completed)
+                RaiseDomainEvent(new AllReplicasCompleted(Id));
+            return;
+        }
+
+        if (_replicas.All(r => r.State == ReplicaState.Failed))
+        {
+            State = AssetState.Failed;
+            return;
+        }
+
+        State = AssetState.InProgress;
+    }
+}
+
+public enum FailureDecision
+{
+    Permanent,
+    Retryable
 }
