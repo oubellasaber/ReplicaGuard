@@ -16,6 +16,8 @@ using ReplicaGuard.Core.Capabilities;
 using ReplicaGuard.Core.Domain.Credentials;
 using ReplicaGuard.Core.Domain.Hoster;
 using ReplicaGuard.Core.Domain.Replication;
+using ReplicaGuard.Core.Domain.Replication.Planner;
+using ReplicaGuard.Core.Domain.Replication.Policies;
 using ReplicaGuard.Infrastructure.Authentication;
 using ReplicaGuard.Infrastructure.Clock;
 using ReplicaGuard.Infrastructure.Data;
@@ -25,8 +27,10 @@ using ReplicaGuard.Infrastructure.Hosters.SendCm;
 using ReplicaGuard.Infrastructure.Identity;
 using ReplicaGuard.Infrastructure.Messaging;
 using ReplicaGuard.Infrastructure.Persistence;
+using ReplicaGuard.Infrastructure.Policies;
 using ReplicaGuard.Infrastructure.Repositories;
 using ReplicaGuard.Infrastructure.Seeding;
+using ReplicaGuard.Infrastructure.Spool;
 
 namespace ReplicaGuard.Infrastructure;
 
@@ -37,6 +41,11 @@ public static class DependencyInjection
         IConfiguration configuration)
     {
         services.AddTransient<IDateTimeProvider, DateTimeProvider>();
+
+        services.AddSingleton<IUploadPlanner, UploadPlanner>();
+        services.AddSingleton<IRetryPolicy, ExponentialJitterRetryPolicy>();
+
+        services.AddScoped<ISpoolLeaseService, SqlSpoolLeaseService>();
 
         AddPersistence(services, configuration);
 

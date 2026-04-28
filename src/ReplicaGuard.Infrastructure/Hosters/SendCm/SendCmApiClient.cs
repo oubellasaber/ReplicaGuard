@@ -125,7 +125,7 @@ internal class SendCmApiClient : HosterApiClientBase<SendCmHoster>, IValidateCre
                 { new StringContent("reg"), "utype" }
             };
 
-            StreamContent fileContent = new(fileStream);
+            StreamContent fileContent = new(fileStream, 5 * 1024 * 1024);
             fileContent.Headers.ContentType = new MediaTypeHeaderValue("text/plain");
             fileContent.Headers.ContentDisposition = new ContentDispositionHeaderValue("form-data")
             {
@@ -739,3 +739,17 @@ internal class SendCmApiClient : HosterApiClientBase<SendCmHoster>, IValidateCre
         }
     }
 }
+
+
+/*
+atch (TaskCanceledException ex)
+        {
+            _logger.LogError(
+                ex,
+                "Upload timeout/cancellation for hoster {HosterCode} for file {FileName}",
+                Code,
+                fileName);
+
+            return Result.Failure<UploadResponse>(HosterUploadErrors.UploadFailed(Code, $"Upload timeout: {ex.Message}"));
+        }
+*/

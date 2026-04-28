@@ -45,7 +45,13 @@ internal sealed class AssetConfiguration : IEntityTypeConfiguration<Asset>
             .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
         builder.Property(x => x.UpdatedAtUtc)
+            .ValueGeneratedOnAddOrUpdate()
             .HasDefaultValue(null);
+
+        builder.Property(x => x.Version)
+            .IsRequired()
+            .IsConcurrencyToken()
+            .HasDefaultValue(1);
 
         // Indexes for performance
         builder.HasIndex(x => x.UserId);

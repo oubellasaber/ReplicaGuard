@@ -57,7 +57,7 @@ public static class HosterDefinitions
             .Where(t => t is { IsValueType: true, IsAbstract: false } &&
                        t.GetInterfaces().Any(i => i == typeof(IHosterDefinition)))
             .Select(t => new HosterSeed(
-                Code: (string)t.GetProperty(nameof(IHosterDefinition.Code))!.GetValue(null)!,
+                Code: ((string)t.GetProperty(nameof(IHosterDefinition.Code))!.GetValue(null)!).ToUpperInvariant(),
                 DisplayName: (string)t.GetProperty(nameof(IHosterDefinition.DisplayName))!.GetValue(null)!,
                 PrimaryCredentials: (Credentials)t.GetProperty(nameof(IHosterDefinition.PrimaryCredentials))!.GetValue(null)!,
                 Features: (IReadOnlyList<(CapabilityCode, Credentials)>)t.GetProperty(nameof(IHosterDefinition.Features))!.GetValue(null)!))

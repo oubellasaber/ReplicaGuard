@@ -130,7 +130,7 @@ public sealed class HosterCredentialsCreatedHandler(
             // Transient failure - rethrow to let outbox retry
             _logger.LogWarning(
                 ex,
-                "Transient error validating credentials {Id}, will retry",
+                "Permanent error validating credentials {Id}, will retry",
                 notification.CredentialsId);
             throw;
         }

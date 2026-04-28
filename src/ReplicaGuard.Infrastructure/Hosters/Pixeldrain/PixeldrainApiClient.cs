@@ -44,7 +44,7 @@ internal class PixeldrainApiClient(IHttpClientFactory clientFactory, IOptions<Pi
 
         try
         {
-            using var content = new StreamContent(fileStream, 1024 * 1024);
+            using var content = new StreamContent(fileStream, 5 * 1024 * 1024);
             content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
 
             var escapedFileName = Uri.EscapeDataString(fileName);
