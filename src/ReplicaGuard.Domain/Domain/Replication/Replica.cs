@@ -33,7 +33,7 @@ public sealed class Replica : Entity<Guid>
         };
     }
 
-    internal bool IsTerminal =>
+    public bool IsTerminal =>
         State is ReplicaState.Completed or ReplicaState.Failed;
 
     internal bool HasRetriesRemaining =>

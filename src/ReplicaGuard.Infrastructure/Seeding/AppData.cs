@@ -11,19 +11,9 @@ public static class AppData
         Roles.Member
     };
 
-    // Hosters To Do
-    //public static readonly Dictionary<string, HosterCredentialRequirements> Hosters = new()
-    //{
-    //    { HosterCodes.Pixeldrain, new HosterCredentialRequirements(false, false, false) },
-    //    { HosterCodes.Krakenfiles, new HosterCredentialRequirements(true, false, false) },
-    //    { HosterCodes.SendCm, new HosterCredentialRequirements(false, true, false) }
-    //};
-
-    // Admin user
     // Admin user
     public static readonly (string Email, string Password, string Role) DefaultAdmin =
-        ("admin@local.test", "Admin123!", "admin");
-
+        ("admin@local.test", "Admin123!", Roles.Admin);
     // Default member users
     public static readonly (string Email, string UserName, string Password, string Role)[] DefaultMembers =
     {

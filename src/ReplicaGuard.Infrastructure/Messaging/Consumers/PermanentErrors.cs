@@ -10,18 +10,18 @@ namespace ReplicaGuard.Infrastructure.Messaging.Consumers;
 public static class PermanentErrors
 {
     /// <summary>
-    /// The hoster does not support uploads for this asset or file type.
+    /// The hoster does not support uploads.
     /// Retrying cannot fix this.
     /// </summary>
     public static readonly Error UploadNotSupported =
         new Error(
-            code: "Upload.NotSupported",
-            message: "The selected hoster does not support uploading this asset."
+            code: "Hoster.Upload.NotSupported",
+            message: "The selected hoster does not support uploading capability."
         ).AsPermanent();
 
     /// <summary>
     /// No credentials were provided for the hoster.
-    /// This is a configuration error, not a transient one.
+    /// This is a configuration error.
     /// </summary>
     public static readonly Error NoCredentials =
         new Error(

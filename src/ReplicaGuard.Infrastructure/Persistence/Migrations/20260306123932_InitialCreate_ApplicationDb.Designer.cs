@@ -71,7 +71,7 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("received");
 
-                    b.Property<byte[]>("RowVersion")
+                    b.Property<byte[]>("Version")
                         .IsConcurrencyToken()
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("bytea")
@@ -229,7 +229,7 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("lock_id");
 
-                    b.Property<byte[]>("RowVersion")
+                    b.Property<byte[]>("Version")
                         .IsConcurrencyToken()
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("bytea")

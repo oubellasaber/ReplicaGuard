@@ -52,8 +52,8 @@ public class AssetTests
         Error e2 = new("SecondFailure", "second failure");
 
         // Act
-        sut.Fail(r1, e1).IsSuccess.Should().BeTrue();
-        sut.Fail(r2, e2).IsSuccess.Should().BeTrue();
+        sut.Fail(r1, e1.Code).IsSuccess.Should().BeTrue();
+        sut.Fail(r2, e2.Code).IsSuccess.Should().BeTrue();
 
         // Assert
         r1.State.Should().Be(ReplicaState.Failed);
