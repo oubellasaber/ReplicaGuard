@@ -9,13 +9,13 @@ public sealed class Replica : Entity<Guid>
 
     public Guid AssetId { get; private set; }
     public Guid HosterId { get; private set; }
-    public ReplicaState State { get; private set; }
-    public Uri? Link { get; private set; }
-    public string? LastError { get; private set; }
-    public Guid? WaitingForReplicaId { get; private set; }
-    public int RetryCount { get; private set; }
+    public ReplicaState State { get; internal set; } // TODO (rename): Status
+    public Uri? Link { get; internal set; }
+    public string? LastError { get; internal set; }
+    public Guid? WaitingForReplicaId { get; internal set; }
+    public int RetryCount { get; internal set; } // TODO (rename): AttemptCount
     public DateTime CreatedAtUtc { get; private set; }
-    public DateTime? UpdatedAtUtc { get; private set; }
+    public DateTime? UpdatedAtUtc { get; internal set; }
 
     // EF Core
     private Replica() : base(Guid.NewGuid()) { }
@@ -33,124 +33,11 @@ public sealed class Replica : Entity<Guid>
         };
     }
 
-    public Result MarkWaitingForPeer(Guid peerReplicaId)
-    {
-        bool canTransition =
-            State == ReplicaState.Pending ||
-            State == ReplicaState.Retrying;
+    public bool IsTerminal =>
+        State is ReplicaState.Completed or ReplicaState.Failed;
 
-        if (!canTransition)
-            return Result.Failure(ReplicationErrors.InvalidReplicaStateTransition(State, ReplicaState.WaitingForPeer));
+    internal bool HasRetriesRemaining =>
+        RetryCount < MaxRetries;
 
-        State = ReplicaState.WaitingForPeer;
-        WaitingForReplicaId = peerReplicaId;
-        UpdatedAtUtc = DateTime.UtcNow;
-        return Result.Success();
-    }
-
-    public Result MarkDownloading()
-    {
-        bool canTransition =
-            State == ReplicaState.Pending ||
-            State == ReplicaState.WaitingForPeer ||
-            State == ReplicaState.Retrying;
-
-        if (!canTransition)
-            return Result.Failure(ReplicationErrors.InvalidReplicaStateTransition(State, ReplicaState.Downloading));
-
-        State = ReplicaState.Downloading;
-        WaitingForReplicaId = null;
-        LastError = null;
-        UpdatedAtUtc = DateTime.UtcNow;
-        return Result.Success();
-    }
-
-    public Result MarkUploading()
-    {
-        bool canTransition =
-            State == ReplicaState.Pending ||
-            State == ReplicaState.WaitingForPeer ||
-            State == ReplicaState.Downloading ||
-            State == ReplicaState.Retrying;
-
-        if (!canTransition)
-            return Result.Failure(ReplicationErrors.InvalidReplicaStateTransition(State, ReplicaState.Uploading));
-
-        State = ReplicaState.Uploading;
-        WaitingForReplicaId = null;
-        LastError = null;
-        UpdatedAtUtc = DateTime.UtcNow;
-        return Result.Success();
-    }
-
-    public Result MarkCompleted(Uri link)
-    {
-        if (State != ReplicaState.Uploading)
-            return Result.Failure(ReplicationErrors.InvalidReplicaStateTransition(State, ReplicaState.Completed));
-
-        if (link == null)
-            return Result.Failure(ReplicationErrors.LinkEmpty);
-
-        State = ReplicaState.Completed;
-        Link = link;
-        LastError = null;
-        WaitingForReplicaId = null;
-        UpdatedAtUtc = DateTime.UtcNow;
-
-        RaiseDomainEvent(new ReplicaCompleted(Id, AssetId, HosterId, link));
-        return Result.Success();
-    }
-
-    /// <summary>
-    /// Records a failed attempt.
-    /// If retries remain => Retrying; otherwise => Failed.
-    /// </summary>
-    public Result MarkAttemptFailed(string reason)
-    {
-        bool canTransition =
-            State == ReplicaState.Pending ||
-            State == ReplicaState.WaitingForPeer ||
-            State == ReplicaState.Downloading ||
-            State == ReplicaState.Uploading ||
-            State == ReplicaState.Retrying;
-
-        if (!canTransition)
-            return Result.Failure(ReplicationErrors.InvalidReplicaStateTransition(State, ReplicaState.Failed));
-
-        if (string.IsNullOrWhiteSpace(reason))
-            return Result.Failure(ReplicationErrors.ErrorReasonEmpty);
-
-        RetryCount++;
-        LastError = reason;
-        WaitingForReplicaId = null;
-        UpdatedAtUtc = DateTime.UtcNow;
-
-        State = CanRetry() ? ReplicaState.Retrying : ReplicaState.Failed;
-
-        if (State == ReplicaState.Failed)
-        {
-            RaiseDomainEvent(new ReplicaFailed(Id, AssetId, HosterId, reason));
-        }
-
-        return Result.Success();
-    }
-
-    /// <summary>
-    /// Marks an unrecoverable failure directly (no retry scheduling).
-    /// </summary>
-    public Result MarkFailed(string reason)
-    {
-        if (string.IsNullOrWhiteSpace(reason))
-            return Result.Failure(ReplicationErrors.ErrorReasonEmpty);
-
-        State = ReplicaState.Failed;
-        LastError = reason;
-        WaitingForReplicaId = null;
-        UpdatedAtUtc = DateTime.UtcNow;
-
-        RaiseDomainEvent(new ReplicaFailed(Id, AssetId, HosterId, reason));
-        return Result.Success();
-    }
-
-    public bool CanRetry() => RetryCount < MaxRetries;
+    public bool CanRetry() => HasRetriesRemaining;
 }

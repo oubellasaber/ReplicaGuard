@@ -1,4 +1,6 @@
-﻿namespace ReplicaGuard.Core.Abstractions;
+﻿using System.Reflection.Metadata.Ecma335;
+
+namespace ReplicaGuard.Core.Abstractions;
 
 public sealed record Error
 {
@@ -40,4 +42,6 @@ public sealed record Error
         return this with { Metadata = newMetadata };
     }
     public Error WithType(ErrorType type) => this with { Type = type };
+    public Error AsPermanent() => this with { Type = ErrorType.Permanent };
+    public bool IsPermanent() => Type == ErrorType.Permanent;
 }
