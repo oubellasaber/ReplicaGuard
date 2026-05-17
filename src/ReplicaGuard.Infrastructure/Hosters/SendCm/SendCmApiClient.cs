@@ -1,4 +1,5 @@
-﻿using System.Net.Http.Headers;
+﻿using System.Net;
+using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.WebUtilities;
@@ -249,7 +250,26 @@ internal class SendCmApiClient : HosterApiClientBase<SendCmHoster>, IValidateCre
                 { new StringContent("1"), "keepalive" }
             };
 
-            using HttpResponseMessage response = await _uploadClient.PostAsync(uploadUrl, content, ct);
+            byte[] reqBody = await content.ReadAsByteArrayAsync(ct);
+
+            using ByteArrayContent buffered = new(reqBody);
+
+            foreach (var header in content.Headers)
+            {
+                buffered.Headers.TryAddWithoutValidation(header.Key, header.Value);
+            }
+
+            using HttpRequestMessage request = new(HttpMethod.Post, uploadUrl)
+            {
+                Content = buffered,
+                Version = HttpVersion.Version11,
+                VersionPolicy = HttpVersionPolicy.RequestVersionExact
+            };
+
+            request.Headers.ExpectContinue = false;
+
+            using HttpResponseMessage response =
+                await _uploadClient.SendAsync(request, ct);
 
             if (!response.IsSuccessStatusCode)
             {
