@@ -249,7 +249,7 @@ internal class SendCmApiClient : HosterApiClientBase<SendCmHoster>, IValidateCre
                 { new StringContent("1"), "keepalive" }
             };
 
-            using HttpResponseMessage response = await _httpClient.PostAsync(uploadUrl, content, ct);
+            using HttpResponseMessage response = await _uploadClient.PostAsync(uploadUrl, content, ct);
 
             if (!response.IsSuccessStatusCode)
             {
