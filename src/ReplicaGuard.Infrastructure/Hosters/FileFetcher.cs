@@ -26,7 +26,7 @@ public sealed class FileFetcher
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "ReplicaGuard", "Spool");
 
-            _logger.LogWarning(
+            _logger.LogDebug(
                 "Upload spool directory not configured. Falling back to {SpoolDirectory}",
                 configuredDirectory);
         }   
