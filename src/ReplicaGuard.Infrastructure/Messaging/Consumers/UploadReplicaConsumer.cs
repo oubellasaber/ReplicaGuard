@@ -184,6 +184,7 @@ public sealed class UploadReplicaConsumer : IConsumer<UploadReplicaCommand>
                     if (fetched.IsFailure)
                     {
                         var failure = asset.RecordFailure(replica, fetched.Error);
+                        await _leases.ReleaseAsync(asset.Id, cmd.ReplicaId, ct);
                         await _unitOfWork.SaveChangesAsync(ct);
 
                         if (failure.IsSuccess && failure.Value == FailureDecision.Retryable)

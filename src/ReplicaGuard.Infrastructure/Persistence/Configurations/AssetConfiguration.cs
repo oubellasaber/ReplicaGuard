@@ -42,11 +42,10 @@ internal sealed class AssetConfiguration : IEntityTypeConfiguration<Asset>
 
         builder.Property(x => x.CreatedAtUtc)
             .IsRequired()
-            .HasDefaultValueSql("CURRENT_TIMESTAMP");
+            .HasDefaultValueSql("CURRENT_TIMESTAMP AT TIME ZONE 'UTC'");
 
         builder.Property(x => x.UpdatedAtUtc)
-            .ValueGeneratedOnAddOrUpdate()
-            .HasDefaultValue(null);
+            .IsRequired();
 
         builder.Property(x => x.Version)
             .IsRequired()

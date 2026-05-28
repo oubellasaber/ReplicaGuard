@@ -14,7 +14,7 @@ public sealed class Asset : Entity<Guid>
     public AssetState State { get; private set; }
     public long? SizeBytes { get; private set; }
     public DateTime CreatedAtUtc { get; private set; }
-    public DateTime? UpdatedAtUtc { get; private set; }
+    public DateTime UpdatedAtUtc { get; private set; }
 
     public uint Version { get; private set; }
 
@@ -32,13 +32,15 @@ public sealed class Asset : Entity<Guid>
         RemoteFileSource source,
         FileName fileName)
     {
+        var createdAtUtc = DateTime.UtcNow;
         Asset asset = new()
         {
             UserId = userId,
             Source = source,
             FileName = fileName,
             State = AssetState.Created,
-            CreatedAtUtc = DateTime.UtcNow
+            CreatedAtUtc = createdAtUtc,
+            UpdatedAtUtc = createdAtUtc
         };
 
         asset.RaiseDomainEvent(new AssetCreated(asset.Id, userId, fileName.Value));
@@ -134,7 +136,6 @@ public sealed class Asset : Entity<Guid>
         if (hashsetReplica.IsTerminal)
             return Result.Failure(new Error("Replica.TerminalState", "Replica is already in terminal state, forbidden transition."));
         hashsetReplica.State = ReplicaState.Downloading;
-        Touch();
         RecalculateState();
         return Result.Success(replica);
     }
@@ -147,7 +148,6 @@ public sealed class Asset : Entity<Guid>
         if (hashsetReplica.IsTerminal)
             return Result.Failure(new Error("Replica.TerminalState", "Replica is already in terminal state, forbidden transition."));
         hashsetReplica.State = ReplicaState.Uploading;
-        Touch();
         RecalculateState();
         return Result.Success(replica);
     }
@@ -161,7 +161,6 @@ public sealed class Asset : Entity<Guid>
             return Result.Failure(new Error("Replica.TerminalState", "Replica is already in terminal state, forbidden transition."));
         hashsetReplica.State = ReplicaState.Completed;
         hashsetReplica.Link = fileUrl;
-        Touch();
         RecalculateState();
         RaiseDomainEvent(new ReplicaCompleted(replica.Id, Id, replica.HosterId, fileUrl));
         return Result.Success(replica);
@@ -177,11 +176,11 @@ public sealed class Asset : Entity<Guid>
 
         hashsetReplica.RetryCount++;
         hashsetReplica.LastError = error.Code;
-        Touch();
 
         if (error.IsPermanent() || !replica.HasRetriesRemaining)
         {
             hashsetReplica.State = ReplicaState.Failed;
+            RecalculateState();
             RaiseDomainEvent(new ReplicaFailed(replica.Id, Id, replica.HosterId, error.Code));
             return Result.Success(FailureDecision.Permanent);
         }
@@ -201,7 +200,6 @@ public sealed class Asset : Entity<Guid>
 
         hashsetReplica.LastError = errorCode;
         hashsetReplica.State = ReplicaState.Failed;
-        Touch();
         RecalculateState();
         RaiseDomainEvent(new ReplicaFailed(replica.Id, Id, replica.HosterId, errorCode));
         return Result.Success();
@@ -217,7 +215,6 @@ public sealed class Asset : Entity<Guid>
 
         hashsetReplica.State = ReplicaState.WaitingForPeer;
         hashsetReplica.WaitingForReplicaId = peerReplicaId;
-        Touch();
         RecalculateState();
         return Result.Success();
     }
@@ -229,6 +226,7 @@ public sealed class Asset : Entity<Guid>
             return;
         }
 
+        Touch();
         if (_replicas.All(r => r.State == ReplicaState.Completed))
         {
             var prev = State;
