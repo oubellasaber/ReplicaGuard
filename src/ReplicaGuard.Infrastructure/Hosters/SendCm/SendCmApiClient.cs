@@ -1,5 +1,4 @@
 ﻿using System.Net;
-using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.WebUtilities;
@@ -51,7 +50,7 @@ internal class SendCmApiClient : HosterApiClientBase<SendCmHoster>, IValidateCre
             "Validating credentials for hoster {HosterCode}",
             Code);
 
-        Result isApiKeyValid = await IsApiKeyValidAsync(credentials.ApiKey, ct);
+        var isApiKeyValid = await IsApiKeyValidAsync(credentials.ApiKey, ct);
 
         if (isApiKeyValid.IsFailure)
         {
@@ -110,33 +109,24 @@ internal class SendCmApiClient : HosterApiClientBase<SendCmHoster>, IValidateCre
                 Code,
                 uploadUrl);
 
-            using MultipartFormDataContent content = new()
-            {
-                { new StringContent("null"), "relativePath" },
-                { new StringContent(fileName), "name" },
-                { new StringContent("text/plain"), "type" },
-                { new StringContent(""), "file_expire_unit" },
-                { new StringContent(""), "file_max_dl" },
-                { new StringContent(""), "link_rcpt" },
-                { new StringContent(""), "file_expire_time" },
-                { new StringContent("0"), "to_folder" },
-                { new StringContent("", Encoding.UTF8), "link_pass" },
-                { new StringContent(""), "file_public" },
-                { new StringContent(uploadSession.SessionId), "sess_id" },
-                { new StringContent("reg"), "utype" }
-            };
+            var content = new RawMultipartFormDataContent(
+                new Dictionary<string, string>
+                {
+                    ["relativePath"] = "null",
+                    //["type"] = "text/plain",
+                    ["file_expire_unit"] = "",
+                    ["file_max_dl"] = "",
+                    ["link_rcpt"] = "",
+                    ["file_expire_time"] = "",
+                    ["to_folder"] = "0",
+                    ["link_pass"] = "",
+                    ["file_public"] = "",
+                    ["sess_id"] = uploadSession.SessionId,
+                    ["utype"] = "reg"
+                },
+                fileStream,
+                fileName);
 
-            StreamContent fileContent = new(fileStream, 5 * 1024 * 1024);
-            fileContent.Headers.ContentType = new MediaTypeHeaderValue("text/plain");
-            fileContent.Headers.ContentDisposition = new ContentDispositionHeaderValue("form-data")
-            {
-                Name = "\"my_file\"",
-                FileName = $"\"{Path.GetFileName(fileName)}\""
-            };
-
-            content.Add(fileContent);
-
-            // Execute the long-running upload via _uploadClient instead of _httpClient
             using var response = await _uploadClient.PostAsync(uploadUrl, content, ct);
 
             if (!response.IsSuccessStatusCode)
@@ -146,7 +136,7 @@ internal class SendCmApiClient : HosterApiClientBase<SendCmHoster>, IValidateCre
                     Code,
                     (int)response.StatusCode);
 
-                return Result.Failure<UploadResponse>(HosterUploadErrors.UploadFailed(Code, UploadMethod.LocalStorage, response.StatusCode));
+                return Result.Failure<UploadResponse>(SendCmUploadErrors.HttpFailure(uploadUrl, response.StatusCode));
             }
 
             string body = await response.Content.ReadAsStringAsync(ct);
@@ -175,16 +165,6 @@ internal class SendCmApiClient : HosterApiClientBase<SendCmHoster>, IValidateCre
 
             return Result.Success(new UploadResponse(fileCode, fileUrl, fileName, sizeBytes, DateTime.UtcNow));
         }
-        catch (HttpRequestException ex)
-        {
-            _logger.LogError(
-                ex,
-                "Network error during local upload to hoster {HosterCode} for file {FileName}",
-                Code,
-                fileName);
-
-            return Result.Failure<UploadResponse>(HosterUploadErrors.UploadFailed(Code, $"Network error: {ex.Message}"));
-        }
         catch (Exception ex)
         {
             _logger.LogError(
@@ -193,7 +173,7 @@ internal class SendCmApiClient : HosterApiClientBase<SendCmHoster>, IValidateCre
                 Code,
                 fileName);
 
-            return Result.Failure<UploadResponse>(HosterUploadErrors.UploadFailed(Code, $"Unexpected error: {ex.Message}"));
+            throw;
         }
     }
 
@@ -242,7 +222,7 @@ internal class SendCmApiClient : HosterApiClientBase<SendCmHoster>, IValidateCre
                 { new StringContent(uploadSession.SessionId), "sess_id" },
                 { new StringContent("reg"), "utype" },
                 { new StringContent("1"), "file_public" },
-                { new StringContent(fileName), "name" },
+                { new StringContent(fileName, Encoding.UTF8), "name" },
                 { new StringContent(remoteUrl.Url.Value.ToString()), "url_mass" },
                 { new StringContent("", Encoding.UTF8), "link_pass" },
                 { new StringContent(""), "to_folder" },
@@ -279,7 +259,7 @@ internal class SendCmApiClient : HosterApiClientBase<SendCmHoster>, IValidateCre
                     (int)response.StatusCode);
 
                 return Result.Failure<UploadResponse>(
-                    HosterUploadErrors.UploadFailed(Code, UploadMethod.RemoteUrl, response.StatusCode));
+                    SendCmUploadErrors.HttpFailure(uploadUrl, response.StatusCode));
             }
 
             string body = await response.Content.ReadAsStringAsync(ct);
@@ -299,33 +279,23 @@ internal class SendCmApiClient : HosterApiClientBase<SendCmHoster>, IValidateCre
             using HttpResponseMessage updateStatResponse = await _httpClient.GetAsync(updateStatUrl, ct);
             string updateStatBody = await updateStatResponse.Content.ReadAsStringAsync(ct);
 
-            Result<UpdateStat> updateStatResult = ParseUpdateStat(updateStatBody);
-            if (updateStatResult.IsFailure)
-            {
-                _logger.LogWarning(
-                    "Remote URL upload to hoster {HosterCode} returned an invalid update_stat payload: {ErrorCode}",
-                    Code,
-                    updateStatResult.Error.Code);
-
-                return Result.Failure<UploadResponse>(updateStatResult.Error);
-            }
-
+            var updateStat = UpdateStatParser.Parse(updateStatBody);
             string fileCode = fileCodeResult.Value;
 
-            Result renameResult = await RenameFileAsync(credentials, fileCode, fileName, ct);
-            if (renameResult.IsFailure)
-            {
-                _logger.LogWarning(
-                    "Remote URL upload to hoster {HosterCode} could not enforce filename via rename. FileCode={FileCode}, ErrorCode={ErrorCode}",
-                    Code,
-                    fileCode,
-                    renameResult.Error.Code);
+            //Result renameResult = await RenameFileAsync(credentials, fileCode, fileName, ct);
+            //if (renameResult.IsFailure)
+            //{
+            //    _logger.LogWarning(
+            //        "Remote URL upload to hoster {HosterCode} could not enforce filename via rename. FileCode={FileCode}, ErrorCode={ErrorCode}",
+            //        Code,
+            //        fileCode,
+            //        renameResult.Error.Code);
 
-                return Result.Failure<UploadResponse>(renameResult.Error);
-            }
+            //    return Result.Failure<UploadResponse>(renameResult.Error);
+            //}
 
             Uri fileUrl = new($"{_options.ApiBaseUrl}/{fileCode}");
-            long sizeBytes = updateStatResult.Value.Total;
+            long sizeBytes = updateStat.Total;
 
             _logger.LogInformation(
                 "Remote URL upload to hoster {HosterCode} succeeded for file {FileName}. FileCode={FileCode}, SizeBytes={SizeBytes}, Url={FileUrl}",
@@ -337,17 +307,6 @@ internal class SendCmApiClient : HosterApiClientBase<SendCmHoster>, IValidateCre
 
             return Result.Success(new UploadResponse(fileCode, fileUrl, fileName, sizeBytes, DateTime.UtcNow));
         }
-        catch (HttpRequestException ex)
-        {
-            _logger.LogError(
-                ex,
-                "Network error during remote URL upload to hoster {HosterCode} for file {FileName}",
-                Code,
-                fileName);
-
-            return Result.Failure<UploadResponse>(
-                HosterUploadErrors.UploadFailed(Code, $"Network error: {ex.Message}"));
-        }
         catch (Exception ex)
         {
             _logger.LogError(
@@ -356,8 +315,7 @@ internal class SendCmApiClient : HosterApiClientBase<SendCmHoster>, IValidateCre
                 Code,
                 fileName);
 
-            return Result.Failure<UploadResponse>(
-                HosterUploadErrors.UploadFailed(Code, $"Unexpected error: {ex.Message}"));
+            throw;
         }
     }
 
@@ -401,11 +359,11 @@ internal class SendCmApiClient : HosterApiClientBase<SendCmHoster>, IValidateCre
 
                 return response.StatusCode switch
                 {
-                    System.Net.HttpStatusCode.BadRequest => Result.Failure(SendCmFileErrors.RenameBadRequest()),
-                    System.Net.HttpStatusCode.Forbidden => Result.Failure(SendCmFileErrors.RenameForbidden()),
-                    System.Net.HttpStatusCode.NotFound => Result.Failure(SendCmFileErrors.RenameFileNotFound(fileCode)),
-                    (System.Net.HttpStatusCode)451 => Result.Failure(SendCmFileErrors.RenameUnavailable()),
-                    _ => Result.Failure(SendCmFileErrors.RenameFailed(
+                    HttpStatusCode.BadRequest => Result.Failure(SendCmFileRenameErrors.RenameBadRequest()),
+                    HttpStatusCode.Forbidden => Result.Failure(SendCmFileRenameErrors.RenameForbidden()),
+                    HttpStatusCode.NotFound => Result.Failure(SendCmFileRenameErrors.RenameFileNotFound(fileCode)),
+                    (HttpStatusCode)451 => Result.Failure(SendCmFileRenameErrors.RenameUnavailable()),
+                    _ => Result.Failure(SendCmFileRenameErrors.RenameFailed(
                         $"HTTP {(int)response.StatusCode} {response.StatusCode}"))
                 };
             }
@@ -440,7 +398,7 @@ internal class SendCmApiClient : HosterApiClientBase<SendCmHoster>, IValidateCre
                 Code,
                 fileCode);
 
-            return Result.Failure(SendCmFileErrors.RenameFailed($"Network error: {ex.Message}"));
+            return Result.Failure(SendCmFileRenameErrors.RenameFailed($"Network error: {ex.Message}"));
         }
         catch (Exception ex)
         {
@@ -450,7 +408,7 @@ internal class SendCmApiClient : HosterApiClientBase<SendCmHoster>, IValidateCre
                 Code,
                 fileCode);
 
-            return Result.Failure(SendCmFileErrors.RenameFailed($"Unexpected error: {ex.Message}"));
+            return Result.Failure(SendCmFileRenameErrors.RenameFailed($"Unexpected error: {ex.Message}"));
         }
     }
 
@@ -514,7 +472,7 @@ internal class SendCmApiClient : HosterApiClientBase<SendCmHoster>, IValidateCre
             JsonElement root = doc.RootElement;
 
             if (!root.TryGetProperty("status", out JsonElement statusProp))
-                return Result.Failure(SendCmFileErrors.RenameInvalidResponse("Missing 'status'."));
+                return Result.Failure(SendCmFileRenameErrors.RenameInvalidResponse("Missing 'status'."));
 
             int status = statusProp.GetInt32();
             if (status != 200)
@@ -523,11 +481,11 @@ internal class SendCmApiClient : HosterApiClientBase<SendCmHoster>, IValidateCre
                     ? msgProp.GetString() ?? "Rename failed."
                     : "Rename failed.";
 
-                return Result.Failure(SendCmFileErrors.RenameFailed(detail));
+                return Result.Failure(SendCmFileRenameErrors.RenameFailed(detail));
             }
 
             if (!root.TryGetProperty("result", out JsonElement resultProp))
-                return Result.Failure(SendCmFileErrors.RenameInvalidResponse("Missing 'result'."));
+                return Result.Failure(SendCmFileRenameErrors.RenameInvalidResponse("Missing 'result'."));
 
             bool success = resultProp.ValueKind switch
             {
@@ -538,11 +496,11 @@ internal class SendCmApiClient : HosterApiClientBase<SendCmHoster>, IValidateCre
 
             return success
                 ? Result.Success()
-                : Result.Failure(SendCmFileErrors.RenameFailed("Provider returned an unsuccessful rename result."));
+                : Result.Failure(SendCmFileRenameErrors.RenameFailed("Provider returned an unsuccessful rename result."));
         }
         catch (JsonException ex)
         {
-            return Result.Failure(SendCmFileErrors.RenameInvalidResponse(ex.Message));
+            return Result.Failure(SendCmFileRenameErrors.RenameInvalidResponse(ex.Message));
         }
     }
 
@@ -559,7 +517,7 @@ internal class SendCmApiClient : HosterApiClientBase<SendCmHoster>, IValidateCre
             using var response = await _httpClient.GetAsync(url, ct);
 
             if (!response.IsSuccessStatusCode)
-                return Result.Failure<UploadSessionContext>(SendCmUploadErrors.MissingUploadServer());
+                return Result.Failure<UploadSessionContext>(SendCmUploadErrors.HttpFailure(url, response.StatusCode));
 
             await using Stream stream = await response.Content.ReadAsStreamAsync(ct);
             using JsonDocument doc = await JsonDocument.ParseAsync(stream, cancellationToken: ct);
@@ -645,19 +603,6 @@ internal class SendCmApiClient : HosterApiClientBase<SendCmHoster>, IValidateCre
         catch (JsonException ex)
         {
             return Result.Failure<string>(SendCmUploadErrors.InvalidJsonResponse(ex.Message));
-        }
-    }
-
-    private static Result<UpdateStat> ParseUpdateStat(string input)
-    {
-        try
-        {
-            return Result.Success(UpdateStatParser.Parse(input));
-        }
-        catch (Exception ex)
-        {
-            return Result.Failure<UpdateStat>(SendCmUploadErrors.InvalidUpdateStatFormat()
-                .WithDetail(ex.Message));
         }
     }
 
@@ -759,17 +704,3 @@ internal class SendCmApiClient : HosterApiClientBase<SendCmHoster>, IValidateCre
         }
     }
 }
-
-
-/*
-atch (TaskCanceledException ex)
-        {
-            _logger.LogError(
-                ex,
-                "Upload timeout/cancellation for hoster {HosterCode} for file {FileName}",
-                Code,
-                fileName);
-
-            return Result.Failure<UploadResponse>(HosterUploadErrors.UploadFailed(Code, $"Upload timeout: {ex.Message}"));
-        }
-*/

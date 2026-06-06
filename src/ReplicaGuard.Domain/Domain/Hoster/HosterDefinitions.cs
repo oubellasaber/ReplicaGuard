@@ -9,7 +9,6 @@ public interface IHosterDefinition
     static abstract string Code { get; }
     static abstract string DisplayName { get; }
     static abstract Credentials PrimaryCredentials { get; }
-    static abstract Credentials SecondaryCredentials { get; }
     static abstract IReadOnlyList<(CapabilityCode Feature, Credentials RequiredAuth)> Features { get; }
 }
 
@@ -23,7 +22,6 @@ public readonly struct Pixeldrain : IHosterDefinition
     public static string Code => "pixeldrain";
     public static string DisplayName => "Pixeldrain";
     public static Credentials PrimaryCredentials => Credentials.ApiKey;
-    public static Credentials SecondaryCredentials => Credentials.None;
     public static IReadOnlyList<(CapabilityCode, Credentials)> Features =>
     [
         (CapabilityCode.SpooledUpload, Credentials.ApiKey)
@@ -35,7 +33,6 @@ public readonly struct SendCm : IHosterDefinition
     public static string Code => "sendcm";
     public static string DisplayName => "Send.CM";
     public static Credentials PrimaryCredentials => Credentials.ApiKey;
-    public static Credentials SecondaryCredentials => Credentials.None;
     public static IReadOnlyList<(CapabilityCode, Credentials)> Features =>
     [
         (CapabilityCode.RemoteUpload, Credentials.ApiKey),

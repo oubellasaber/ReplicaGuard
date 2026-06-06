@@ -14,4 +14,16 @@ public interface IReplicaRepository
     /// Get a batch of pending replicas for processing.
     /// </summary>
     Task<List<Replica>> GetPendingReplicasAsync(int batchSize, CancellationToken cancellationToken = default);
+
+    Task<MarkWaitingResult> TryMarkWaitingIfDownloaderStillActive(
+        Guid assetId,
+        Guid replicaId,
+        CancellationToken ct);
+}
+
+public enum MarkWaitingResult
+{
+    MarkedWaiting,
+    AlreadyCompleted,
+    NoActiveDownloader
 }

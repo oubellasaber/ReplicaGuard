@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using ReplicaGuard.Application.Replication.UploadReplica.Spooling;
 using ReplicaGuard.Infrastructure.Persistence;
 
 namespace ReplicaGuard.Infrastructure.Spool
@@ -87,60 +88,23 @@ namespace ReplicaGuard.Infrastructure.Spool
             }
         }
 
-        public async Task<bool> RenewAsync(
-            Guid assetId,
-            Guid replicaId,
-            TimeSpan ttl,
-            CancellationToken ct)
+        public void Renew(SpoolLease lease, TimeSpan ttl)
         {
             var now = DateTime.UtcNow;
-            var entity = await _dbContext.Set<SpoolLease>()
-                .FirstOrDefaultAsync(x => x.AssetId == assetId, ct);
-
-            if (entity is null)
-                return false;
-
-            if (entity.OwnerReplicaId != replicaId)
-                return false;
-
-            entity.ExpiresAtUtc = now.Add(ttl);
-            entity.Version++;
-
-            try
-            {
-                await _dbContext.SaveChangesAsync(ct);
-                return true;
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                return false;
-            }
+            lease.ExpiresAtUtc = now.Add(ttl);
+            lease.Version++;
         }
 
-        public async Task<bool> ReleaseAsync(
-            Guid assetId,
-            Guid replicaId,
-            CancellationToken ct)
+        public void Release(SpoolLease lease)
         {
-            var entity = await _dbContext.Set<SpoolLease>()
-                .FirstOrDefaultAsync(x => x.AssetId == assetId, ct);
+            _dbContext.Set<SpoolLease>().Remove(lease);
+        }
 
-            if (entity is null || entity.OwnerReplicaId != replicaId)
-                return false;
-
-            entity.Version++;
-
-            _dbContext.Set<SpoolLease>().Remove(entity);
-
-            try
-            {
-                await _dbContext.SaveChangesAsync(ct);
-                return true;
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                return false;
-            }
+        public async Task ReleaseForAsset(Guid assetId)
+        {
+            await _dbContext.Set<SpoolLease>()
+                .Where(x => x.AssetId == assetId)
+                .ExecuteDeleteAsync();
         }
     }
 }

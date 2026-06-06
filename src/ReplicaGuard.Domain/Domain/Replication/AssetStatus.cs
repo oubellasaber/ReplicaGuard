@@ -3,7 +3,7 @@ namespace ReplicaGuard.Core.Domain.Replication;
 /// <summary>
 /// Represents the lifecycle state of an asset.
 /// </summary>
-public enum AssetState
+public enum AssetStatus
 {
     /// <summary>
     /// Asset created by user, source file not yet fetched.

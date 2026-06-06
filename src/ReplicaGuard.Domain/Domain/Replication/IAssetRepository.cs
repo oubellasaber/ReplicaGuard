@@ -21,6 +21,11 @@ public interface IAssetRepository
     Task<Asset?> GetByIdWithReplicasAsync(Guid id, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Get an asset by replica id with all replicas eagerly loaded.
+    /// </summary>
+    Task<Asset?> GetByReplicaIdWithReplicasAsync(Guid replicaId, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Get all assets belonging to a specific user.
     /// </summary>
     Task<List<Asset>> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken = default);

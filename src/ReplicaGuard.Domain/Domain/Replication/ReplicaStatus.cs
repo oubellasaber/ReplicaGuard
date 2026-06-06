@@ -3,7 +3,7 @@ namespace ReplicaGuard.Core.Domain.Replication;
 /// <summary>
 /// Represents the state of a single replica on a hoster.
 /// </summary>
-public enum ReplicaState
+public enum ReplicaStatus
 {
     /// <summary>
     /// Replica is waiting for a worker to upload it.

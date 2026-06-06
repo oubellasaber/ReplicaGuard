@@ -7,17 +7,20 @@ internal static class PixeldrainUploadErrors
     public static Error NoFile() =>
         new Error("Hoster.Pixeldrain.Upload.NoFile", "The file does not exist or is empty.")
             .WithMetadata("StatusCode", 422)
-            .WithType(ErrorType.Validation);
+            .WithType(ErrorType.Validation)
+            .AsPermanent();
 
     public static Error FileTooLarge() =>
         new Error("Hoster.Pixeldrain.Upload.FileTooLarge", "The file exceeds the maximum allowed size.")
             .WithMetadata("StatusCode", 413)
-            .WithType(ErrorType.InvalidInput);
+            .WithType(ErrorType.InvalidInput)
+            .AsPermanent();
 
     public static Error NameTooLong() =>
         new Error("Hoster.Pixeldrain.Upload.NameTooLong", "File name exceeds 255 characters.")
             .WithMetadata("StatusCode", 413)
-            .WithType(ErrorType.InvalidInput);
+            .WithType(ErrorType.InvalidInput)
+            .AsPermanent();
 
     public static Error WritingError() =>
         new Error("Hoster.Pixeldrain.Upload.WritingError", "Failed to write file to server storage.")

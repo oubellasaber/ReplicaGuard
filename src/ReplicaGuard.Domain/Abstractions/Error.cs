@@ -10,12 +10,13 @@ public sealed record Error
     public string Code { get; }
     public string Message { get; }
     public string? Detail { get; init; }
-    public ErrorType Type { get; init; } = ErrorType.Failure;
+    public ErrorType Type { get; init; }
+    public Kind MessagingKind { get; init; }
 
     public IReadOnlyDictionary<string, object> Metadata { get; init; } =
         new Dictionary<string, object>();
 
-    public Error(string code, string message, ErrorType type = ErrorType.InvalidInput)
+    public Error(string code, string message, ErrorType type = ErrorType.Failure, Kind kind = Kind.Transient)
     {
         if (string.IsNullOrWhiteSpace(code))
             throw new ArgumentException("Error code cannot be empty.", nameof(code));
@@ -25,6 +26,7 @@ public sealed record Error
         Code = code;
         Message = message;
         Type = type;
+        MessagingKind = kind;
     }
 
     // Private constructor to bypass validation
@@ -42,6 +44,16 @@ public sealed record Error
         return this with { Metadata = newMetadata };
     }
     public Error WithType(ErrorType type) => this with { Type = type };
-    public Error AsPermanent() => this with { Type = ErrorType.Permanent };
-    public bool IsPermanent() => Type == ErrorType.Permanent;
+    public Error AsPermanent() =>
+        this with { MessagingKind = Kind.Permanent };
+    public bool IsPermanent =>
+        MessagingKind == Kind.Permanent;
+    public bool IsTransient
+        => !IsPermanent;
+}
+
+public enum Kind
+{
+    Transient,
+    Permanent
 }

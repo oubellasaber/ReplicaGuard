@@ -10,7 +10,7 @@ namespace ReplicaGuard.Infrastructure.Messaging.Consumers;
 /// When a replica completes or fails, re-triggers any siblings that were waiting for it.
 /// </summary>
 public sealed class ReplicaCoordinationConsumer :
-    IConsumer<ReplicaCompleted>,
+    IConsumer<ReplicaDownloaded>,
     IConsumer<ReplicaFailed>
 {
     private readonly IAssetRepository _assetRepository;
@@ -24,36 +24,33 @@ public sealed class ReplicaCoordinationConsumer :
         _logger = logger;
     }
 
-    public async Task Consume(ConsumeContext<ReplicaCompleted> context)
+    public async Task Consume(ConsumeContext<ReplicaDownloaded> context)
     {
-        await WakeWaitingPeersAsync(
-            context.Message.AssetId, context.Message.ReplicaId, context);
+        await WakeWaitingPeersAsync(context.Message.ReplicaId, context);
     }
 
     public async Task Consume(ConsumeContext<ReplicaFailed> context)
     {
-        await WakeWaitingPeersAsync(
-            context.Message.AssetId, context.Message.ReplicaId, context);
+        await WakeWaitingPeersAsync(context.Message.ReplicaId, context);
     }
 
-    private async Task WakeWaitingPeersAsync(
-        Guid assetId, Guid sourceReplicaId, ConsumeContext context)
+    private async Task WakeWaitingPeersAsync(Guid sourceReplicaId, ConsumeContext context)
     {
-        Asset? asset = await _assetRepository.GetByIdWithReplicasAsync(
-            assetId, context.CancellationToken);
+        Asset? asset = await _assetRepository.GetByReplicaIdWithReplicasAsync(
+            sourceReplicaId, context.CancellationToken);
 
         if (asset == null)
             return;
 
         List<Replica> waitingPeers = asset.Replicas
-            .Where(r => r.State == ReplicaState.WaitingForPeer &&
+            .Where(r => r.Status == ReplicaStatus.WaitingForPeer &&
                        r.WaitingForReplicaId == sourceReplicaId)
             .ToList();
 
         foreach (Replica peer in waitingPeers)
         {
             await context.Publish(
-                new UploadReplicaCommand(peer.Id, assetId, peer.HosterId),
+                new UploadReplicaCommand(peer.Id, asset.Id, peer.HosterId),
                 context.CancellationToken);
 
             _logger.LogInformation("Woke Replica {ReplicaId} (was waiting for {SiblingId})",

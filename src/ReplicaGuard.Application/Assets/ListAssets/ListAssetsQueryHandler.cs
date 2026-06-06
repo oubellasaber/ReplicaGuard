@@ -21,11 +21,11 @@ public sealed class ListAssetsQueryHandler(
             .Select(a => new AssetSummaryResponse(
                 a.Id,
                 a.FileName.Value,
-                a.State.ToString().ToLowerInvariant(),
+                a.Status.ToString().ToLowerInvariant(),
                 a.SizeBytes,
                 a.Replicas.Count,
-                a.Replicas.Count(r => r.State == ReplicaState.Completed),
-                a.Replicas.Count(r => r.State == ReplicaState.Failed),
+                a.Replicas.Count(r => r.Status == ReplicaStatus.Completed),
+                a.Replicas.Count(r => r.Status == ReplicaStatus.Failed),
                 a.CreatedAtUtc))
             .ToList();
 

@@ -1,3 +1,4 @@
+using System.Net;
 using ReplicaGuard.Core.Abstractions;
 
 namespace ReplicaGuard.Infrastructure.Hosters.SendCm;
@@ -7,29 +8,41 @@ internal static class SendCmUploadErrors
     public static Error InvalidJsonResponse(string detail) =>
         new Error("Hoster.SendCm.Upload.InvalidJson", "The upload response contained invalid JSON.")
             .WithDetail(detail)
-            .WithType(ErrorType.Failure);
-
+            .WithType(ErrorType.Failure)
+            .AsPermanent();
     public static Error EmptyFileCode() =>
         new Error("Hoster.SendCm.Upload.EmptyFileCode", "The server returned an empty file code.")
-            .WithType(ErrorType.Failure);
+            .WithType(ErrorType.Failure)
+            .AsPermanent();
 
     public static Error FileBannedByAdministrator() =>
         new Error("Hoster.SendCm.Upload.FileBanned", "The file is banned by the hoster administrator.")
-            .WithType(ErrorType.Forbidden);
+            .WithType(ErrorType.Forbidden)
+            .AsPermanent();
 
     public static Error DuplicateLimitReached() =>
         new Error("Hoster.SendCm.Upload.DuplicateLimitReached", "The file reached the maximum duplicate limit. Upload a unique file.")
-            .WithType(ErrorType.Conflict);
+            .WithType(ErrorType.Conflict)
+            .AsPermanent();
 
     public static Error MissingSessionId() =>
         new Error("Hoster.SendCm.Upload.MissingSessionId", "Failed to retrieve session ID from the server.")
-            .WithType(ErrorType.Failure);
+            .WithType(ErrorType.Failure)
+            .AsPermanent();
 
     public static Error MissingUploadServer() =>
         new Error("Hoster.SendCm.Upload.MissingUploadServer", "Failed to retrieve upload server URL.")
-            .WithType(ErrorType.Failure);
+            .WithType(ErrorType.Failure)
+            .AsPermanent();
 
     public static Error InvalidUpdateStatFormat() =>
         new Error("Hoster.SendCm.Upload.InvalidUpdateStat", "Failed to parse update_stat() response.")
-            .WithType(ErrorType.Failure);
+            .WithType(ErrorType.Failure)
+            .AsPermanent();
+
+    public static Error HttpFailure(string url, HttpStatusCode status) =>
+        new Error("Hoster.SendCm.Upload.HttpFailure", $"The server returned a non‑success status code.")
+            .WithType(ErrorType.Failure)
+            .WithMetadata(nameof(url), url)
+            .WithMetadata("status_code", (int)status);
 }

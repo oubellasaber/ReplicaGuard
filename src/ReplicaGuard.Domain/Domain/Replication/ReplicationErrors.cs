@@ -5,45 +5,25 @@ namespace ReplicaGuard.Core.Domain.Replication;
 
 public static class ReplicationErrors
 {
-    // Asset errors
-    public static Error InvalidAssetTransition(AssetState from, AssetState to) =>
-        new("Asset.InvalidTransition",
-            $"Cannot transition asset from {from} to {to}.",
-            ErrorType.InvalidInput);
-
-    public static Error InvalidFileSize(long size) =>
-        new("Asset.InvalidFileSize",
-            $"File size {size} bytes is invalid. Must be greater than zero.",
-            ErrorType.InvalidInput);
-
     public static Error AssetNotFound(Guid id) =>
         CommonErrors.NotFound(nameof(Asset), id);
 
     // Replica errors
-    public static Error InvalidReplicaStateTransition(ReplicaState from, ReplicaState to) =>
-        new("Replica.InvalidTransition",
-            $"Cannot transition replica from {from} to {to}.",
-            ErrorType.InvalidInput);
-
     public static Error DuplicateReplica(Guid assetId, Guid hosterId) =>
         new("Replica.Duplicate",
             $"A replica for asset '{assetId}' on hoster '{hosterId}' already exists.",
             ErrorType.Conflict);
 
-    public static Error LinkEmpty =>
-        new("Replica.LinkEmpty",
-            "Replica link cannot be null or empty.",
-            ErrorType.InvalidInput);
-
-    public static Error ErrorReasonEmpty =>
-        new("Replica.ErrorReasonEmpty",
-            "Error reason cannot be null or empty when marking replica as failed.",
-            ErrorType.InvalidInput);
-
     public static Error ReplicaNotFound(Guid id) =>
         new("Replica.NotFound",
             $"Replica with ID '{id}' was not found.",
             ErrorType.NotFound);
+
+    public static Error ReplicaTerminalState(Guid id) =>
+        new Error("Replica.TerminalState",
+            "Replica is already in terminal state.",
+            ErrorType.InvalidInput)
+        .WithMetadata("ReplicaId", id);
 
     // FileUrl errors
     public static Error FileUrlEmpty =>

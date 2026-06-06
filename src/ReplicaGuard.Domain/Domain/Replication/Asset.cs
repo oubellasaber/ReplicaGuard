@@ -1,5 +1,4 @@
 using ReplicaGuard.Core.Abstractions;
-using ReplicaGuard.Core.Domain.Hoster;
 using ReplicaGuard.Core.Domain.Replication.DomainEvents;
 
 namespace ReplicaGuard.Core.Domain.Replication;
@@ -11,17 +10,18 @@ public sealed class Asset : Entity<Guid>
     public Guid UserId { get; private set; }
     public FileSource? Source { get; private set; }
     public FileName FileName { get; private set; } = default!;
-    public AssetState State { get; private set; }
+    // Calculated
+    public AssetStatus Status => RecalculateStatus();
+    //public AssetStatus Status { get; set; }
     public long? SizeBytes { get; private set; }
     public DateTime CreatedAtUtc { get; private set; }
     public DateTime UpdatedAtUtc { get; private set; }
-
-    public uint Version { get; private set; }
 
     public IReadOnlyCollection<Replica> Replicas => _replicas;
 
     // EF Core
     private Asset() : base(Guid.NewGuid()) { }
+
 
     /// <summary>
     /// Creates an asset from a remote Download URL.
@@ -30,17 +30,16 @@ public sealed class Asset : Entity<Guid>
     public static Result<Asset> CreateFromRemoteUrl(
         Guid userId,
         RemoteFileSource source,
-        FileName fileName)
+        FileName fileName,
+        DateTime utcNow)
     {
-        var createdAtUtc = DateTime.UtcNow;
         Asset asset = new()
         {
             UserId = userId,
             Source = source,
             FileName = fileName,
-            State = AssetState.Created,
-            CreatedAtUtc = createdAtUtc,
-            UpdatedAtUtc = createdAtUtc
+            CreatedAtUtc = utcNow,
+            UpdatedAtUtc= utcNow
         };
 
         asset.RaiseDomainEvent(new AssetCreated(asset.Id, userId, fileName.Value));
@@ -54,13 +53,14 @@ public sealed class Asset : Entity<Guid>
     public static Result<Asset> CreateFromRemoteUrl(
         Guid userId,
         string url,
-        FileName fileName)
+        FileName fileName,
+        DateTime utcNow)
     {
         Result<RemoteFileSource> sourceResult = RemoteFileSource.Create(url);
         if (sourceResult.IsFailure)
             return Result.Failure<Asset>(sourceResult.Error);
 
-        return CreateFromRemoteUrl(userId, sourceResult.Value, fileName);
+        return CreateFromRemoteUrl(userId, sourceResult.Value, fileName, utcNow);
     }
 
     /// <summary>
@@ -70,7 +70,8 @@ public sealed class Asset : Entity<Guid>
     public static Result<Asset> CreateFromLocalPath(
         Guid userId,
         LocalFileSource source,
-        FileName fileName)
+        FileName fileName,
+        DateTime utcNow)
     {
         Asset asset = new()
         {
@@ -78,8 +79,8 @@ public sealed class Asset : Entity<Guid>
             UserId = userId,
             Source = source,
             FileName = fileName,
-            State = AssetState.Created,
-            CreatedAtUtc = DateTime.UtcNow
+            CreatedAtUtc = utcNow,
+            UpdatedAtUtc = utcNow
         };
 
         asset.RaiseDomainEvent(new AssetCreated(asset.Id, userId, fileName.Value));
@@ -93,167 +94,50 @@ public sealed class Asset : Entity<Guid>
     public static Result<Asset> CreateFromLocalPath(
         Guid userId,
         string filePath,
-        FileName fileName)
+        FileName fileName,
+        DateTime utcNow)
     {
         Result<LocalFileSource> sourceResult = LocalFileSource.Create(filePath);
         if (sourceResult.IsFailure)
             return Result.Failure<Asset>(sourceResult.Error);
 
-        return CreateFromLocalPath(userId, sourceResult.Value, fileName);
+        return CreateFromLocalPath(userId, sourceResult.Value, fileName, utcNow);
     }
 
-    public Result<Replica> AddReplica(Guid hosterId)
+    public Result<Replica> AddReplica(Guid hosterId, DateTime utcNow)
     {
         if (_replicas.Any(r => r.HosterId == hosterId))
             return Result.Failure<Replica>(
                 ReplicationErrors.DuplicateReplica(Id, hosterId));
 
-        Replica replica = Replica.Create(Id, hosterId);
+        Replica replica = Replica.Create(Id, hosterId, utcNow);
         _replicas.Add(replica);
-        RecalculateState();
 
         return Result.Success(replica);
     }
 
     /// <summary>
     /// Records the file size once it's known (from local disk or after download).
-    /// Idempotent — only sets the value if not already known.
+    /// Idempotent - only sets the value if not already known.
     /// </summary>
-    public void RecordFileSize(long sizeBytes)
+    public void RecordFileSize(long sizeBytes, DateTime utcNow)
     {
         if (SizeBytes.HasValue || sizeBytes <= 0)
             return;
 
         SizeBytes = sizeBytes;
-        UpdatedAtUtc = DateTime.UtcNow;
+        UpdatedAtUtc = utcNow;
     }
 
-    public Result StartDownloading(Replica replica)
+    private AssetStatus RecalculateStatus()
     {
-        var hashsetReplica = _replicas.FirstOrDefault(r => r.Id == replica.Id);
-        if (hashsetReplica == null)
-            return Result.Failure(new Error("Replica.NotFound", "Replica does not belong to this asset."));
-        if (hashsetReplica.IsTerminal)
-            return Result.Failure(new Error("Replica.TerminalState", "Replica is already in terminal state, forbidden transition."));
-        hashsetReplica.State = ReplicaState.Downloading;
-        RecalculateState();
-        return Result.Success(replica);
+        if (!_replicas.Any() || _replicas.All(r => r.Status == ReplicaStatus.Pending))
+            return AssetStatus.Created;
+        else if (_replicas.All(r => r.Status == ReplicaStatus.Completed))
+            return AssetStatus.Completed;
+        else if (_replicas.All(r => r.Status == ReplicaStatus.Failed))
+            return AssetStatus.Failed;
+        else
+            return AssetStatus.InProgress;
     }
-
-    public Result StartUploading(Replica replica)
-    {
-        var hashsetReplica = _replicas.FirstOrDefault(r => r.Id == replica.Id);
-        if (hashsetReplica == null)
-            return Result.Failure(new Error("Replica.NotFound", "Replica does not belong to this asset."));
-        if (hashsetReplica.IsTerminal)
-            return Result.Failure(new Error("Replica.TerminalState", "Replica is already in terminal state, forbidden transition."));
-        hashsetReplica.State = ReplicaState.Uploading;
-        RecalculateState();
-        return Result.Success(replica);
-    }
-
-    public Result Complete(Replica replica, Uri fileUrl)
-    {
-        var hashsetReplica = _replicas.FirstOrDefault(r => r.Id == replica.Id);
-        if (hashsetReplica == null)
-            return Result.Failure(new Error("Replica.NotFound", "Replica does not belong to this asset."));
-        if (hashsetReplica.IsTerminal)
-            return Result.Failure(new Error("Replica.TerminalState", "Replica is already in terminal state, forbidden transition."));
-        hashsetReplica.State = ReplicaState.Completed;
-        hashsetReplica.Link = fileUrl;
-        RecalculateState();
-        RaiseDomainEvent(new ReplicaCompleted(replica.Id, Id, replica.HosterId, fileUrl));
-        return Result.Success(replica);
-    }
-
-    public Result<FailureDecision> RecordFailure(Replica replica, Error error)
-    {
-        var hashsetReplica = _replicas.FirstOrDefault(r => r.Id == replica.Id);
-        if (hashsetReplica == null)
-            return Result.Failure<FailureDecision>(new Error("Replica.NotFound", "Replica does not belong to this asset."));
-        if (hashsetReplica.IsTerminal)
-            return Result.Failure<FailureDecision>(new Error("Replica.TerminalState", "Replica is already in terminal state, forbidden transition."));
-
-        hashsetReplica.RetryCount++;
-        hashsetReplica.LastError = error.Code;
-
-        if (error.IsPermanent() || !replica.HasRetriesRemaining)
-        {
-            hashsetReplica.State = ReplicaState.Failed;
-            RecalculateState();
-            RaiseDomainEvent(new ReplicaFailed(replica.Id, Id, replica.HosterId, error.Code));
-            return Result.Success(FailureDecision.Permanent);
-        }
-
-        hashsetReplica.State = ReplicaState.Retrying;
-        RecalculateState();
-        return Result.Success(FailureDecision.Retryable);
-    }
-
-    public Result Fail(Replica replica, string errorCode)
-    {
-        var hashsetReplica = _replicas.FirstOrDefault(r => r.Id == replica.Id);
-        if (hashsetReplica == null)
-            return Result.Failure(new Error("Replica.NotFound", "Replica does not belong to this asset."));
-        if (hashsetReplica.IsTerminal)
-            return Result.Failure(new Error("Replica.TerminalState", "Replica is already in terminal state."));
-
-        hashsetReplica.LastError = errorCode;
-        hashsetReplica.State = ReplicaState.Failed;
-        RecalculateState();
-        RaiseDomainEvent(new ReplicaFailed(replica.Id, Id, replica.HosterId, errorCode));
-        return Result.Success();
-    }
-
-    public Result MarkWaitingForPeer(Replica replica, Guid peerReplicaId)
-    {
-        var hashsetReplica = _replicas.FirstOrDefault(r => r.Id == replica.Id);
-        if (hashsetReplica == null)
-            return Result.Failure(new Error("Replica.NotFound", "Replica does not belong to this asset."));
-        if (hashsetReplica.IsTerminal)
-            return Result.Failure(new Error("Replica.TerminalState", "Replica is already in terminal state, forbidden transition."));
-
-        hashsetReplica.State = ReplicaState.WaitingForPeer;
-        hashsetReplica.WaitingForReplicaId = peerReplicaId;
-        RecalculateState();
-        return Result.Success();
-    }
-
-    private void RecalculateState()
-    {
-        if (_replicas.Count == 0 || _replicas.All(r => r.State == ReplicaState.Pending))
-        {
-            return;
-        }
-
-        Touch();
-        if (_replicas.All(r => r.State == ReplicaState.Completed))
-        {
-            var prev = State;
-            State = AssetState.Completed;
-            if (prev != AssetState.Completed)
-                RaiseDomainEvent(new AllReplicasCompleted(Id));
-            return;
-        }
-
-        if (_replicas.All(r => r.State == ReplicaState.Failed))
-        {
-            State = AssetState.Failed;
-            return;
-        }
-
-        State = AssetState.InProgress;
-    }
-
-    private void Touch()
-    {
-        UpdatedAtUtc = DateTime.UtcNow;
-        Version++;
-    }
-}
-
-public enum FailureDecision
-{
-    Permanent,
-    Retryable
 }

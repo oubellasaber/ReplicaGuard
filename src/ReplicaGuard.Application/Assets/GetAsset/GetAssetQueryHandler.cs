@@ -29,17 +29,15 @@ public sealed class GetAssetQueryHandler(
             .Select(r => new ReplicaResponse(
                 r.Id,
                 r.HosterId,
-                r.State.ToString().ToLowerInvariant(),
+                r.Status.ToString().ToLowerInvariant(),
                 r.Link?.ToString(),
-                r.LastError,
-                r.RetryCount,
                 r.CreatedAtUtc))
             .ToList();
 
         return Result.Success(new GetAssetResponse(
             asset.Id,
             asset.FileName.Value,
-            asset.State.ToString().ToLowerInvariant(),
+            asset.Status.ToString().ToLowerInvariant(),
             asset.SizeBytes,
             asset.CreatedAtUtc,
             asset.UpdatedAtUtc,

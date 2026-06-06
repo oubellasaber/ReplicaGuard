@@ -1,5 +1,7 @@
+using Microsoft.EntityFrameworkCore.Query.Internal;
 using Microsoft.Extensions.Logging;
 using ReplicaGuard.Application.Abstractions.Authentication;
+using ReplicaGuard.Application.Abstractions.Clock;
 using ReplicaGuard.Application.Abstractions.Messaging;
 using ReplicaGuard.Core.Abstractions;
 using ReplicaGuard.Core.Domain.Credentials;
@@ -14,6 +16,7 @@ public sealed class CreateAssetCommandHandler(
     IHosterCredentialsRepository credentials,
     IUserContext userContext,
     IUnitOfWork uow,
+    IDateTimeProvider dateProvider,
     ILogger<CreateAssetCommandHandler> logger)
         : ICommandHandler<CreateAssetCommand, CreateAssetResponse>
 {
@@ -21,6 +24,7 @@ public sealed class CreateAssetCommandHandler(
         CreateAssetCommand request,
         CancellationToken cancellationToken)
     {
+        var assetCreationDate = dateProvider.UtcNow;
         Guid userId = userContext.UserId;
 
         // 1. Validate file name
@@ -47,8 +51,8 @@ public sealed class CreateAssetCommandHandler(
 
         // 3. Create asset — detect source type automatically
         Result<Asset> assetResult = IsUrl(request.Source)
-            ? Asset.CreateFromRemoteUrl(userId, request.Source, fileNameResult.Value)
-            : Asset.CreateFromLocalPath(userId, request.Source, fileNameResult.Value);
+            ? Asset.CreateFromRemoteUrl(userId, request.Source, fileNameResult.Value, assetCreationDate)
+            : Asset.CreateFromLocalPath(userId, request.Source, fileNameResult.Value, assetCreationDate);
 
         if (assetResult.IsFailure)
             return Result.Failure<CreateAssetResponse>(assetResult.Error);
@@ -58,7 +62,7 @@ public sealed class CreateAssetCommandHandler(
         // 4. Add replicas
         foreach (Guid hosterId in request.HosterIds)
         {
-            Result<Replica> replicaResult = asset.AddReplica(hosterId);
+            Result<Replica> replicaResult = asset.AddReplica(hosterId, assetCreationDate);
             if (replicaResult.IsFailure)
                 return Result.Failure<CreateAssetResponse>(replicaResult.Error);
         }
@@ -74,7 +78,7 @@ public sealed class CreateAssetCommandHandler(
         return Result.Success(new CreateAssetResponse(
             asset.Id,
             asset.FileName.Value,
-            asset.State.ToString().ToLowerInvariant(),
+            asset.Status.ToString().ToLowerInvariant(),
             asset.Replicas.Count,
             asset.CreatedAtUtc));
     }

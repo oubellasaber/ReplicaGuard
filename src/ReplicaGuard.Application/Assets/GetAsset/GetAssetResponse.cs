@@ -3,7 +3,7 @@ namespace ReplicaGuard.Application.Assets.GetAsset;
 public sealed record GetAssetResponse(
     Guid Id,
     string FileName,
-    string State,
+    string Status,
     long? SizeBytes,
     DateTime CreatedAtUtc,
     DateTime? UpdatedAtUtc,
@@ -12,8 +12,6 @@ public sealed record GetAssetResponse(
 public sealed record ReplicaResponse(
     Guid Id,
     Guid HosterId,
-    string State,
+    string Status,
     string? Link,
-    string? LastError,
-    int RetryCount,
     DateTime CreatedAtUtc);

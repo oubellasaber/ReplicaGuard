@@ -11,23 +11,23 @@ using Microsoft.IdentityModel.Tokens;
 using ReplicaGuard.Application.Abstractions.Authentication;
 using ReplicaGuard.Application.Abstractions.Clock;
 using ReplicaGuard.Application.Abstractions.Data;
+using ReplicaGuard.Application.Replication.UploadReplica.Fetching;
+using ReplicaGuard.Application.Replication.UploadReplica.Spooling;
 using ReplicaGuard.Core.Abstractions;
 using ReplicaGuard.Core.Capabilities;
 using ReplicaGuard.Core.Domain.Credentials;
 using ReplicaGuard.Core.Domain.Hoster;
 using ReplicaGuard.Core.Domain.Replication;
-using ReplicaGuard.Core.Domain.Replication.Planner;
-using ReplicaGuard.Core.Domain.Replication.Policies;
 using ReplicaGuard.Infrastructure.Authentication;
 using ReplicaGuard.Infrastructure.Clock;
 using ReplicaGuard.Infrastructure.Data;
+using ReplicaGuard.Infrastructure.Hosters;
 using ReplicaGuard.Infrastructure.Hosters.Abstractions;
 using ReplicaGuard.Infrastructure.Hosters.Pixeldrain;
 using ReplicaGuard.Infrastructure.Hosters.SendCm;
 using ReplicaGuard.Infrastructure.Identity;
 using ReplicaGuard.Infrastructure.Messaging;
 using ReplicaGuard.Infrastructure.Persistence;
-using ReplicaGuard.Infrastructure.Policies;
 using ReplicaGuard.Infrastructure.Repositories;
 using ReplicaGuard.Infrastructure.Seeding;
 using ReplicaGuard.Infrastructure.Spool;
@@ -42,12 +42,12 @@ public static class DependencyInjection
     {
         services.AddTransient<IDateTimeProvider, DateTimeProvider>();
 
-        services.AddSingleton<IUploadPlanner, UploadPlanner>();
-        services.AddSingleton<IRetryPolicy, ExponentialJitterRetryPolicy>();
-
-        services.AddScoped<ISpoolLeaseService, SqlSpoolLeaseService>();
-
         AddPersistence(services, configuration);
+
+        services.Configure<FileFetcherOptions>(configuration.GetSection(FileFetcherOptions.SectionName));
+        services.AddSingleton<ISpoolFileLocator, DiskSpoolFileLocator>();
+        services.AddScoped<ISpoolLeaseService, SqlSpoolLeaseService>();
+        services.AddScoped<IFileFetcher, FileFetcher>();
 
         //AddCaching(services, configuration);
 

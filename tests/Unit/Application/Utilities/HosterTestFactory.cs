@@ -1,7 +1,7 @@
 using ReplicaGuard.Core.Abstractions;
 using ReplicaGuard.Core.Domain.Hoster;
 
-namespace ReplicaGuard.Application.Tests.Testing;
+namespace ReplicaGuard.Application.Tests.Utilities;
 
 internal static class HosterTestFactory
 {

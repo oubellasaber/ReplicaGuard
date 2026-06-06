@@ -12,8 +12,8 @@ using ReplicaGuard.Infrastructure.Persistence;
 namespace ReplicaGuard.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260427100852_AddSqlBackedLease_AddRowVersionForAssets")]
-    partial class AddSqlBackedLease_AddRowVersionForAssets
+    [Migration("20260604191440_RemoveAssetState_RemoveRetriesRelatedColumns")]
+    partial class RemoveAssetState_RemoveRetriesRelatedColumns
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -244,6 +244,34 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
                     b.ToTable("outbox_state", "transport");
                 });
 
+            modelBuilder.Entity("ReplicaGuard.Application.Replication.UploadReplica.Spooling.SpoolLease", b =>
+                {
+                    b.Property<Guid>("AssetId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("asset_id");
+
+                    b.Property<DateTime>("ExpiresAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expires_at_utc");
+
+                    b.Property<Guid>("OwnerReplicaId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("owner_replica_id");
+
+                    b.Property<long>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasDefaultValue(1L)
+                        .HasColumnName("version");
+
+                    b.HasKey("AssetId")
+                        .HasName("pk_spool_leases");
+
+                    b.ToTable("spool_leases", "replicaguard");
+                });
+
             modelBuilder.Entity("ReplicaGuard.Core.Domain.Credentials.HosterCredentials", b =>
                 {
                     b.Property<Guid>("Id")
@@ -388,7 +416,7 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at_utc")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP AT TIME ZONE 'UTC'");
 
                     b.Property<string>("FileName")
                         .IsRequired()
@@ -404,12 +432,7 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
                         .HasColumnType("jsonb")
                         .HasColumnName("source");
 
-                    b.Property<int>("Status")
-                        .HasColumnType("integer")
-                        .HasColumnName("state");
-
-                    b.Property<DateTime?>("UpdatedAtUtc")
-                        .ValueGeneratedOnAddOrUpdate()
+                    b.Property<DateTime>("UpdatedAtUtc")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at_utc");
 
@@ -417,21 +440,11 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("user_id");
 
-                    b.Property<long>("Version")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasDefaultValue(1L)
-                        .HasColumnName("version");
-
                     b.HasKey("Id")
                         .HasName("pk_assets");
 
                     b.HasIndex("CreatedAtUtc")
                         .HasDatabaseName("ix_assets_created_at_utc");
-
-                    b.HasIndex("Status")
-                        .HasDatabaseName("ix_assets_state");
 
                     b.HasIndex("UserId")
                         .HasDatabaseName("ix_assets_user_id");
@@ -454,33 +467,22 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at_utc")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP AT TIME ZONE 'UTC'");
 
                     b.Property<Guid>("HosterId")
                         .HasColumnType("uuid")
                         .HasColumnName("hoster_id");
-
-                    b.Property<string>("LastError")
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)")
-                        .HasColumnName("last_error");
 
                     b.Property<string>("Link")
                         .HasMaxLength(2048)
                         .HasColumnType("character varying(2048)")
                         .HasColumnName("link");
 
-                    b.Property<int>("RetryCount")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(0)
-                        .HasColumnName("retry_count");
-
                     b.Property<int>("Status")
                         .HasColumnType("integer")
-                        .HasColumnName("state");
+                        .HasColumnName("status");
 
-                    b.Property<DateTime?>("UpdatedAtUtc")
+                    b.Property<DateTime>("UpdatedAtUtc")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at_utc");
 
@@ -498,7 +500,7 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("ix_replicas_hoster_id");
 
                     b.HasIndex("Status")
-                        .HasDatabaseName("ix_replicas_state");
+                        .HasDatabaseName("ix_replicas_status");
 
                     b.HasIndex("AssetId", "HosterId")
                         .IsUnique()
@@ -557,34 +559,6 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("ix_users_identity_id");
 
                     b.ToTable("users", "replicaguard");
-                });
-
-            modelBuilder.Entity("ReplicaGuard.Infrastructure.Spool.SpoolLease", b =>
-                {
-                    b.Property<Guid>("AssetId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("asset_id");
-
-                    b.Property<DateTime>("ExpiresAtUtc")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("expires_at_utc");
-
-                    b.Property<Guid>("OwnerReplicaId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("owner_replica_id");
-
-                    b.Property<long>("Version")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasDefaultValue(1L)
-                        .HasColumnName("version");
-
-                    b.HasKey("AssetId")
-                        .HasName("pk_spool_leases");
-
-                    b.ToTable("spool_leases", "replicaguard");
                 });
 
             modelBuilder.Entity("MassTransit.EntityFrameworkCoreIntegration.OutboxMessage", b =>

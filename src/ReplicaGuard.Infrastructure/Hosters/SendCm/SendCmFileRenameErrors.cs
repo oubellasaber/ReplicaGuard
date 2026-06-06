@@ -2,7 +2,7 @@ using ReplicaGuard.Core.Abstractions;
 
 namespace ReplicaGuard.Infrastructure.Hosters.SendCm;
 
-internal static class SendCmFileErrors
+internal static class SendCmFileRenameErrors
 {
     public static Error RenameInvalidResponse(string detail) =>
         new Error("Hoster.SendCm.Rename.InvalidResponse", "The rename response was invalid.")
