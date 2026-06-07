@@ -1,3 +1,6 @@
+using System.Windows.Input;
+using MediatR;
+
 namespace ReplicaGuard.Infrastructure.Messaging.Commands;
 
 public sealed record UploadReplicaCommand(

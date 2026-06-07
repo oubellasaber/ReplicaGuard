@@ -2,6 +2,7 @@
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ReplicaGuard.Core.Abstractions;
 using ReplicaGuard.Core.Capabilities.Credentials;
@@ -13,12 +14,23 @@ using PixeldrainHoster = ReplicaGuard.Core.Domain.Hoster.Pixeldrain;
 
 namespace ReplicaGuard.Infrastructure.Hosters.Pixeldrain;
 
-internal class PixeldrainApiClient(IHttpClientFactory clientFactory, IOptions<PixeldrainOptions> options) :
-    HosterApiClientBase<PixeldrainHoster>, IValidateCredentials, IUploadFile
+internal class PixeldrainApiClient : HosterApiClientBase<PixeldrainHoster>, IValidateCredentials, IUploadFile
 {
-    private readonly HttpClient _httpClient = clientFactory.CreateClient(PixeldrainHoster.Code);
-    private readonly HttpClient _uploadClient = clientFactory.CreateClient("FileUploadingHttpClient");
-    private readonly PixeldrainOptions _options = options.Value;
+    private readonly HttpClient _httpClient;
+    private readonly HttpClient _uploadClient;
+    private readonly ILogger<PixeldrainApiClient> _logger;
+    private readonly PixeldrainOptions _options;
+
+    public PixeldrainApiClient(
+        IHttpClientFactory factory,
+        ILogger<PixeldrainApiClient> logger,
+        IOptions<PixeldrainOptions> options)
+    {
+        _httpClient = factory.CreateClient(PixeldrainHoster.Code);
+        _uploadClient = factory.CreateClient("FileUploadingHttpClient");
+        _logger = logger;
+        _options = options.Value;
+    }
 
     public async Task<Result<CredentialSet>> ValidateAsync(CredentialSet credentials, CancellationToken ct = default)
     {
@@ -90,20 +102,15 @@ internal class PixeldrainApiClient(IHttpClientFactory clientFactory, IOptions<Pi
                 UploadedAt: DateTime.UtcNow
             ));
         }
-        catch (HttpRequestException ex)
-        {
-            return Result.Failure<UploadResponse>(
-                HosterUploadErrors.UploadFailed(Code, $"Network error: {ex.Message}"));
-        }
-        catch (JsonException ex)
-        {
-            return Result.Failure<UploadResponse>(
-                HosterUploadErrors.UploadFailed(Code, $"Invalid JSON response: {ex.Message}"));
-        }
         catch (Exception ex)
         {
-            return Result.Failure<UploadResponse>(
-                HosterUploadErrors.UploadFailed(Code, $"Unexpected error: {ex.Message}"));
+            _logger.LogError(
+                ex,
+                "Unexpected error during remote URL upload to hoster {HosterCode} for file {FileName}",
+                Code,
+                fileName);
+
+            throw;
         }
     }
 
@@ -113,11 +120,13 @@ internal class PixeldrainApiClient(IHttpClientFactory clientFactory, IOptions<Pi
         RemoteFileSource remoteUrl,
         CancellationToken ct = default)
     {
-        return Task.FromResult(
-            Result.Failure<UploadResponse>(
-                HosterUploadErrors.UploadMethodNotSupported(
-                    Code,
-                    UploadMethod.RemoteUrl)));
+        var uploadNotSupported = new Error(
+            $"Hoster.Pixeldrain.RemoteUpload.NotSupported", 
+            "Remote upload is not supported by this hoster.")
+            .WithType(ErrorType.InvalidOperation)
+            .AsPermanent();
+
+        return Task.FromResult(Result.Failure<UploadResponse>(uploadNotSupported));
     }
 
     public async Task<Result> IsApiKeyValidAsync(string apiKey, CancellationToken ct = default)
@@ -127,7 +136,7 @@ internal class PixeldrainApiClient(IHttpClientFactory clientFactory, IOptions<Pi
 
         var res = await _httpClient.SendAsync(req, ct);
 
-        return !res.IsSuccessStatusCode ? Result.Failure(HosterCredentialsErrors.InvalidApiKey(Code)) : Result.Success();
+        return res.IsSuccessStatusCode ? Result.Success() : Result.Failure(HosterCredentialsErrors.InvalidApiKey(Code));
     }
 
     protected virtual AuthenticationHeaderValue CreateAuthHeader(string apiKey)

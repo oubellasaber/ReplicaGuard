@@ -1,6 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using ReplicaGuard.Infrastructure.Spool;
+using ReplicaGuard.Application.Replication.UploadReplica.Spooling;
 
 namespace ReplicaGuard.Infrastructure.Persistence.Configurations;
 

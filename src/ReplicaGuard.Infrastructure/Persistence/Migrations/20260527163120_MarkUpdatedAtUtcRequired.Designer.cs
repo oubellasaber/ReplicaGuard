@@ -404,7 +404,7 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
                         .HasColumnType("jsonb")
                         .HasColumnName("source");
 
-                    b.Property<int>("State")
+                    b.Property<int>("Status")
                         .HasColumnType("integer")
                         .HasColumnName("state");
 
@@ -430,7 +430,7 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
                     b.HasIndex("CreatedAtUtc")
                         .HasDatabaseName("ix_assets_created_at_utc");
 
-                    b.HasIndex("State")
+                    b.HasIndex("Status")
                         .HasDatabaseName("ix_assets_state");
 
                     b.HasIndex("UserId")
@@ -476,7 +476,7 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
                         .HasDefaultValue(0)
                         .HasColumnName("retry_count");
 
-                    b.Property<int>("State")
+                    b.Property<int>("Status")
                         .HasColumnType("integer")
                         .HasColumnName("state");
 
@@ -497,7 +497,7 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
                     b.HasIndex("HosterId")
                         .HasDatabaseName("ix_replicas_hoster_id");
 
-                    b.HasIndex("State")
+                    b.HasIndex("Status")
                         .HasDatabaseName("ix_replicas_state");
 
                     b.HasIndex("AssetId", "HosterId")

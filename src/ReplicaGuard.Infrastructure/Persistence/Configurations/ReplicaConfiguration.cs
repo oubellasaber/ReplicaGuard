@@ -18,7 +18,7 @@ internal sealed class ReplicaConfiguration : IEntityTypeConfiguration<Replica>
         builder.Property(x => x.HosterId)
             .IsRequired();
 
-        builder.Property(x => x.State)
+        builder.Property(x => x.Status)
             .IsRequired();
 
         builder.Property(x => x.Link)
@@ -27,26 +27,19 @@ internal sealed class ReplicaConfiguration : IEntityTypeConfiguration<Replica>
                 value => value != null ? new Uri(value) : null)
             .HasMaxLength(2048);
 
-        builder.Property(x => x.LastError)
-            .HasMaxLength(1000);
-
         builder.Property(x => x.WaitingForReplicaId);
-
-        builder.Property(x => x.RetryCount)
-            .IsRequired()
-            .HasDefaultValue(0);
 
         builder.Property(x => x.CreatedAtUtc)
             .IsRequired()
-            .HasDefaultValueSql("CURRENT_TIMESTAMP");
+            .HasDefaultValueSql("CURRENT_TIMESTAMP AT TIME ZONE 'UTC'");
 
         builder.Property(x => x.UpdatedAtUtc)
-            .HasDefaultValue(null);
+            .IsRequired();
 
         // Indexes for performance
         builder.HasIndex(x => x.AssetId);
         builder.HasIndex(x => x.HosterId);
-        builder.HasIndex(x => x.State);
+        builder.HasIndex(x => x.Status);
         builder.HasIndex(x => new { x.AssetId, x.HosterId })
             .IsUnique();
     }

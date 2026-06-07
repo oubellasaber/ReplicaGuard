@@ -4,7 +4,6 @@ using Microsoft.Extensions.DependencyInjection;
 using ReplicaGuard.Infrastructure.Hosters;
 using ReplicaGuard.Infrastructure.Messaging.Consumers;
 using ReplicaGuard.Infrastructure.Persistence;
-using static MassTransit.Logging.OperationName;
 
 namespace ReplicaGuard.Infrastructure.Messaging;
 
@@ -17,8 +16,6 @@ public static class MessagingConfiguration
         var connectionString = configuration.GetConnectionString("Database")!;
 
         services.Configure<MessagingOptions>(configuration.GetSection(MessagingOptions.SectionName));
-        services.Configure<SpoolOptions>(configuration.GetSection("Upload:Spool"));
-        services.AddScoped<FileFetcher>();
 
         MessagingOptions messagingOptions = configuration
             .GetSection(MessagingOptions.SectionName)

@@ -17,6 +17,8 @@ internal sealed class AssetConfiguration : IEntityTypeConfiguration<Asset>
         builder.Property(x => x.UserId)
             .IsRequired();
 
+        builder.Ignore(a => a.Status);
+
         // Store FileSource as JSON (polymorphic - can be Remote or Local)
         builder.Property(x => x.Source)
             .HasConversion(
@@ -35,9 +37,6 @@ internal sealed class AssetConfiguration : IEntityTypeConfiguration<Asset>
             .HasMaxLength(255)
             .IsRequired();
 
-        builder.Property(x => x.State)
-            .IsRequired();
-
         builder.Property(x => x.SizeBytes);
 
         builder.Property(x => x.CreatedAtUtc)
@@ -47,14 +46,8 @@ internal sealed class AssetConfiguration : IEntityTypeConfiguration<Asset>
         builder.Property(x => x.UpdatedAtUtc)
             .IsRequired();
 
-        builder.Property(x => x.Version)
-            .IsRequired()
-            .IsConcurrencyToken()
-            .HasDefaultValue(1);
-
         // Indexes for performance
         builder.HasIndex(x => x.UserId);
-        builder.HasIndex(x => x.State);
         builder.HasIndex(x => x.CreatedAtUtc);
 
         // Replicas collection

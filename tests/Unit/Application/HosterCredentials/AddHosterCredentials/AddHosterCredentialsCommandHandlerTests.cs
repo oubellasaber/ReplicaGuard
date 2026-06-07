@@ -3,7 +3,7 @@ using Microsoft.Extensions.Logging;
 using NSubstitute;
 using ReplicaGuard.Application.Abstractions.Authentication;
 using ReplicaGuard.Application.HosterCredentials.AddHosterCredentials;
-using ReplicaGuard.Application.Tests.Testing;
+using ReplicaGuard.Application.Tests.Utilities;
 using ReplicaGuard.Core.Abstractions;
 using ReplicaGuard.Core.Domain.Credentials;
 using ReplicaGuard.Core.Domain.Hoster;

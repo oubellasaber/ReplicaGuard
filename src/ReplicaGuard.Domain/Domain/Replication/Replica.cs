@@ -5,39 +5,76 @@ namespace ReplicaGuard.Core.Domain.Replication;
 
 public sealed class Replica : Entity<Guid>
 {
-    private const int MaxRetries = 3;
-
     public Guid AssetId { get; private set; }
     public Guid HosterId { get; private set; }
-    public ReplicaState State { get; internal set; } // TODO (rename): Status
-    public Uri? Link { get; internal set; }
-    public string? LastError { get; internal set; }
-    public Guid? WaitingForReplicaId { get; internal set; }
-    public int RetryCount { get; internal set; } // TODO (rename): AttemptCount
+    public ReplicaStatus Status { get; set; }
+    public Uri? Link { get; set; }
+    public Guid? WaitingForReplicaId { get; set; }
     public DateTime CreatedAtUtc { get; private set; }
-    public DateTime? UpdatedAtUtc { get; internal set; }
+    public DateTime UpdatedAtUtc { get; set; }
 
     // EF Core
     private Replica() : base(Guid.NewGuid()) { }
 
-    internal static Replica Create(Guid assetId, Guid hosterId)
+    internal static Replica Create(Guid assetId, Guid hosterId, DateTime utcNow)
     {
-        return new Replica
+        var replica = new Replica
         {
             Id = Guid.NewGuid(),
             AssetId = assetId,
             HosterId = hosterId,
-            State = ReplicaState.Pending,
-            RetryCount = 0,
-            CreatedAtUtc = DateTime.UtcNow
+            Status = ReplicaStatus.Pending,
+            CreatedAtUtc = utcNow,
+            UpdatedAtUtc = utcNow
         };
+
+        return replica;
     }
 
     public bool IsTerminal =>
-        State is ReplicaState.Completed or ReplicaState.Failed;
+        Status is ReplicaStatus.Completed or ReplicaStatus.Failed;
 
-    internal bool HasRetriesRemaining =>
-        RetryCount < MaxRetries;
+    public void MarkAsFailed(DateTime utcNow)
+    {
+        Status = ReplicaStatus.Failed;
+        UpdatedAtUtc = utcNow;
+        RaiseDomainEvent(new ReplicaFailed(Id));
+    }
 
-    public bool CanRetry() => HasRetriesRemaining;
+    public void MarkAsCompleted(Uri link, DateTime utcNow)
+    {
+        Status = ReplicaStatus.Completed;
+        Link = link;
+        UpdatedAtUtc = utcNow;
+    }
+
+    public void MarkAsWaitingForPeer(Guid peerReplicaId, DateTime utcNow)
+    {
+        Status = ReplicaStatus.WaitingForPeer;
+        WaitingForReplicaId = peerReplicaId;
+        UpdatedAtUtc = utcNow;
+    }
+
+    public void MarkAsDownloading(DateTime utcNow)
+    {
+        Status = ReplicaStatus.Downloading;
+        UpdatedAtUtc = utcNow;
+    }
+
+    public void MarkAsDownloaded(DateTime utcNow)
+    {
+        RaiseDomainEvent(new ReplicaDownloaded(Id, utcNow));
+    }
+
+    public void MarkAsUploading(DateTime utcNow)
+    {
+        Status = ReplicaStatus.Uploading;
+        UpdatedAtUtc = utcNow;
+    }
+
+    public void MarkAsRetrying(DateTime utcNow)
+    {
+        Status = ReplicaStatus.Retrying;
+        UpdatedAtUtc = utcNow;
+    }
 }

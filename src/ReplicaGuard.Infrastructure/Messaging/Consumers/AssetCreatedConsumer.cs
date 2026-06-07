@@ -18,7 +18,7 @@ public sealed class AssetCreatedConsumer(
         if (asset == null)
             return;
 
-        foreach (Replica replica in asset.Replicas.Where(r => r.State == ReplicaState.Pending))
+        foreach (Replica replica in asset.Replicas.Where(r => r.Status == ReplicaStatus.Pending))
         {
             await context.Publish(
                 new UploadReplicaCommand(replica.Id, asset.Id, replica.HosterId),

@@ -2,9 +2,9 @@
 using Microsoft.Extensions.Logging;
 using NSubstitute;
 using ReplicaGuard.Application.Abstractions.Authentication;
-using ReplicaGuard.Application.Assets;
+using ReplicaGuard.Application.Abstractions.Clock;
 using ReplicaGuard.Application.Assets.CreateAsset;
-using ReplicaGuard.Application.Tests.Testing;
+using ReplicaGuard.Application.Tests.Utilities;
 using ReplicaGuard.Core.Abstractions;
 using ReplicaGuard.Core.Domain.Credentials;
 using ReplicaGuard.Core.Domain.Hoster;
@@ -20,6 +20,7 @@ public class CreateAssetCommandHandlerTests
     private readonly IHosterCredentialsRepository _credentialsRepository;
     private readonly IUserContext _userContext;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IDateTimeProvider _dateTimeProvider;
     private readonly CreateAssetCommandHandler _sut;
 
     public CreateAssetCommandHandlerTests()
@@ -29,6 +30,7 @@ public class CreateAssetCommandHandlerTests
         _credentialsRepository = Substitute.For<IHosterCredentialsRepository>();
         _userContext = Substitute.For<IUserContext>();
         _unitOfWork = Substitute.For<IUnitOfWork>();
+        _dateTimeProvider = Substitute.For<IDateTimeProvider>();
 
         _sut = new CreateAssetCommandHandler(
             _assetRepository,
@@ -36,6 +38,7 @@ public class CreateAssetCommandHandlerTests
             _credentialsRepository,
             _userContext,
             _unitOfWork,
+            _dateTimeProvider,
             Substitute.For<ILogger<CreateAssetCommandHandler>>());
     }
 
@@ -80,6 +83,7 @@ public class CreateAssetCommandHandlerTests
         // Arrange
         Guid userId = Guid.NewGuid();
         Guid hosterId = Guid.NewGuid();
+        var creationDateTime = DateTime.UtcNow;
         _userContext.UserId.Returns(userId);
 
         Hoster hoster = HosterTestFactory.CreateWithId(hosterId, "sendcm", Credentials.ApiKey);
@@ -92,6 +96,7 @@ public class CreateAssetCommandHandlerTests
             .Returns(hoster);
         _credentialsRepository.FindByUserAndHosterAsync(userId, hosterId, Arg.Any<CancellationToken>())
             .Returns(credentials);
+        _dateTimeProvider.UtcNow.Returns(creationDateTime);
 
         // Act
         Result<CreateAssetResponse> result = await _sut.Handle(command, CancellationToken.None);
@@ -101,6 +106,7 @@ public class CreateAssetCommandHandlerTests
         result.Value.FileName.Should().Be("file.zip");
         result.Value.ReplicaCount.Should().Be(1);
         result.Value.State.Should().Be("created");
+        result.Value.CreatedAtUtc.Should().Be(creationDateTime);
     }
 
     private static CreateAssetCommand CreateCommand(
