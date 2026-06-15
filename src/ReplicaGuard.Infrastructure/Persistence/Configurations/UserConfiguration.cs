@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using ReplicaGuard.Core.Domain.User;
+using ReplicaGuard.Core.Users;
 
 namespace ReplicaGuard.Infrastructure.Persistence.Configurations;
 
@@ -26,10 +26,11 @@ internal sealed class UserConfiguration : IEntityTypeConfiguration<User>
 
         builder.Property(x => x.CreatedAtUtc)
             .IsRequired()
-            .HasDefaultValueSql("CURRENT_TIMESTAMP");
+            .HasDefaultValueSql("now()");
 
         builder.Property(x => x.UpdatedAtUtc)
-            .HasDefaultValue(null);
+            .IsRequired()
+            .HasDefaultValueSql("now()");
 
         // Indexes
         builder.HasIndex(x => x.IdentityId)

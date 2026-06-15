@@ -105,7 +105,7 @@ public class CreateAssetCommandValidatorTests
 
         // Assert
         result.ShouldHaveValidationErrorFor("HosterIds[0]")
-            .WithErrorMessage("Hoster ID cannot be empty.");
+            .WithErrorMessage("HosterCode ID cannot be empty.");
     }
 
     [Fact]

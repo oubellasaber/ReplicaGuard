@@ -1,7 +1,7 @@
 using FluentAssertions;
 using ReplicaGuard.Core.Abstractions;
-using ReplicaGuard.Core.Domain.Hoster;
-using HosterEntity = ReplicaGuard.Core.Domain.Hoster.Hoster;
+using ReplicaGuard.Core.Hosters;
+using HosterEntity = ReplicaGuard.Core.Hosters.Hoster;
 
 namespace ReplicaGuard.Domain.Tests.Hoster;
 
@@ -28,15 +28,15 @@ public class HosterTests
     {
         // Arrange
         HosterEntity hoster = HosterEntity.Create("sendcm", "SendCM", ReplicaGuard.Core.Domain.Hoster.Credentials.ApiKey).Value;
-        Result firstAddResult = hoster.AddFeatureRequirement(CapabilityCode.RemoteUpload, ReplicaGuard.Core.Domain.Hoster.Credentials.ApiKey);
+        Result firstAddResult = hoster.AddFeatureRequirement(CapabilityCode.RemoteFileUpload, ReplicaGuard.Core.Domain.Hoster.Credentials.ApiKey);
         firstAddResult.IsSuccess.Should().BeTrue();
 
         // Act
-        Result result = hoster.AddFeatureRequirement(CapabilityCode.RemoteUpload, ReplicaGuard.Core.Domain.Hoster.Credentials.ApiKey);
+        Result result = hoster.AddFeatureRequirement(CapabilityCode.RemoteFileUpload, ReplicaGuard.Core.Domain.Hoster.Credentials.ApiKey);
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Code.Should().Be(HosterErrors.FeatureAlreadyExists(CapabilityCode.RemoteUpload).Code);
+        result.Error.Code.Should().Be(HosterErrors.FeatureAlreadyExists(CapabilityCode.RemoteFileUpload).Code);
     }
 
     [Fact]

@@ -1,4 +1,4 @@
-using MassTransit;
+using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Infrastructure;
@@ -11,18 +11,17 @@ public sealed class PublishDomainEventsInterceptor : SaveChangesInterceptor
     public override async ValueTask<InterceptionResult<int>> SavingChangesAsync(
         DbContextEventData eventData,
         InterceptionResult<int> result,
-        CancellationToken cancellationToken = default)
+        CancellationToken ct = default)
     {
         if (eventData.Context is not null)
-        {
-            await PublishDomainEventsAsync(eventData.Context, cancellationToken);
-        }
+            await DispatchDomainEventsAsync(eventData.Context, ct);
 
-        return await base.SavingChangesAsync(eventData, result, cancellationToken);
+        return await base.SavingChangesAsync(eventData, result, ct);
     }
 
-    private static async Task PublishDomainEventsAsync(DbContext context, CancellationToken ct)
+    private static async Task DispatchDomainEventsAsync(DbContext context, CancellationToken ct)
     {
+        // 1. Extract domain events from tracked entities
         var entities = context.ChangeTracker
             .Entries<IEntity>()
             .Where(e => e.Entity.GetDomainEvents().Count > 0)
@@ -33,17 +32,17 @@ public sealed class PublishDomainEventsInterceptor : SaveChangesInterceptor
             .SelectMany(e => e.GetDomainEvents())
             .ToList();
 
-        foreach (var entity in entities)
-        {
-            entity.ClearDomainEvents();
-        }
+        // 2. Clear domain events from entities
+        entities.ForEach(e => e.ClearDomainEvents());
 
-        // Resolve IPublishEndpoint from the DbContext's service provider (same scope)
-        var publishEndpoint = context.GetService<IPublishEndpoint>();
+        if (domainEvents.Count == 0)
+            return;
 
+        // 3. Resolve MediatR from the same DI scope as DbContext
+        var mediator = context.GetService<IMediator>();
+
+        // 4. Publish domain events IN MEMORY ONLY
         foreach (var domainEvent in domainEvents)
-        {
-            await publishEndpoint.Publish(domainEvent, domainEvent.GetType(), ct);
-        }
+            await mediator.Publish(domainEvent, ct);
     }
 }

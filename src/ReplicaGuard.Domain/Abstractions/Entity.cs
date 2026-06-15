@@ -1,7 +1,4 @@
-﻿using System.Collections;
-using System.Security.Cryptography;
-
-namespace ReplicaGuard.Core.Abstractions;
+﻿namespace ReplicaGuard.Core.Abstractions;
 
 public abstract class Entity<TEntityId> : IEntity, IEquatable<Entity<TEntityId>>
 {
@@ -12,8 +9,10 @@ public abstract class Entity<TEntityId> : IEntity, IEquatable<Entity<TEntityId>>
         Id = id;
     }
 
-    // EF Migration usage
-    //protected Entity() { }
+    //EF Migration usage
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
+    protected Entity() { }
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
 
     public TEntityId Id { get; init; }
 
@@ -35,7 +34,7 @@ public abstract class Entity<TEntityId> : IEntity, IEquatable<Entity<TEntityId>>
     }
 
     public override bool Equals(object? obj) => Equals(obj as Entity<TEntityId>);
-    
+
     public override int GetHashCode()
     {
         return Id is null

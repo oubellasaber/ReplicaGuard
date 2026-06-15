@@ -1,51 +1,65 @@
-using ReplicaGuard.Core.Domain.Hoster;
+using ReplicaGuard.Core.Hosters;
 
 namespace ReplicaGuard.Application.Hosters;
 
 internal static class HosterResponseMapper
 {
-    public static HosterResponse Map(Hoster hoster)
+    public static HosterResponse Map(Hoster hoster, IHosterDefinition def)
     {
-        List<HosterFeatureRequirementResponse> requirements = hoster.Requirements
-            .OrderBy(r => r.Feature)
-            .Select(r => new HosterFeatureRequirementResponse(
-                MapFeature(r.Feature),
-                MapCredentials(r.RequiredAuth)))
+        return new HosterResponse(
+            Id: def.HosterId.ToString(),
+            PrimaryIdentities: MapPrimary(def.PrimaryIdentities),
+            CapabilityRequirements: def.CapabilityRequirements
+                .Select(MapCapability)
+                .ToList()
+        );
+    }
+
+    private static PrimaryIdentitiesDto MapPrimary(PrimaryIdentityRequirement req)
+    {
+        return new PrimaryIdentitiesDto(
+            Description: BuildPrimaryDescription(req),
+            Paths: req.Paths.Select(MapPath).ToList()
+        );
+    }
+
+    private static CapabilityRequirementDto MapCapability(CapabilityRequirement req)
+    {
+        return new CapabilityRequirementDto(
+            Capability: req.Capability.ToString(),
+            Description: BuildCapabilityDescription(req),
+            Paths: req.Paths.Select(MapPath).ToList()
+        );
+    }
+
+    private static RequirementPathDto MapPath(RequirementPath path)
+    {
+        return new RequirementPathDto(
+            And: path.RequiredIdentities.Select(t => t.ToString()).ToList()
+        );
+    }
+
+    private static string BuildPrimaryDescription(PrimaryIdentityRequirement req)
+    {
+        var all = req.Paths
+            .Select(p => string.Join(" and ", p.RequiredIdentities.Select(t => t.ToString())))
             .ToList();
 
-        return new HosterResponse(
-            hoster.Id,
-            hoster.Code.ToLowerInvariant(),
-            hoster.DisplayName,
-            MapCredentials(hoster.PrimaryCredentials),
-            requirements);
+        // Example: "api_key", "email", "username"
+        var orList = string.Join(" or ", all);
+
+        return $"At least one of the following identity sets must be provided; this requires {orList} to be submitted during account creation";
     }
 
-    private static List<string> MapCredentials(Credentials credentials)
+    private static string BuildCapabilityDescription(CapabilityRequirement req)
     {
-        List<string> values = new();
+        var all = req.Paths
+            .Select(p => string.Join(" and ", p.RequiredIdentities.Select(t => t.ToString())))
+            .ToList();
 
-        if ((credentials & Credentials.ApiKey) == Credentials.ApiKey)
-            values.Add("apiKey");
+        var orList = string.Join(" or ", all);
 
-        if ((credentials & Credentials.EmailPassword) == Credentials.EmailPassword)
-            values.Add("emailPassword");
-
-        if ((credentials & Credentials.UsernamePassword) == Credentials.UsernamePassword)
-            values.Add("usernamePassword");
-
-        return values;
+        return $"{req.Capability.ToString().Replace('_', ' ')} requires {orList} to be linked with the used hoster account.";
     }
 
-    private static string MapFeature(CapabilityCode feature)
-    {
-        return feature switch
-        {
-            CapabilityCode.RemoteUpload => "remoteUpload",
-            CapabilityCode.SpooledUpload => "spooledUpload",
-            CapabilityCode.Download => "download",
-            CapabilityCode.CheckStatus => "checkStatus",
-            _ => feature.ToString().ToLowerInvariant()
-        };
-    }
 }

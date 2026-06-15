@@ -1,6 +1,6 @@
 using FluentAssertions;
 using ReplicaGuard.Core.Abstractions;
-using ReplicaGuard.Core.Domain.Replication;
+using ReplicaGuard.Core.Replication;
 
 namespace ReplicaGuard.Domain.Tests.Replication;
 

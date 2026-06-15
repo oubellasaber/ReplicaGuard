@@ -28,21 +28,21 @@ public class HostersController(ISender sender) : ControllerBase
     }
 
     /// <summary>
-    /// Get a specific hoster by ID.
+    /// Get a specific hoster by friendly name.
     /// </summary>
-    [HttpGet("{id:guid}")]
+    [HttpGet("{id}")]
     [ProducesResponseType(typeof(HosterResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Get(
-        [FromRoute] Guid id,
+        [FromRoute] string id,
         CancellationToken cancellationToken)
     {
-        GetHosterQuery query = new(id);
-
+        var query = new GetHosterQuery(id);
         var result = await sender.Send(query, cancellationToken);
 
         return result.IsSuccess
             ? Ok(result.Value)
             : result.ToActionResult();
     }
+
 }

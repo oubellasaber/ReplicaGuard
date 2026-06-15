@@ -10,11 +10,13 @@ public class SpoolLeaseConfiguration : IEntityTypeConfiguration<SpoolLease>
     {
         builder.ToTable("spool_leases");
 
-        builder.HasKey(x => x.AssetId);
+        builder.HasKey(x => x.Id);
 
         builder.Property(x => x.Version)
             .IsRequired()
             .IsConcurrencyToken()
             .HasDefaultValue(1);
+
+        builder.HasIndex(x => x.AssetId).IsUnique();
     }
 }

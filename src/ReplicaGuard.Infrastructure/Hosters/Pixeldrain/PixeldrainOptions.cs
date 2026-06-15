@@ -2,6 +2,8 @@
 
 internal class PixeldrainOptions
 {
+    public static string SectionName => "Hosters:Pixeldrain";
+
     public required string ApiBaseUrl { get; init; }
     public required string UserInfoEndpoint { get; init; }
     public required string FileUploadEndpoint { get; init; }

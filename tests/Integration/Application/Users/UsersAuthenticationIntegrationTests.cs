@@ -10,7 +10,7 @@ using ReplicaGuard.Application.Users.LogInUser;
 using ReplicaGuard.Application.Users.RefreshToken;
 using ReplicaGuard.Application.Users.RegisterUser;
 using ReplicaGuard.Core.Abstractions;
-using ReplicaGuard.Core.Domain.User;
+using ReplicaGuard.Core.Users;
 using ReplicaGuard.TestInfrastructure.Fixtures;
 using ReplicaGuard.TestInfrastructure.Infrastructure;
 using ReplicaGuard.TestInfrastructure.Utilities;

@@ -3,9 +3,8 @@ namespace ReplicaGuard.Application.Assets.ListAssets;
 public sealed record AssetSummaryResponse(
     Guid Id,
     string FileName,
-    string State,
+    string Status,
     long? SizeBytes,
     int TotalReplicas,
-    int CompletedReplicas,
-    int FailedReplicas,
-    DateTime CreatedAtUtc);
+    DateTime CreatedAtUtc,
+    DateTime UpdatedAtUtc);

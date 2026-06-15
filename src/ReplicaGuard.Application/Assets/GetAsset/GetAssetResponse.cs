@@ -6,12 +6,14 @@ public sealed record GetAssetResponse(
     string Status,
     long? SizeBytes,
     DateTime CreatedAtUtc,
-    DateTime? UpdatedAtUtc,
+    DateTime UpdatedAtUtc,
     List<ReplicaResponse> Replicas);
 
 public sealed record ReplicaResponse(
     Guid Id,
-    Guid HosterId,
+    string HosterId,
+    Guid? AccountId,
     string Status,
     string? Link,
-    DateTime CreatedAtUtc);
+    DateTime CreatedAtUtc,
+    DateTime UpdatedAtUtc);

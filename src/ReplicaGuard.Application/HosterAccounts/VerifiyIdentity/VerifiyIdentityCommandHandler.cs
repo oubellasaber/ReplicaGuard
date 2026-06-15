@@ -1,0 +1,54 @@
+﻿using ReplicaGuard.Application.Abstractions.Messaging;
+using ReplicaGuard.Core.Abstractions;
+using ReplicaGuard.Core.Capabilities;
+using ReplicaGuard.Core.HosterAccounts;
+using ReplicaGuard.Core.Hosters;
+
+namespace ReplicaGuard.Application.HosterAccounts.VerifiyIdentity;
+
+internal sealed class VerifiyIdentityCommandHandler(
+    IHosterAccountRepository accounts,
+    IHosterDefinitionResolver resolver,
+    ICapabilityFactory factory,
+    IUnitOfWork uow)
+    : ICommandHandler<VerifiyIdentityCommand>
+{
+    public async Task<Result> Handle(VerifiyIdentityCommand request, CancellationToken ct)
+    {
+        var identityId = request.IdentityId;
+
+        // 1. Load hoster account by identity ID
+        var account = await accounts.GetByIdentityIdAsync(identityId, ct);
+        if (account is null)
+            return Result.Failure(AuthIdentityErrors.NotFound(identityId));
+
+        // 2. Load identity
+        var identity = account.Identities.Single(i => i.Id == identityId);
+
+        // 3. Resolve hoster definition
+        var def = resolver.Resolve(account.HosterId);
+        if (def is null)
+            return Result.Failure(HosterErrors.NotFound(account.HosterId));
+
+        // 4. Resolve verification capability handler
+        var handler = factory.Get<IIdentityVerificationHandler>(account.HosterId);
+        if (handler is null)
+            return Result.Failure(IdentityVerificationErrors.NotSupported(account.HosterId));
+        
+        // 5. Build verification request
+        var verifyRequest = new IdentityVerificationRequest(identity);
+
+        // 6. Execute verification
+        var result = await handler.HandleAsync(verifyRequest, ct);
+        if (result.IsFailure)
+            return Result.Failure(result.Error);
+
+        // 7. Mark identity as verified
+        identity.MarkAsVerified();
+
+        // 8. Persist
+        await uow.SaveChangesAsync(ct);
+
+        return Result.Success();
+    }
+}

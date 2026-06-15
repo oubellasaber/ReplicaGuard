@@ -50,10 +50,10 @@ public sealed record Error
         MessagingKind == Kind.Permanent;
     public bool IsTransient
         => !IsPermanent;
-}
 
-public enum Kind
-{
-    Transient,
-    Permanent
+    public enum Kind
+    {
+        Transient,
+        Permanent
+    }
 }

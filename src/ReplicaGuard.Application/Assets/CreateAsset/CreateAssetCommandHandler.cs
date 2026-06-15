@@ -1,79 +1,74 @@
-using Microsoft.EntityFrameworkCore.Query.Internal;
 using Microsoft.Extensions.Logging;
 using ReplicaGuard.Application.Abstractions.Authentication;
 using ReplicaGuard.Application.Abstractions.Clock;
 using ReplicaGuard.Application.Abstractions.Messaging;
 using ReplicaGuard.Core.Abstractions;
-using ReplicaGuard.Core.Domain.Credentials;
-using ReplicaGuard.Core.Domain.Hoster;
-using ReplicaGuard.Core.Domain.Replication;
+using ReplicaGuard.Core.HosterAccounts;
+using ReplicaGuard.Core.Hosters;
+using ReplicaGuard.Core.Replication;
 
 namespace ReplicaGuard.Application.Assets.CreateAsset;
 
 public sealed class CreateAssetCommandHandler(
-    IAssetRepository assets,
-    IHosterRepository hosters,
-    IHosterCredentialsRepository credentials,
     IUserContext userContext,
+    IHosterDefinitionResolver resolver,
+    IHosterAccountRepository accountRepository,
+    IAssetRepository assets,
     IUnitOfWork uow,
-    IDateTimeProvider dateProvider,
+    IDateTimeProvider clock,
     ILogger<CreateAssetCommandHandler> logger)
         : ICommandHandler<CreateAssetCommand, CreateAssetResponse>
 {
     public async Task<Result<CreateAssetResponse>> Handle(
         CreateAssetCommand request,
-        CancellationToken cancellationToken)
+        CancellationToken ct)
     {
-        var assetCreationDate = dateProvider.UtcNow;
         Guid userId = userContext.UserId;
+        var now = clock.UtcNow;
 
         // 1. Validate file name
-        Result<FileName> fileNameResult = FileName.Create(request.FileName);
+        var fileNameResult = ValidateFileName(request.FileName);
         if (fileNameResult.IsFailure)
             return Result.Failure<CreateAssetResponse>(fileNameResult.Error);
 
-        // 2. Validate all hosters exist and user has synced credentials for each
-        foreach (Guid hosterId in request.HosterIds)
-        {
-            Hoster? hoster = await hosters.GetByIdAsync(hosterId, cancellationToken);
-            if (hoster == null)
-                return Result.Failure<CreateAssetResponse>(HosterErrors.NotFound(hosterId));
+        // 2. Load accounts by HosterAccountId
+        var accountsResult = await LoadAccounts(request.Hosters, userId, ct);
+        if (accountsResult.IsFailure)
+            return Result.Failure<CreateAssetResponse>(accountsResult.Error);
 
-            var creds = await credentials.FindByUserAndHosterAsync(
-                userId, hosterId, cancellationToken);
+        var accounts = accountsResult.Value;
 
-            if (creds == null)
-                return Result.Failure<CreateAssetResponse>(AssetErrors.MissingCredentials(hosterId));
+        // 3. Determine capability
+        var capability = DetermineCapability(request.Source);
 
-            if (creds.SyncStatus != CredentialsSyncStatus.Synced)
-                return Result.Failure<CreateAssetResponse>(AssetErrors.CredentialsNotSynced(hosterId));
-        }
+        // 4. Validate capability per hoster
+        var capabilityResult = ValidateCapabilityForAllHosters(
+            accounts,
+            capability,
+            request.Source);
+        if (capabilityResult.IsFailure)
+            return Result.Failure<CreateAssetResponse>(capabilityResult.Error);
 
-        // 3. Create asset — detect source type automatically
-        Result<Asset> assetResult = IsUrl(request.Source)
-            ? Asset.CreateFromRemoteUrl(userId, request.Source, fileNameResult.Value, assetCreationDate)
-            : Asset.CreateFromLocalPath(userId, request.Source, fileNameResult.Value, assetCreationDate);
-
+        // 5. Create asset with replicas
+        var replicas = request.Hosters
+            .Select(h => (h.HosterId, (Guid?)h.HosterAccountId))
+            .ToList();
+        var assetResult = CreateAsset(
+            userId,
+            request.Source,
+            fileNameResult.Value,
+            replicas);
         if (assetResult.IsFailure)
             return Result.Failure<CreateAssetResponse>(assetResult.Error);
 
-        Asset asset = assetResult.Value;
-
-        // 4. Add replicas
-        foreach (Guid hosterId in request.HosterIds)
-        {
-            Result<Replica> replicaResult = asset.AddReplica(hosterId, assetCreationDate);
-            if (replicaResult.IsFailure)
-                return Result.Failure<CreateAssetResponse>(replicaResult.Error);
-        }
-
-        // 5. Persist — domain event triggers the upload pipeline
+        // 7. Persist
+        var asset = assetResult.Value;
         assets.Add(asset);
-        await uow.SaveChangesAsync(cancellationToken);
+        await uow.SaveChangesAsync(ct);
 
         logger.LogInformation(
             "Asset {AssetId} created with {ReplicaCount} replicas for user {UserId}",
-            asset.Id, request.HosterIds.Count, userId);
+            asset.Id, request.Hosters.Count, userId);
 
         return Result.Success(new CreateAssetResponse(
             asset.Id,
@@ -83,7 +78,93 @@ public sealed class CreateAssetCommandHandler(
             asset.CreatedAtUtc));
     }
 
-    private static bool IsUrl(string source) =>
-        Uri.TryCreate(source, UriKind.Absolute, out Uri? uri) &&
-        uri.Scheme is "http" or "https";
+    private static Result<FileName> ValidateFileName(string fileName)
+        => FileName.Create(fileName);
+
+    private async Task<Result<List<HosterAccount>>> LoadAccounts(
+        List<HosterAccountDto> hosters,
+        Guid userId,
+        CancellationToken ct)
+    {
+        var accountIds = hosters.Select(h => h.HosterAccountId).ToList();
+
+        var accounts = await accountRepository.GetAccountsByIds(userId, accountIds, ct);
+
+        if (accounts.Count() != hosters.Count)
+        {
+            var missing = hosters
+                .Where(h => !accounts.Any(a => a.Id == h.HosterAccountId))
+                .Select(h => h.HosterAccountId);
+
+            return Result.Failure<List<HosterAccount>>(
+                HosterAccountErrors.NotFound(missing.First()));
+        }
+
+        return accounts.ToList();
+    }
+
+    private static CapabilityCode DetermineCapability(string source)
+        => IsUrl(source)
+            ? CapabilityCode.RemoteFileUpload
+            : CapabilityCode.LocalFileUpload;
+
+    private Result ValidateCapabilityForAllHosters(
+        List<HosterAccount> accounts,
+        CapabilityCode capability,
+        string source)
+    {
+        bool isRemote = IsUrl(source);
+
+        foreach (var account in accounts)
+        {
+            var def = resolver.Resolve(account.HosterId);
+
+            // 1. Resolve capability requirement
+            var requirement = def.GetRequirement(capability);
+
+            // Remote fallback: if remote not supported, try local
+            if (isRemote && requirement is null)
+                requirement = def.GetRequirement(CapabilityCode.LocalFileUpload);
+
+            if (requirement is null)
+            {
+                return Result.Failure(
+                    HosterErrors.CapabilityNotSupported(def.HosterId, capability));
+            }
+
+            // 2. Filter verified identities
+            var verified = account.Identities
+                .Where(i => i.Status == IdentityVerificationStatus.Verified)
+                .ToList();
+
+            // 3. OR-of-ANDs capability requirement
+            if (!requirement.IsSatisfiedBy(verified))
+            {
+                return Result.Failure(
+                    HosterAccountErrors.RequiredIdentitesNotSatisfied(
+                        requirement,
+                        def.HosterId,
+                        capability));
+            }
+        }
+
+        return Result.Success();
+    }
+
+    private static Result<Asset> CreateAsset(
+        Guid userId,
+        string source,
+        FileName fileName,
+        IEnumerable<(HosterCode hosterId, Guid? accountId)> replicas)
+    {
+        bool isRemote = IsUrl(source);
+
+        return isRemote
+            ? Asset.CreateFromRemoteUrl(userId, source, fileName, replicas)
+            : Asset.CreateFromLocalPath(userId, source, fileName, replicas);
+    }
+
+    private static bool IsUrl(string source)
+        => Uri.TryCreate(source, UriKind.Absolute, out var uri)
+        && (uri.Scheme == "http" || uri.Scheme == "https");
 }

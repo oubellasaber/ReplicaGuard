@@ -15,18 +15,22 @@ using ReplicaGuard.Application.Replication.UploadReplica.Fetching;
 using ReplicaGuard.Application.Replication.UploadReplica.Spooling;
 using ReplicaGuard.Core.Abstractions;
 using ReplicaGuard.Core.Capabilities;
-using ReplicaGuard.Core.Domain.Credentials;
-using ReplicaGuard.Core.Domain.Hoster;
-using ReplicaGuard.Core.Domain.Replication;
+using ReplicaGuard.Core.HosterAccounts;
+using ReplicaGuard.Core.Hosters;
+using ReplicaGuard.Core.Replication;
+using ReplicaGuard.Core.Replication.DomainEvents;
 using ReplicaGuard.Infrastructure.Authentication;
 using ReplicaGuard.Infrastructure.Clock;
 using ReplicaGuard.Infrastructure.Data;
+using ReplicaGuard.Infrastructure.Encryption;
 using ReplicaGuard.Infrastructure.Hosters;
 using ReplicaGuard.Infrastructure.Hosters.Abstractions;
 using ReplicaGuard.Infrastructure.Hosters.Pixeldrain;
+using ReplicaGuard.Infrastructure.Hosters.Pixeldrain.IdentityVerification;
 using ReplicaGuard.Infrastructure.Hosters.SendCm;
 using ReplicaGuard.Infrastructure.Identity;
 using ReplicaGuard.Infrastructure.Messaging;
+using ReplicaGuard.Infrastructure.Outbox;
 using ReplicaGuard.Infrastructure.Persistence;
 using ReplicaGuard.Infrastructure.Repositories;
 using ReplicaGuard.Infrastructure.Seeding;
@@ -88,7 +92,7 @@ public static class DependencyInjection
         services.AddMessaging(configuration);
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IHosterRepository, HosterRepository>();
-        services.AddScoped<IHosterCredentialsRepository, HosterCredentialsRepository>();
+        services.AddScoped<IHosterAccountRepository, HosterAccountRepository>();
         services.AddScoped<IAssetRepository, AssetRepository>();
         services.AddScoped<IReplicaRepository, ReplicaRepository>();
 
@@ -142,7 +146,8 @@ public static class DependencyInjection
 
     private static void AddHttpClients(IServiceCollection services, IConfiguration configuration)
     {
-        services.Configure<PixeldrainOptions>(configuration.GetSection("Hosters:Pixeldrain"));
+        services.Configure<PixeldrainOptions>(configuration.GetSection(PixeldrainOptions.SectionName));
+        services.Configure<SendCmOptions>(configuration.GetSection(SendCmOptions.SectionName));
         var userAgent = configuration.GetValue<string>("Hosters:DefaultUserAgent");
 
         services.AddHttpClient("") // unnamed/default client
@@ -178,20 +183,20 @@ public static class DependencyInjection
         //    client.DefaultRequestHeaders.Add("User-Agent", userAgent);
         //});
 
-        services.AddHttpClient(Pixeldrain.Code, (sp, client) =>
+        services.AddHttpClient(HosterCode.Pixeldrain.ToFriendlyString(), (sp, client) =>
         {
             var cfg = sp.GetRequiredService<IOptions<PixeldrainOptions>>().Value;
             var baseUrl = cfg.ApiBaseUrl ?? throw new InvalidOperationException("Pixeldrain API base URL is not configured.");
 
             client.BaseAddress = new Uri(baseUrl);
-            client.DefaultRequestHeaders.UserAgent.ParseAdd(userAgent);
+            client.DefaultRequestHeaders.Add("User-Agent", userAgent);
         })
         .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
         {
             AllowAutoRedirect = false
         });
 
-        services.AddHttpClient(SendCm.Code, client =>
+        services.AddHttpClient(HosterCode.SendCm.ToFriendlyString(), client =>
         {
             client.BaseAddress = new Uri("https://send.cm");
             client.DefaultRequestHeaders.Add("User-Agent", userAgent);
@@ -200,15 +205,19 @@ public static class DependencyInjection
 
     private static void AddInfrastructureServices(IServiceCollection services, IConfiguration configuration)
     {
-        services.Configure<PixeldrainOptions>(configuration.GetSection("Hosters:Pixeldrain"));
-        services.Configure<SendcmOptions>(configuration.GetSection("Hosters:SendCm"));
-
-        services.AddScoped<IHosterApiClient, PixeldrainApiClient>();
-        services.AddScoped<IHosterApiClient, SendCmApiClient>();
-
-        services.AddScoped<IHosterClientRegistry, HosterClientRegistry>();
+        services.AddTransient<IHosterDefinitionResolver, HosterDefinitionResolver>();
+        services.AddScoped<IIntegrationEventOutbox, MassTransitIntegrationEventOutbox>();
+        services.Configure<EncryptionOptions>(configuration.GetSection(EncryptionOptions.SectionName));
+        services.AddTransient<ISecretEncryptionService, AesGcmSecretEncryptionService>();
+        services.AddTransient<SendCmUploadSessionProvider>();
+        services.AddHosterCapabilitiesFromAssemblies(typeof(DependencyInjection).Assembly);
+        services.AddTransient<IIdentityVerificationHandler, PixeldrainIdentityVerificationHandler>();
+        //services.AddScoped<IIdentityVerificationHandler, SendCmIdentityVerificationHandler>();
+        services.AddMediatR(cfg =>
+        {
+            cfg.RegisterServicesFromAssemblyContaining<AssetCreatedDomainEventHandler>();
+        });
     }
-
 
     private static void AddApplicationServices(IServiceCollection services, IConfiguration configuration)
     {

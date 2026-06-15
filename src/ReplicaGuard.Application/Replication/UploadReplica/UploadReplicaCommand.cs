@@ -3,8 +3,4 @@ using ReplicaGuard.Application.Abstractions.Messaging;
 
 namespace ReplicaGuard.Application.Replication.UploadReplica;
 
-public sealed record UploadReplicaCommand(
-    Guid ReplicaId,
-    Guid AssetId,
-    Guid HosterId,
-    bool IsLastRetry) : ICommand<Unit>;
+public sealed record UploadReplicaCommand(Guid UserId, Guid AssetId, Guid ReplicaId) : ICommand;

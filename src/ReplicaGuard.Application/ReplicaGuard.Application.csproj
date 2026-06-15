@@ -6,7 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\ReplicaGuard.Domain\ReplicaGuard.Core.csproj" />
+    <ProjectReference Include="..\ReplicaGuard.Domain\ReplicaGuard.Domain.csproj" />
     <PackageReference Include="MediatR" />
     <PackageReference Include="FluentValidation.AspNetCore" />
     <PackageReference Include="FluentValidation.DependencyInjectionExtensions" />

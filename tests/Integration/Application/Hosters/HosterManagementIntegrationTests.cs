@@ -5,7 +5,7 @@ using ReplicaGuard.Application.Hosters;
 using ReplicaGuard.Application.Hosters.GetHoster;
 using ReplicaGuard.Application.Hosters.ListHosters;
 using ReplicaGuard.Core.Abstractions;
-using ReplicaGuard.Core.Domain.Hoster;
+using ReplicaGuard.Core.Hosters;
 using ReplicaGuard.TestInfrastructure.Fixtures;
 using ReplicaGuard.TestInfrastructure.Infrastructure;
 

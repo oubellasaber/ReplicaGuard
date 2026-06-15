@@ -243,8 +243,12 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("ReplicaGuard.Application.Replication.UploadReplica.Spooling.SpoolLease", b =>
                 {
-                    b.Property<Guid>("AssetId")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("AssetId")
                         .HasColumnType("uuid")
                         .HasColumnName("asset_id");
 
@@ -263,55 +267,95 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
                         .HasDefaultValue(1L)
                         .HasColumnName("version");
 
-                    b.HasKey("AssetId")
+                    b.HasKey("Id")
                         .HasName("pk_spool_leases");
+
+                    b.HasIndex("AssetId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_spool_leases_asset_id");
 
                     b.ToTable("spool_leases", "replicaguard");
                 });
 
-            modelBuilder.Entity("ReplicaGuard.Core.Domain.Credentials.HosterCredentials", b =>
+            modelBuilder.Entity("ReplicaGuard.Core.HosterAccounts.AuthIdentity", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
-                    b.Property<string>("ApiKey")
-                        .HasMaxLength(512)
-                        .HasColumnType("character varying(512)")
-                        .HasColumnName("api_key");
-
                     b.Property<DateTime>("CreatedAtUtc")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at_utc")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+                        .HasDefaultValueSql("now()");
 
-                    b.Property<string>("Email")
-                        .HasMaxLength(256)
-                        .HasColumnType("character varying(256)")
-                        .HasColumnName("email");
-
-                    b.Property<Guid>("HosterId")
+                    b.Property<Guid?>("HosterAccountId")
                         .HasColumnType("uuid")
-                        .HasColumnName("hoster_id");
+                        .HasColumnName("hoster_account_id");
 
-                    b.Property<string>("Password")
+                    b.Property<Guid>("SecretSetId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("secret_set_id");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer")
+                        .HasColumnName("status");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("integer")
+                        .HasColumnName("type");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at_utc")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<string>("Value")
                         .HasMaxLength(512)
                         .HasColumnType("character varying(512)")
-                        .HasColumnName("password");
+                        .HasColumnName("value");
 
-                    b.Property<int>("PrimaryCredentials")
-                        .HasColumnType("integer")
-                        .HasColumnName("primary_credentials");
+                    b.HasKey("Id")
+                        .HasName("pk_auth_identities");
 
-                    b.Property<int>("SyncStatus")
+                    b.HasIndex("HosterAccountId")
+                        .HasDatabaseName("ix_auth_identities_hoster_account_id");
+
+                    b.HasIndex("SecretSetId")
+                        .HasDatabaseName("ix_auth_identities_secret_set_id");
+
+                    b.ToTable("auth_identities", "replicaguard");
+                });
+
+            modelBuilder.Entity("ReplicaGuard.Core.HosterAccounts.HosterAccount", b =>
+                {
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(0)
-                        .HasColumnName("sync_status");
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
 
-                    b.Property<DateTime?>("UpdatedAtUtc")
+                    b.Property<string>("Alias")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("alias");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1024)
+                        .HasColumnType("character varying(1024)")
+                        .HasColumnName("description");
+
+                    b.Property<int>("HosterId")
+                        .HasColumnType("integer")
+                        .HasColumnName("hoster_id");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at_utc");
 
@@ -319,61 +363,77 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("user_id");
 
-                    b.Property<string>("Username")
-                        .HasMaxLength(256)
-                        .HasColumnType("character varying(256)")
-                        .HasColumnName("username");
-
-                    b.Property<long>("Version")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasDefaultValue(1L)
-                        .HasColumnName("version");
-
                     b.HasKey("Id")
-                        .HasName("pk_hoster_credentials");
+                        .HasName("pk_hoster_accounts");
 
-                    b.HasIndex("CreatedAtUtc")
-                        .HasDatabaseName("ix_hoster_credentials_created_at_utc");
-
-                    b.HasIndex("HosterId")
-                        .HasDatabaseName("ix_hoster_credentials_hoster_id");
-
-                    b.HasIndex("SyncStatus")
-                        .HasDatabaseName("ix_hoster_credentials_sync_status");
-
-                    b.HasIndex("UpdatedAtUtc")
-                        .HasDatabaseName("ix_hoster_credentials_updated_at_utc");
-
-                    b.HasIndex("UserId")
-                        .HasDatabaseName("ix_hoster_credentials_user_id");
-
-                    b.HasIndex("UserId", "HosterId")
-                        .IsUnique()
-                        .HasDatabaseName("ix_hoster_credentials_user_id_hoster_id");
-
-                    b.ToTable("hoster_credentials", "replicaguard");
+                    b.ToTable("hoster_accounts", "replicaguard");
                 });
 
-            modelBuilder.Entity("ReplicaGuard.Core.Domain.Hoster.Hoster", b =>
+            modelBuilder.Entity("ReplicaGuard.Core.HosterAccounts.Secret", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
-                    b.Property<string>("Code")
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<Guid?>("SecretSetId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("secret_set_id");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("integer")
+                        .HasColumnName("type");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at_utc")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<byte[]>("Value")
                         .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .HasColumnName("code");
+                        .HasColumnType("bytea")
+                        .HasColumnName("encrypted_secret");
+
+                    b.HasKey("Id")
+                        .HasName("pk_secrets");
+
+                    b.HasIndex("SecretSetId")
+                        .HasDatabaseName("ix_secrets_secret_set_id");
+
+                    b.ToTable("secrets", "replicaguard");
+                });
+
+            modelBuilder.Entity("ReplicaGuard.Core.HosterAccounts.SecretSet", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_secret_sets");
+
+                    b.ToTable("secret_sets", "replicaguard");
+                });
+
+            modelBuilder.Entity("ReplicaGuard.Core.Hosters.Hoster", b =>
+                {
+                    b.Property<short>("Id")
+                        .HasColumnType("smallint")
+                        .HasColumnName("id");
 
                     b.Property<DateTime>("CreatedAtUtc")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at_utc")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+                        .HasDefaultValueSql("now()");
 
                     b.Property<string>("DisplayName")
                         .IsRequired()
@@ -381,28 +441,19 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(100)")
                         .HasColumnName("display_name");
 
-                    b.Property<int>("PrimaryCredentials")
-                        .HasColumnType("integer")
-                        .HasColumnName("primary_credentials");
-
-                    b.Property<DateTime?>("UpdatedAtUtc")
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at_utc");
+                        .HasColumnName("updated_at_utc")
+                        .HasDefaultValueSql("now()");
 
                     b.HasKey("Id")
                         .HasName("pk_hosters");
 
-                    b.HasIndex("Code")
-                        .IsUnique()
-                        .HasDatabaseName("ix_hosters_code");
-
-                    b.HasIndex("CreatedAtUtc")
-                        .HasDatabaseName("ix_hosters_created_at_utc");
-
                     b.ToTable("hosters", "replicaguard");
                 });
 
-            modelBuilder.Entity("ReplicaGuard.Core.Domain.Replication.Asset", b =>
+            modelBuilder.Entity("ReplicaGuard.Core.Replication.Asset", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -413,7 +464,7 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at_utc")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP AT TIME ZONE 'UTC'");
+                        .HasDefaultValueSql("now()");
 
                     b.Property<string>("FileName")
                         .IsRequired()
@@ -426,12 +477,15 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
                         .HasColumnName("size_bytes");
 
                     b.Property<string>("Source")
+                        .IsRequired()
                         .HasColumnType("jsonb")
                         .HasColumnName("source");
 
                     b.Property<DateTime>("UpdatedAtUtc")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at_utc");
+                        .HasColumnName("updated_at_utc")
+                        .HasDefaultValueSql("now()");
 
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid")
@@ -440,16 +494,13 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
                     b.HasKey("Id")
                         .HasName("pk_assets");
 
-                    b.HasIndex("CreatedAtUtc")
-                        .HasDatabaseName("ix_assets_created_at_utc");
-
                     b.HasIndex("UserId")
                         .HasDatabaseName("ix_assets_user_id");
 
                     b.ToTable("assets", "replicaguard");
                 });
 
-            modelBuilder.Entity("ReplicaGuard.Core.Domain.Replication.Replica", b =>
+            modelBuilder.Entity("ReplicaGuard.Core.Replication.Replica", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -464,10 +515,14 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at_utc")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP AT TIME ZONE 'UTC'");
+                        .HasDefaultValueSql("now()");
 
-                    b.Property<Guid>("HosterId")
+                    b.Property<Guid?>("HosterAccountId")
                         .HasColumnType("uuid")
+                        .HasColumnName("hoster_account_id");
+
+                    b.Property<short>("HosterId")
+                        .HasColumnType("smallint")
                         .HasColumnName("hoster_id");
 
                     b.Property<string>("Link")
@@ -480,8 +535,10 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
                         .HasColumnName("status");
 
                     b.Property<DateTime>("UpdatedAtUtc")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at_utc");
+                        .HasColumnName("updated_at_utc")
+                        .HasDefaultValueSql("now()");
 
                     b.Property<Guid?>("WaitingForReplicaId")
                         .HasColumnType("uuid")
@@ -493,20 +550,23 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
                     b.HasIndex("AssetId")
                         .HasDatabaseName("ix_replicas_asset_id");
 
+                    b.HasIndex("HosterAccountId")
+                        .HasDatabaseName("ix_replicas_hoster_account_id");
+
                     b.HasIndex("HosterId")
                         .HasDatabaseName("ix_replicas_hoster_id");
 
-                    b.HasIndex("Status")
-                        .HasDatabaseName("ix_replicas_status");
+                    b.HasIndex("WaitingForReplicaId")
+                        .HasDatabaseName("ix_replicas_waiting_for_replica_id");
 
-                    b.HasIndex("AssetId", "HosterId")
+                    b.HasIndex("AssetId", "Id", "HosterId", "HosterAccountId")
                         .IsUnique()
-                        .HasDatabaseName("ix_replicas_asset_id_hoster_id");
+                        .HasDatabaseName("ix_replicas_asset_id_id_hoster_id_hoster_account_id");
 
                     b.ToTable("replicas", "replicaguard");
                 });
 
-            modelBuilder.Entity("ReplicaGuard.Core.Domain.User.User", b =>
+            modelBuilder.Entity("ReplicaGuard.Core.Users.User", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -517,7 +577,7 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at_utc")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+                        .HasDefaultValueSql("now()");
 
                     b.Property<string>("Email")
                         .IsRequired()
@@ -537,9 +597,11 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(256)")
                         .HasColumnName("name");
 
-                    b.Property<DateTime?>("UpdatedAtUtc")
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at_utc");
+                        .HasColumnName("updated_at_utc")
+                        .HasDefaultValueSql("now()");
 
                     b.HasKey("Id")
                         .HasName("pk_users");
@@ -572,56 +634,73 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
                         .HasConstraintName("fk_outbox_message_inbox_state_inbox_message_id_inbox_consumer_");
                 });
 
-            modelBuilder.Entity("ReplicaGuard.Core.Domain.Hoster.Hoster", b =>
+            modelBuilder.Entity("ReplicaGuard.Core.HosterAccounts.AuthIdentity", b =>
                 {
-                    b.OwnsMany("ReplicaGuard.Core.Domain.Hoster.FeatureRequirement", "Requirements", b1 =>
-                        {
-                            b1.Property<int>("Id")
-                                .ValueGeneratedOnAdd()
-                                .HasColumnType("integer")
-                                .HasColumnName("id");
+                    b.HasOne("ReplicaGuard.Core.HosterAccounts.HosterAccount", null)
+                        .WithMany("Identities")
+                        .HasForeignKey("HosterAccountId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .HasConstraintName("fk_auth_identities_hoster_account_hoster_account_id");
 
-                            NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b1.Property<int>("Id"));
+                    b.HasOne("ReplicaGuard.Core.HosterAccounts.SecretSet", "SecretSet")
+                        .WithMany()
+                        .HasForeignKey("SecretSetId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_auth_identities_secret_set_secret_set_id");
 
-                            b1.Property<int>("Feature")
-                                .HasColumnType("integer")
-                                .HasColumnName("feature");
-
-                            b1.Property<int>("RequiredAuth")
-                                .HasColumnType("integer")
-                                .HasColumnName("required_auth");
-
-                            b1.Property<Guid>("hoster_id")
-                                .HasColumnType("uuid")
-                                .HasColumnName("hoster_id");
-
-                            b1.HasKey("Id")
-                                .HasName("pk_hoster_feature_requirements");
-
-                            b1.HasIndex("hoster_id")
-                                .HasDatabaseName("ix_hoster_feature_requirements_hoster_id");
-
-                            b1.ToTable("hoster_feature_requirements", "replicaguard");
-
-                            b1.WithOwner()
-                                .HasForeignKey("hoster_id")
-                                .HasConstraintName("fk_hoster_feature_requirements_hosters_hoster_id");
-                        });
-
-                    b.Navigation("Requirements");
+                    b.Navigation("SecretSet");
                 });
 
-            modelBuilder.Entity("ReplicaGuard.Core.Domain.Replication.Replica", b =>
+            modelBuilder.Entity("ReplicaGuard.Core.HosterAccounts.Secret", b =>
                 {
-                    b.HasOne("ReplicaGuard.Core.Domain.Replication.Asset", null)
+                    b.HasOne("ReplicaGuard.Core.HosterAccounts.SecretSet", null)
+                        .WithMany("Secrets")
+                        .HasForeignKey("SecretSetId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .HasConstraintName("fk_secrets_secret_set_secret_set_id");
+                });
+
+            modelBuilder.Entity("ReplicaGuard.Core.Replication.Replica", b =>
+                {
+                    b.HasOne("ReplicaGuard.Core.Replication.Asset", null)
                         .WithMany("Replicas")
                         .HasForeignKey("AssetId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_replicas_assets_asset_id");
+
+                    b.HasOne("ReplicaGuard.Core.HosterAccounts.HosterAccount", null)
+                        .WithMany()
+                        .HasForeignKey("HosterAccountId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_replicas_hoster_accounts_hoster_account_id");
+
+                    b.HasOne("ReplicaGuard.Core.Hosters.Hoster", null)
+                        .WithMany()
+                        .HasForeignKey("HosterId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_replicas_hosters_hoster_id");
+
+                    b.HasOne("ReplicaGuard.Core.Replication.Replica", null)
+                        .WithMany()
+                        .HasForeignKey("WaitingForReplicaId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_replicas_replicas_waiting_for_replica_id");
                 });
 
-            modelBuilder.Entity("ReplicaGuard.Core.Domain.Replication.Asset", b =>
+            modelBuilder.Entity("ReplicaGuard.Core.HosterAccounts.HosterAccount", b =>
+                {
+                    b.Navigation("Identities");
+                });
+
+            modelBuilder.Entity("ReplicaGuard.Core.HosterAccounts.SecretSet", b =>
+                {
+                    b.Navigation("Secrets");
+                });
+
+            modelBuilder.Entity("ReplicaGuard.Core.Replication.Asset", b =>
                 {
                     b.Navigation("Replicas");
                 });

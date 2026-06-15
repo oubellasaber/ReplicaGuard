@@ -4,7 +4,7 @@ using NSubstitute;
 using ReplicaGuard.Application.Abstractions.Authentication;
 using ReplicaGuard.Application.Abstractions.Data;
 using ReplicaGuard.Application.Users.LogInUser;
-using ReplicaGuard.Core.Domain.User;
+using ReplicaGuard.Core.Users;
 
 namespace ReplicaGuard.Application.Tests.Users.LogInUser;
 

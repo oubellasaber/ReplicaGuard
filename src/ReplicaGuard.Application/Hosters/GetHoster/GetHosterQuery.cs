@@ -1,5 +1,6 @@
 using ReplicaGuard.Application.Abstractions.Messaging;
+using ReplicaGuard.Core.Hosters;
 
 namespace ReplicaGuard.Application.Hosters.GetHoster;
 
-public sealed record GetHosterQuery(Guid HosterId) : IQuery<HosterResponse>;
+public sealed record GetHosterQuery(string Id) : IQuery<HosterResponse>;

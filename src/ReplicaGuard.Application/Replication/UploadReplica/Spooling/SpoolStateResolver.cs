@@ -13,7 +13,8 @@ public enum SpoolStatus
 public sealed record SpoolState(
     SpoolStatus Status,
     string FilePath,
-    Guid? OwnerReplicaId);
+    Guid? OwnerReplicaId,
+    SpoolLease? Lease);
 
 /// <summary>
 /// Derives spool state from the file locator and an optional lease.
@@ -31,7 +32,8 @@ public static class SpoolStateResolver
         return new SpoolState(
             Status: status,
             FilePath: filePath,
-            OwnerReplicaId: lease?.OwnerReplicaId);
+            OwnerReplicaId: lease?.OwnerReplicaId,
+            Lease: lease);
     }
 
     public static SpoolStatus ResolveStatus(

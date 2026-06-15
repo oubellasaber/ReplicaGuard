@@ -72,7 +72,7 @@ public class AddHosterCredentialsCommandValidatorTests
 
         // Assert
         result.ShouldHaveValidationErrorFor(x => x.Email)
-            .WithErrorMessage("Email cannot exceed 256 characters.");
+            .WithErrorMessage("EmailPayload cannot exceed 256 characters.");
     }
 
     [Theory]
@@ -89,7 +89,7 @@ public class AddHosterCredentialsCommandValidatorTests
 
         // Assert
         result.ShouldHaveValidationErrorFor(x => x.Email)
-            .WithErrorMessage("Email must be a valid email address.");
+            .WithErrorMessage("EmailPayload must be a valid email address.");
     }
 
     [Fact]

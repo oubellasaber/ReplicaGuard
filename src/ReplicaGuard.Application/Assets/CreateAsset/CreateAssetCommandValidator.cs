@@ -16,19 +16,32 @@ public sealed class CreateAssetCommandValidator : AbstractValidator<CreateAssetC
             .NotEmpty()
             .WithMessage("File name is required.")
             .MaximumLength(255)
-            .WithMessage("File name cannot exceed 255 characters.");
+            .WithMessage("File name cannot exceed 255 characters.")
+            .Must(name => name.IndexOfAny(Path.GetInvalidFileNameChars()) < 0)
+            .WithMessage("File name contains invalid characters.")
+            .Must(name => !name.Contains('/') && !name.Contains('\\'))
+            .WithMessage("File name cannot contain directory separators.");
 
-        RuleFor(x => x.HosterIds)
+        RuleFor(x => x.Hosters)
             .NotEmpty()
-            .WithMessage("At least one hoster is required.");
+            .WithMessage("At least one hoster is required.")
+            .Must(list => list.Count <= 10)
+            .WithMessage("Too many hosters specified. Maximum allowed is 10.")
+            .Must(list => list.Select(h => h.HosterId).Distinct().Count() == list.Count)
+            .WithMessage("Duplicate hoster codes are not allowed.")
+            .Must(list => list.Select(h => h.HosterAccountId).Distinct().Count() == list.Count)
+            .WithMessage("Duplicate hoster account IDs are not allowed.");
 
-        RuleForEach(x => x.HosterIds)
-            .NotEmpty()
-            .WithMessage("Hoster ID cannot be empty.");
+        RuleForEach(x => x.Hosters)
+            .ChildRules(hoster =>
+            {
+                hoster.RuleFor(h => h.HosterId)
+                    .IsInEnum()
+                    .WithMessage("Invalid hoster code provided.");
 
-        RuleFor(x => x.HosterIds)
-            .Must(ids => ids.Distinct().Count() == ids.Count)
-            .When(x => x.HosterIds is { Count: > 0 })
-            .WithMessage("Duplicate hoster IDs are not allowed.");
+                hoster.RuleFor(h => h.HosterAccountId)
+                    .NotEmpty()
+                    .WithMessage("HosterAccountId cannot be empty.");
+            });
     }
 }
