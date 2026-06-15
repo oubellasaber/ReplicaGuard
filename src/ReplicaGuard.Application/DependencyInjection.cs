@@ -1,7 +1,6 @@
 ﻿using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
 using ReplicaGuard.Application.Abstractions.Behaviors;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace ReplicaGuard.Application;
 public static class DependencyInjection

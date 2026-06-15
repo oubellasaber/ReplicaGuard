@@ -1,7 +1,7 @@
 using MassTransit;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using ReplicaGuard.Infrastructure.Hosters;
+using ReplicaGuard.Infrastructure.Messaging.Commands;
 using ReplicaGuard.Infrastructure.Messaging.Consumers;
 using ReplicaGuard.Infrastructure.Persistence;
 
@@ -23,38 +23,40 @@ public static class MessagingConfiguration
 
         services.AddMassTransit(x =>
         {
-            // Credential consumers
-            x.AddConsumer<HosterCredentialsCreatedConsumer, HosterCredentialsCreatedConsumerDefinition>();
-            x.AddConsumer<HosterCredentialsOutOfSyncConsumer, HosterCredentialsOutOfSyncConsumerDefinition>();
-            x.AddConsumer<HosterCredentialsFaultConsumer>();
-
-            // Replication consumers
-            x.AddConsumer<AssetCreatedConsumer>();
+            // 1. Register ALL consumers + definitions
+            x.AddConsumer<UploadReplicaFaultConsumer>();
             x.AddConsumer<UploadReplicaConsumer, UploadReplicaConsumerDefinition>();
-            x.AddConsumer<ReplicaCoordinationConsumer>();
+            x.AddConsumer<ReplicaTerminalIntegrationEventConsumer, ReplicaTerminalIntegrationEventConsumerDefinition>();
+            x.AddConsumer<IdentityCreatedIntegrationEventConsumer, IdentityCreatedIntegrationEventConsumerDefinition>();
+            x.AddConsumer<IdentityCreatedIntegrationEventFaultConsumer>();
+            x.AddConsumer<AssetCreatedIntegrationEventConsumer, AssetCreatedIntegrationEventConsumerDefinition>();
+            x.AddConsumers(typeof(UploadReplicaConsumer).Assembly);
+            EndpointConvention.Map<UploadReplicaCommand>(new Uri("queue:upload-replica"));
 
-            // Configure Entity Framework transactional outbox
+
+
+            // 2. Configure EF Outbox (transactional)
             x.AddEntityFrameworkOutbox<ApplicationDbContext>(o =>
             {
                 o.UsePostgres();
-                o.UseBusOutbox();  // Publish writes to outbox, not directly to transport
+                o.UseBusOutbox(); // publish goes to outbox table
 
                 o.QueryDelay = TimeSpan.FromSeconds(messagingOptions.QueryDelayInSeconds);
                 o.DuplicateDetectionWindow = TimeSpan.FromMinutes(messagingOptions.DuplicateDetectionWindowInMinutes);
             });
 
-            // Configure SQL Transport options
+
+            // 3. Configure SQL Transport + Scheduler
             x.AddSqlMessageScheduler();
 
             x.UsingPostgres((context, cfg) =>
             {
                 cfg.UseSqlMessageScheduler();
-
                 cfg.ConfigureEndpoints(context);
             });
         });
 
-        // Configure PostgreSQL transport connection
+        // 4. Configure SQL Transport options
         services.AddOptions<SqlTransportOptions>()
             .Configure(options =>
             {
@@ -62,7 +64,7 @@ public static class MessagingConfiguration
                 options.Schema = Schemas.Transport;
             });
 
-        // Run SQL Transport migrations on startup
+        // 5. Run SQL Transport migrations on startup
         services.AddPostgresMigrationHostedService();
 
         return services;

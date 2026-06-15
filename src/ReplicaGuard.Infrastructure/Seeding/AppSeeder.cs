@@ -1,7 +1,8 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using ReplicaGuard.Core.Domain.Hoster;
+using ReplicaGuard.Core.Hosters;
+using ReplicaGuard.Core.Users;
 using ReplicaGuard.Infrastructure.Persistence;
 
 namespace ReplicaGuard.Infrastructure.Seeding;
@@ -28,9 +29,8 @@ public class AppSeeder
     public async Task SeedAsync()
     {
         await SeedRolesAsync();
-        await SeedHostersAsync();
-        //await SeedUsersAsync();
-        //await SeedFakeUsersAsync();
+        var seedingTasks = new[] { SeedHostersAsync(), SeedFakeUsersAsync() };
+        await Task.WhenAll(seedingTasks);
     }
 
     private async Task SeedRolesAsync()
@@ -44,83 +44,84 @@ public class AppSeeder
 
     private async Task SeedHostersAsync()
     {
-        List<string> existingCodes = await _db.Set<Hoster>()
-            .AsNoTracking()
-            .Select(h => h.Code)
-            .ToListAsync();
+        var existing = await _db.Set<Hoster>().ToListAsync();
 
-        foreach (HosterSeed seed in HosterDefinitions.All)
+        foreach (var def in HosterDefinitions.All)
         {
-            string normalizedCode = seed.Code.ToUpperInvariant().Trim();
+            var hoster = existing.SingleOrDefault(h => h.Id == def.HosterId);
 
-            if (existingCodes.Contains(normalizedCode))
+            if (hoster is null)
             {
-                _logger.LogDebug("Hoster '{Code}' already exists, skipping", seed.Code);
-                continue;
+                // Insert new hoster
+                hoster = new Hoster(def.HosterId, def.HosterId.ToString());
+
+                _db.Set<Hoster>().Add(hoster);
+
+                _logger.LogInformation("Seeded hoster {HosterId}", def.HosterId);
             }
-
-            var hosterResult = Hoster.Create(
-                seed.Code,
-                seed.DisplayName,
-                seed.PrimaryCredentials);
-
-            if (hosterResult.IsFailure)
-            {
-                _logger.LogWarning(
-                    "Failed to create hoster '{Code}': {Error}",
-                    seed.Code, hosterResult.Error.Message);
-                continue;
-            }
-
-            Hoster hoster = hosterResult.Value;
-
-            foreach ((CapabilityCode feature, Credentials requiredAuth) in seed.Features)
-            {
-                hoster.AddFeatureRequirement(feature, requiredAuth);
-            }
-
-            _db.Set<Hoster>().Add(hoster);
-
-            _logger.LogInformation(
-                "Seeded hoster '{Code}' ({DisplayName}) with {FeatureCount} features",
-                seed.Code, seed.DisplayName, seed.Features.Count);
+            //else
+            //{
+            //    // Update display name if needed
+            //    if (hoster.DisplayName != def.HosterId.ToString())
+            //    {
+            //        hoster.UpdateDisplayName(def.HosterId.ToString());
+            //        _logger.LogInformation("Updated hoster {HosterId}", def.HosterId);
+            //    }
+            //}
         }
 
         await _db.SaveChangesAsync();
     }
 
-    // ---------------- Admin ----------------
-    private async Task SeedUsersAsync()
-    {
-        // Admin user
-        var (email, password, role) = AppData.DefaultAdmin;
-        if (await _userManager.FindByEmailAsync(email) == null)
-        {
-            var admin = new IdentityUser { UserName = email, Email = email, EmailConfirmed = true };
-            await _userManager.CreateAsync(admin, password);
-            await _userManager.AddToRoleAsync(admin, role);
-        }
-    }
-
-    // ---------------- Dev Fake Users ----------------
     private async Task SeedFakeUsersAsync()
     {
-        var existingCount = await _userManager.Users.CountAsync();
-        if (existingCount > 1) return;
+        var existing = await _userManager.Users
+            .Select(u => new { u.Id, u.Email })
+            .ToListAsync();
 
-        foreach (var member in AppData.DefaultMembers)
+        var emails = existing
+            .Select(u => u.Email!)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        // ---- Admin ----
         {
-            if (await _userManager.FindByEmailAsync(member.Email) == null)
+            var (email, password, role) = AppData.DefaultAdmin;
+            IdentityUser? admin;
+
+            if (!emails.Contains(email))
             {
-                var user = new IdentityUser
+                admin = new IdentityUser { UserName = email, Email = email, EmailConfirmed = true };
+                await _userManager.CreateAsync(admin, password);
+            }
+            else
+            {
+                var id = existing.First(u => u.Email == email).Id;
+                admin = await _userManager.FindByIdAsync(id);
+            }
+
+            if (admin is not null && !await _userManager.IsInRoleAsync(admin, role))
+                await _userManager.AddToRoleAsync(admin, role);
+
+            // ---- Create domain user ----
+            if (admin is not null)
+            {
+                var exists = await _db.Set<User>()
+                    .AnyAsync(u => u.IdentityId == admin.Id);
+
+                if (!exists)
                 {
-                    UserName = member.UserName,
-                    Email = member.Email,
-                    EmailConfirmed = true
-                };
-                await _userManager.CreateAsync(user, member.Password);
-                await _userManager.AddToRoleAsync(user, member.Role);
+                    var domainUser = User.Create(
+                        identityId: admin.Id,
+                        email: admin.Email!,
+                        name: admin.UserName!,
+                        createdAtUtc: DateTime.UtcNow
+                    );
+
+                    _db.Set<User>().Add(domainUser);
+                    await _db.SaveChangesAsync();
+                }
             }
         }
+
     }
 }

@@ -21,17 +21,9 @@ namespace ReplicaGuard.Infrastructure.Spool
         public async Task<SpoolLease?> GetAsync(Guid assetId, CancellationToken ct)
         {
             var entity = await _dbContext.Set<SpoolLease>()
-                .AsNoTracking()
                 .FirstOrDefaultAsync(x => x.AssetId == assetId, ct);
 
-            if (entity is null)
-                return null;
-
-            return new SpoolLease(
-                entity.AssetId,
-                entity.OwnerReplicaId,
-                entity.ExpiresAtUtc
-            );
+            return entity;
         }
 
         public async Task<SpoolLease?> TryAcquireAsync(
@@ -102,9 +94,8 @@ namespace ReplicaGuard.Infrastructure.Spool
 
         public async Task ReleaseForAsset(Guid assetId)
         {
-            await _dbContext.Set<SpoolLease>()
-                .Where(x => x.AssetId == assetId)
-                .ExecuteDeleteAsync();
+            await _dbContext.Database.ExecuteSqlInterpolatedAsync(
+                $"DELETE FROM replicaguard.spool_leases WHERE asset_id = {assetId}");
         }
     }
 }

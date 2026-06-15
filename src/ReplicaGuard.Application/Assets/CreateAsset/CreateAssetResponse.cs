@@ -3,6 +3,6 @@ namespace ReplicaGuard.Application.Assets.CreateAsset;
 public sealed record CreateAssetResponse(
     Guid AssetId,
     string FileName,
-    string State,
+    string Status,
     int ReplicaCount,
     DateTime CreatedAtUtc);

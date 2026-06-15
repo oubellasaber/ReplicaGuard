@@ -75,7 +75,7 @@ public class RegisterUserCommandValidatorTests
 
         // Assert
         result.ShouldHaveValidationErrorFor(x => x.Email)
-            .WithErrorMessage("Email must not be empty");
+            .WithErrorMessage("EmailPayload must not be empty");
     }
 
     [Fact]

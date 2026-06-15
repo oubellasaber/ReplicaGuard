@@ -6,23 +6,23 @@ public static class UploadReplicaErrors
 {
     public static Error UploadNotSupported(string hosterCode) =>
         new Error(
-            code: "Hoster.Upload.NotSupported",
+            code: "HosterCode.Upload.NotSupported",
             message: "The selected hoster does not support uploading capability."
         )
-        .WithMetadata("HosterCode", hosterCode)
+        .WithMetadata("Code", hosterCode)
         .AsPermanent();
 
     public static Error NoCredentials(string hosterCode) =>
         new Error(
-            code: "Hoster.Upload.Credentials.Missing",
+            code: "HosterCode.Upload.Credentials.Missing",
             message: "No credentials were provided for the hoster."
         )
-        .WithMetadata("HosterCode", hosterCode)
+        .WithMetadata("Code", hosterCode)
         .AsPermanent();
 
     public static Error LocalFileNotFound(string filePath) =>
         new Error(
-            code: "Hoster.Upload.LocalFile.NotFound",
+            code: "HosterCode.Upload.LocalFile.NotFound",
             message: $"The specified local file was not found"
         )
         .WithMetadata("FilePath", filePath)

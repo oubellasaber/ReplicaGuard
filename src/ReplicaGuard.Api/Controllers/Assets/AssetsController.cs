@@ -5,6 +5,7 @@ using ReplicaGuard.Api.Extensions;
 using ReplicaGuard.Application.Assets.CreateAsset;
 using ReplicaGuard.Application.Assets.GetAsset;
 using ReplicaGuard.Application.Assets.ListAssets;
+using ReplicaGuard.Core.Hosters;
 
 namespace ReplicaGuard.Api.Controllers.Assets;
 
@@ -23,10 +24,16 @@ public class AssetsController(ISender sender) : ControllerBase
         [FromBody] CreateAssetRequest request,
         CancellationToken cancellationToken)
     {
+        var hosters = request.Hosters
+        .Select(h => new HosterAccountDto(
+            HosterId: Enum.Parse<HosterCode>(h.HosterId, ignoreCase: true),
+            HosterAccountId: h.AccountId))
+        .ToList();
+
         var command = new CreateAssetCommand(
             request.Source,
             request.FileName,
-            request.HosterIds);
+            hosters);
 
         var result = await sender.Send(command, cancellationToken);
 

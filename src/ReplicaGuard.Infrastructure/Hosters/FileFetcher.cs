@@ -3,7 +3,7 @@ using Microsoft.Extensions.Options;
 using ReplicaGuard.Application.Replication.UploadReplica.Fetching;
 using ReplicaGuard.Application.Replication.UploadReplica.Spooling;
 using ReplicaGuard.Core.Abstractions;
-using ReplicaGuard.Core.Domain.Replication;
+using ReplicaGuard.Core.Replication;
 
 namespace ReplicaGuard.Infrastructure.Hosters;
 
@@ -11,7 +11,7 @@ public sealed class FileFetcher : IFileFetcher
 {
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ISpoolFileLocator _spoolFileLocator;
-    private readonly string _spoolingDirectory;
+    private readonly FileFetcherOptions _options;
     private readonly ILogger<FileFetcher> _logger;
 
     public FileFetcher(
@@ -23,7 +23,7 @@ public sealed class FileFetcher : IFileFetcher
         _httpClientFactory = httpClientFactory;
         _spoolFileLocator = spoolFileLocator;
         _logger = logger;
-        _spoolingDirectory = fetcherOptions.Value.SpoolDirectory;
+        _options = fetcherOptions.Value;
     }
 
     public async Task<Result<SpooledFile>> DownloadAsync(
@@ -42,7 +42,7 @@ public sealed class FileFetcher : IFileFetcher
 
         try
         {
-            Directory.CreateDirectory(_spoolingDirectory);
+            Directory.CreateDirectory(_options.SpoolDirectory);
 
             _logger.LogInformation("Downloading {Url}", source.Url);
 

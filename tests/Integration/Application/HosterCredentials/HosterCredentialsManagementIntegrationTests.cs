@@ -8,12 +8,12 @@ using ReplicaGuard.Application.HosterCredentials.UpdateHosterCredentials;
 using ReplicaGuard.Application.Hosters;
 using ReplicaGuard.Application.Hosters.ListHosters;
 using ReplicaGuard.Core.Abstractions;
-using ReplicaGuard.Core.Domain.Credentials;
-using ReplicaGuard.Core.Domain.Hoster;
 using ReplicaGuard.TestInfrastructure.Fixtures;
 using ReplicaGuard.TestInfrastructure.Infrastructure;
 using ReplicaGuard.Infrastructure.Persistence;
-using HosterCredentialsEntity = ReplicaGuard.Core.Domain.Credentials.HosterCredentials;
+using HosterCredentialsEntity = ReplicaGuard.Core.Credentials.HosterCredentials;
+using ReplicaGuard.Core.Credentials;
+using ReplicaGuard.Core.Hosters;
 
 namespace ReplicaGuard.Application.IntegrationTests.HosterCredentials;
 

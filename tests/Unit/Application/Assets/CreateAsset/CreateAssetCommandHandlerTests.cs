@@ -6,10 +6,10 @@ using ReplicaGuard.Application.Abstractions.Clock;
 using ReplicaGuard.Application.Assets.CreateAsset;
 using ReplicaGuard.Application.Tests.Utilities;
 using ReplicaGuard.Core.Abstractions;
-using ReplicaGuard.Core.Domain.Credentials;
-using ReplicaGuard.Core.Domain.Hoster;
-using ReplicaGuard.Core.Domain.Replication;
-using HosterCredentialsEntity = ReplicaGuard.Core.Domain.Credentials.HosterCredentials;
+using ReplicaGuard.Core.Credentials;
+using ReplicaGuard.Core.Hosters;
+using ReplicaGuard.Core.Replication;
+using HosterCredentialsEntity = ReplicaGuard.Core.Credentials.HosterCredentials;
 
 namespace ReplicaGuard.Application.Tests.Assets.CreateAsset;
 

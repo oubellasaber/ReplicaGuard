@@ -16,6 +16,6 @@ public sealed class TransientException : Exception
             ? string.Join(", ", error.Metadata.Select(kvp => $"{kvp.Key}={kvp.Value}"))
             : "None";
 
-        return $"Code={error.Code}, Message={error.Message}, Detail={error.Detail ?? "None"}, Type={error.Type}, Kind={error.MessagingKind}, Metadata={meta}";
+        return $"HosterCode={error.Code}, Message={error.Message}, Detail={error.Detail ?? "None"}, Type={error.Type}, Kind={error.MessagingKind}, Metadata={meta}";
     }
 }

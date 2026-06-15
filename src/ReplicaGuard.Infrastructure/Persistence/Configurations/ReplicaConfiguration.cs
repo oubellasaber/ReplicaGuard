@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using ReplicaGuard.Core.Domain.Replication;
+using ReplicaGuard.Core.HosterAccounts;
+using ReplicaGuard.Core.Hosters;
+using ReplicaGuard.Core.Replication;
 
 namespace ReplicaGuard.Infrastructure.Persistence.Configurations;
 
@@ -12,14 +14,9 @@ internal sealed class ReplicaConfiguration : IEntityTypeConfiguration<Replica>
 
         builder.HasKey(x => x.Id);
 
-        builder.Property(x => x.AssetId)
-            .IsRequired();
-
-        builder.Property(x => x.HosterId)
-            .IsRequired();
-
         builder.Property(x => x.Status)
-            .IsRequired();
+            .HasConversion<int>()
+           .IsRequired();
 
         builder.Property(x => x.Link)
             .HasConversion(
@@ -27,20 +24,37 @@ internal sealed class ReplicaConfiguration : IEntityTypeConfiguration<Replica>
                 value => value != null ? new Uri(value) : null)
             .HasMaxLength(2048);
 
-        builder.Property(x => x.WaitingForReplicaId);
-
         builder.Property(x => x.CreatedAtUtc)
             .IsRequired()
-            .HasDefaultValueSql("CURRENT_TIMESTAMP AT TIME ZONE 'UTC'");
+            .HasDefaultValueSql("now()");
 
         builder.Property(x => x.UpdatedAtUtc)
-            .IsRequired();
+            .IsRequired()
+            .HasDefaultValueSql("now()");
 
-        // Indexes for performance
+        builder.HasOne<Asset>()
+            .WithMany(a => a.Replicas)
+            .HasForeignKey(x => x.AssetId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne<Hoster>()
+            .WithMany()
+            .HasForeignKey(x => x.HosterId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne<HosterAccount>()
+            .WithMany()
+            .HasForeignKey(x => x.HosterAccountId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasOne<Replica>()
+            .WithMany()
+            .HasForeignKey(x => x.WaitingForReplicaId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // Indexes
         builder.HasIndex(x => x.AssetId);
         builder.HasIndex(x => x.HosterId);
-        builder.HasIndex(x => x.Status);
-        builder.HasIndex(x => new { x.AssetId, x.HosterId })
-            .IsUnique();
+        builder.HasIndex(x => new { x.AssetId, x.Id, x.HosterId, x.HosterAccountId }).IsUnique();
     }
 }

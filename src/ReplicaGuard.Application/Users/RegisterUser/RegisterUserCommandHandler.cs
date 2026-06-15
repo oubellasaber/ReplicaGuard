@@ -3,7 +3,7 @@ using ReplicaGuard.Application.Abstractions.Authentication;
 using ReplicaGuard.Application.Abstractions.Data;
 using ReplicaGuard.Application.Abstractions.Messaging;
 using ReplicaGuard.Core.Abstractions;
-using ReplicaGuard.Core.Domain.User;
+using ReplicaGuard.Core.Users;
 
 namespace ReplicaGuard.Application.Users.RegisterUser;
 

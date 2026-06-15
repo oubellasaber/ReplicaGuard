@@ -1,7 +1,7 @@
 using ReplicaGuard.Application.Abstractions.Authentication;
 using ReplicaGuard.Application.Abstractions.Messaging;
 using ReplicaGuard.Core.Abstractions;
-using ReplicaGuard.Core.Domain.Replication;
+using ReplicaGuard.Core.Replication;
 
 namespace ReplicaGuard.Application.Assets.ListAssets;
 
@@ -24,9 +24,8 @@ public sealed class ListAssetsQueryHandler(
                 a.Status.ToString().ToLowerInvariant(),
                 a.SizeBytes,
                 a.Replicas.Count,
-                a.Replicas.Count(r => r.Status == ReplicaStatus.Completed),
-                a.Replicas.Count(r => r.Status == ReplicaStatus.Failed),
-                a.CreatedAtUtc))
+                a.CreatedAtUtc,
+                a.UpdatedAtUtc))
             .ToList();
 
         return Result.Success(response);

@@ -1,9 +1,8 @@
 using FluentAssertions;
 using ReplicaGuard.Core.Abstractions;
-using ReplicaGuard.Core.Domain.Credentials;
-using ReplicaGuard.Core.Domain.Hoster;
-using HosterEntity = ReplicaGuard.Core.Domain.Hoster.Hoster;
-using HosterCredentialsEntity = ReplicaGuard.Core.Domain.Credentials.HosterCredentials;
+using HosterEntity = ReplicaGuard.Core.Hosters.Hoster;
+using HosterCredentialsEntity = ReplicaGuard.Core.Credentials.HosterCredentials;
+using ReplicaGuard.Core.Credentials;
 
 namespace ReplicaGuard.Domain.Tests.Credentials;
 

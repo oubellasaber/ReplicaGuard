@@ -100,7 +100,7 @@ namespace ReplicaGuard.Infrastructure.Identity.Migrations
                         .HasColumnType("text")
                         .HasColumnName("concurrency_stamp");
 
-                    b.Property<string>("Email")
+                    b.Property<string>("EmailPayload")
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)")
                         .HasColumnName("email");

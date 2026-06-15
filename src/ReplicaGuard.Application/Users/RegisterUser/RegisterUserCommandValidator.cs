@@ -14,9 +14,9 @@ public class RegisterUserCommandValidator : AbstractValidator<RegisterUserComman
 
         RuleFor(x => x.Email)
             .NotEmpty()
-            .WithMessage("Email must not be empty")
+            .WithMessage("EmailPayload must not be empty")
             .MaximumLength(256)
-            .WithMessage("Email can not exceed 256 characters")
+            .WithMessage("EmailPayload can not exceed 256 characters")
             .EmailAddress()
             .WithMessage("Must be a valid email address");
 

@@ -1,7 +1,8 @@
 using ReplicaGuard.Application.Abstractions.Authentication;
 using ReplicaGuard.Application.Abstractions.Messaging;
 using ReplicaGuard.Core.Abstractions;
-using ReplicaGuard.Core.Domain.Replication;
+using ReplicaGuard.Core.Hosters;
+using ReplicaGuard.Core.Replication;
 
 namespace ReplicaGuard.Application.Assets.GetAsset;
 
@@ -14,24 +15,28 @@ public sealed class GetAssetQueryHandler(
         GetAssetQuery request,
         CancellationToken cancellationToken)
     {
+        var userId = userContext.UserId;
         Asset? asset = await assets.GetByIdWithReplicasAsync(
             request.AssetId,
+            userId,
             cancellationToken);
 
-        if (asset is null || asset.UserId != userContext.UserId)
+        if (asset is null)
         {
             return Result.Failure<GetAssetResponse>(
                 ReplicationErrors.AssetNotFound(request.AssetId));
         }
 
         List<ReplicaResponse> replicas = asset.Replicas
-            .OrderBy(r => r.CreatedAtUtc)
+            .OrderByDescending(r => r.Status)
             .Select(r => new ReplicaResponse(
                 r.Id,
-                r.HosterId,
+                r.HosterId.ToFriendlyString(),
+                r.HosterAccountId,
                 r.Status.ToString().ToLowerInvariant(),
                 r.Link?.ToString(),
-                r.CreatedAtUtc))
+                r.CreatedAtUtc,
+                r.UpdatedAtUtc))
             .ToList();
 
         return Result.Success(new GetAssetResponse(

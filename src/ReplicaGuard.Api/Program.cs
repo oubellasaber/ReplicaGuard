@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization.Metadata;
 using Microsoft.OpenApi.Models;
 using ReplicaGuard.Api.Extensions;
 using ReplicaGuard.Api.Middleware;
@@ -9,6 +10,14 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
+
+builder.Services.AddControllers()
+    .AddJsonOptions(o =>
+    {
+        o.JsonSerializerOptions.TypeInfoResolverChain.Insert(0,
+            new DefaultJsonTypeInfoResolver());
+    });
+
 
 builder.Services.AddSwaggerGen(options =>
 {

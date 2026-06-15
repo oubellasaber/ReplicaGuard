@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using ReplicaGuard.Core.Domain.Replication;
-using ReplicaGuard.Core.Domain.User;
+using ReplicaGuard.Core.Replication;
 using ReplicaGuard.Infrastructure.Persistence;
 
 namespace ReplicaGuard.Infrastructure.Repositories;
@@ -11,12 +10,12 @@ internal sealed class AssetRepository : Repository<Asset>, IAssetRepository
     {
     }
 
-    public async Task<Asset?> GetByIdWithReplicasAsync(Guid id, CancellationToken cancellationToken = default)
+    public async Task<Asset?> GetByIdWithReplicasAsync(Guid id, Guid userId, CancellationToken cancellationToken = default)
     {
         return await DbContext
             .Set<Asset>()
             .Include(a => a.Replicas)
-            .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+            .FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId, cancellationToken);
     }
 
     public async Task<List<Asset>> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken = default)

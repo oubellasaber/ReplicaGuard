@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Connections;
 using Microsoft.EntityFrameworkCore;
 using ReplicaGuard.Application.Abstractions.Data;
 using ReplicaGuard.Application.Replication.UploadReplica.Spooling;
-using ReplicaGuard.Core.Domain.Replication;
+using ReplicaGuard.Core.Replication;
 using ReplicaGuard.Infrastructure.Persistence;
 
 namespace ReplicaGuard.Infrastructure.Repositories;
@@ -34,7 +34,7 @@ internal sealed class ReplicaRepository : Repository<Replica>, IReplicaRepositor
             .AsNoTracking()
             .FirstOrDefaultAsync(x => x.AssetId == assetId, ct);
 
-        // No lease row → downloader finished normally
+        // No lease row => downloader finished normally
         if (lease is null || lease.OwnerReplicaId == Guid.Empty)
             return MarkWaitingResult.AlreadyCompleted;
 
@@ -70,7 +70,7 @@ internal sealed class ReplicaRepository : Repository<Replica>, IReplicaRepositor
         if (leaseAfter is null)
             return MarkWaitingResult.AlreadyCompleted;
 
-        // B) Downloader disappeared unexpectedly → force retry
+        // B) Downloader disappeared unexpectedly => force retry
         return MarkWaitingResult.NoActiveDownloader;
     }
 

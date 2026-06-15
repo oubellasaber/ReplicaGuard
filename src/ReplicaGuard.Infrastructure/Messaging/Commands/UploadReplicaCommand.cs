@@ -1,9 +1,3 @@
-using System.Windows.Input;
-using MediatR;
-
 namespace ReplicaGuard.Infrastructure.Messaging.Commands;
 
-public sealed record UploadReplicaCommand(
-    Guid ReplicaId,
-    Guid AssetId,
-    Guid HosterId);
+public sealed record UploadReplicaCommand(Guid UserId, Guid AssetId, Guid ReplicaId);

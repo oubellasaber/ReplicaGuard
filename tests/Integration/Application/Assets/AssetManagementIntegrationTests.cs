@@ -3,19 +3,15 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using ReplicaGuard.Application.Assets;
 using ReplicaGuard.Application.Assets.CreateAsset;
 using ReplicaGuard.Application.Assets.GetAsset;
 using ReplicaGuard.Application.Assets.ListAssets;
 using ReplicaGuard.Core.Abstractions;
-using ReplicaGuard.Core.Domain.Credentials;
-using ReplicaGuard.Core.Domain.Hoster;
-using ReplicaGuard.Core.Domain.Replication;
+using ReplicaGuard.Core.Hosters;
+using ReplicaGuard.Core.Replication;
+using ReplicaGuard.Infrastructure.Persistence;
 using ReplicaGuard.TestInfrastructure.Fixtures;
 using ReplicaGuard.TestInfrastructure.Infrastructure;
-using ReplicaGuard.Infrastructure.Persistence;
-using HosterCredentialsEntity = ReplicaGuard.Core.Domain.Credentials.HosterCredentials;
-using HosterEntity = ReplicaGuard.Core.Domain.Hoster.Hoster;
 
 namespace ReplicaGuard.Application.IntegrationTests.Assets;
 
@@ -32,14 +28,14 @@ public sealed class AssetManagementIntegrationTests
         await using var harness = await IntegrationHarness.CreateAsync(fixedNow);
         await harness.ResetStateAsync();
 
-        Guid hosterId;
+        HosterCode hosterId;
         Result<CreateAssetResponse> createResult;
 
         using (IServiceScope scope = harness.ServiceProvider.CreateScope())
         {
             ISender sender = scope.ServiceProvider.GetRequiredService<ISender>();
 
-            HosterEntity hoster = await GetSeededHosterAsync(scope.ServiceProvider);
+            Hoster hoster = await GetSeededHosterAsync(scope.ServiceProvider);
             hosterId = hoster.Id;
             await AddCredentialsAsync(scope.ServiceProvider, IntegrationHarness.CurrentUserId, hoster, markSynced: true);
 
@@ -81,7 +77,7 @@ public sealed class AssetManagementIntegrationTests
         {
             ISender sender = scope.ServiceProvider.GetRequiredService<ISender>();
 
-            HosterEntity hoster = await GetSeededHosterAsync(scope.ServiceProvider);
+            Hoster hoster = await GetSeededHosterAsync(scope.ServiceProvider);
             hosterId = hoster.Id;
 
             // Act
@@ -110,7 +106,7 @@ public sealed class AssetManagementIntegrationTests
         {
             ISender sender = scope.ServiceProvider.GetRequiredService<ISender>();
 
-            HosterEntity hoster = await GetSeededHosterAsync(scope.ServiceProvider);
+            Hoster hoster = await GetSeededHosterAsync(scope.ServiceProvider);
             hosterId = hoster.Id;
             await AddCredentialsAsync(scope.ServiceProvider, IntegrationHarness.CurrentUserId, hoster, markSynced: false);
 
@@ -139,7 +135,7 @@ public sealed class AssetManagementIntegrationTests
         {
             ISender sender = arrangeScope.ServiceProvider.GetRequiredService<ISender>();
 
-            HosterEntity hoster = await GetSeededHosterAsync(arrangeScope.ServiceProvider);
+            Hoster hoster = await GetSeededHosterAsync(arrangeScope.ServiceProvider);
             await AddCredentialsAsync(arrangeScope.ServiceProvider, IntegrationHarness.CurrentUserId, hoster, markSynced: true);
 
             Result<CreateAssetResponse> createResult = await sender.Send(
@@ -181,7 +177,7 @@ public sealed class AssetManagementIntegrationTests
 
         using (IServiceScope arrangeScope = harness.ServiceProvider.CreateScope())
         {
-            HosterEntity hoster = await GetSeededHosterAsync(arrangeScope.ServiceProvider);
+            Hoster hoster = await GetSeededHosterAsync(arrangeScope.ServiceProvider);
             foreignAssetId = await AddPersistedAssetAsync(
                 arrangeScope.ServiceProvider,
                 Guid.NewGuid(),
@@ -220,7 +216,7 @@ public sealed class AssetManagementIntegrationTests
 
         using (IServiceScope arrangeScope = harness.ServiceProvider.CreateScope())
         {
-            HosterEntity hoster = await GetSeededHosterAsync(arrangeScope.ServiceProvider);
+            Hoster hoster = await GetSeededHosterAsync(arrangeScope.ServiceProvider);
 
             currentUserAssetId = await AddPersistedAssetAsync(
                 arrangeScope.ServiceProvider,
@@ -253,7 +249,7 @@ public sealed class AssetManagementIntegrationTests
         listResult.Value.Should().NotContain(asset => asset.Id == otherUserAssetId);
     }
 
-    private static async Task<HosterEntity> GetSeededHosterAsync(IServiceProvider services)
+    private static async Task<Hoster> GetSeededHosterAsync(IServiceProvider services)
     {
         ILogger<AssetManagementIntegrationTests>? logger =
             services.GetService<ILogger<AssetManagementIntegrationTests>>();
@@ -261,25 +257,24 @@ public sealed class AssetManagementIntegrationTests
 
         try
         {
-            HosterEntity? anySeededHoster = await appDbContext.Set<HosterEntity>()
+            Hoster? anySeededHoster = await appDbContext.Set<Hoster>()
                 .AsNoTracking()
                 .FirstOrDefaultAsync();
 
             if (anySeededHoster is null)
             {
-                throw new InvalidOperationException("No seeded hosters found - check seeding logic.");
+                throw new InvalidOperationException("No seeded hosters found, check seeding logic.");
             }
 
-            HosterEntity? preferredHoster = await appDbContext.Set<HosterEntity>()
-                .Include(hoster => hoster.Requirements)
-                .SingleOrDefaultAsync(hoster => hoster.Code == PreferredHosterCode);
+            Hoster? preferredHoster = await appDbContext.Set<Hoster>()
+                .SingleOrDefaultAsync(hoster => hoster.Id == PreferredHosterId);
 
             if (preferredHoster is null)
             {
-                List<string> availableCodes = await appDbContext.Set<HosterEntity>()
+                List<HosterCode> availableHosterIds = await appDbContext.Set<Hoster>()
                     .AsNoTracking()
-                    .OrderBy(hoster => hoster.Code)
-                    .Select(hoster => hoster.Code)
+                    .OrderBy(hoster => hoster.Id)
+                    .Select(hoster => hoster.Id)
                     .ToListAsync();
 
                 throw new InvalidOperationException(
@@ -293,7 +288,7 @@ public sealed class AssetManagementIntegrationTests
             }
 
             bool supportsUploadCapability = preferredHoster.Requirements.Any(requirement =>
-                requirement.Feature is CapabilityCode.SpooledUpload or CapabilityCode.RemoteUpload);
+                requirement.Feature is CapabilityCode.LocalFileUpload or CapabilityCode.RemoteFileUpload);
 
             if (!supportsUploadCapability)
             {
@@ -315,7 +310,7 @@ public sealed class AssetManagementIntegrationTests
     private static async Task AddCredentialsAsync(
         IServiceProvider services,
         Guid userId,
-        HosterEntity hoster,
+        Hoster hoster,
         bool markSynced)
     {
         ApplicationDbContext appDbContext = services.GetRequiredService<ApplicationDbContext>();

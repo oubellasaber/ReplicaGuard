@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using ReplicaGuard.Core.Domain.Replication;
+using ReplicaGuard.Core.Replication;
 
 namespace ReplicaGuard.Infrastructure.Persistence.Configurations;
 
@@ -17,17 +17,11 @@ internal sealed class AssetConfiguration : IEntityTypeConfiguration<Asset>
         builder.Property(x => x.UserId)
             .IsRequired();
 
-        builder.Ignore(a => a.Status);
-
         // Store FileSource as JSON (polymorphic - can be Remote or Local)
         builder.Property(x => x.Source)
             .HasConversion(
-                source => source != null
-                    ? SerializeFileSource(source)
-                    : null,
-                json => json != null
-                    ? DeserializeFileSource(json)
-                    : null)
+                source => SerializeFileSource(source),
+                json => DeserializeFileSource(json))
             .HasColumnType("jsonb");
 
         builder.Property(x => x.FileName)
@@ -37,18 +31,20 @@ internal sealed class AssetConfiguration : IEntityTypeConfiguration<Asset>
             .HasMaxLength(255)
             .IsRequired();
 
+        builder.Ignore(a => a.Status);
+
         builder.Property(x => x.SizeBytes);
 
         builder.Property(x => x.CreatedAtUtc)
             .IsRequired()
-            .HasDefaultValueSql("CURRENT_TIMESTAMP AT TIME ZONE 'UTC'");
+            .HasDefaultValueSql("now()");
 
         builder.Property(x => x.UpdatedAtUtc)
-            .IsRequired();
+            .IsRequired()
+            .HasDefaultValueSql("now()");
 
         // Indexes for performance
         builder.HasIndex(x => x.UserId);
-        builder.HasIndex(x => x.CreatedAtUtc);
 
         // Replicas collection
         builder.HasMany(a => a.Replicas)
@@ -58,7 +54,7 @@ internal sealed class AssetConfiguration : IEntityTypeConfiguration<Asset>
 
         builder.Navigation(x => x.Replicas)
             .UsePropertyAccessMode(PropertyAccessMode.Field)
-             .HasField("_replicas");
+            .HasField("_replicas");
     }
 
     private static string SerializeFileSource(FileSource source)
@@ -81,11 +77,14 @@ internal sealed class AssetConfiguration : IEntityTypeConfiguration<Asset>
         };
     }
 
-    private static FileSource? DeserializeFileSource(string json)
+    private static FileSource DeserializeFileSource(string? json)
     {
+        if (string.IsNullOrEmpty(json))
+            throw new InvalidOperationException("FileSource JSON is null or empty.");
+
         JObject? data = JsonConvert.DeserializeObject<JObject>(json);
         if (data == null)
-            return null;
+            throw new InvalidOperationException("Failed to deserialize FileSource JSON.");
 
         string? type = data["Type"]?.ToString();
 

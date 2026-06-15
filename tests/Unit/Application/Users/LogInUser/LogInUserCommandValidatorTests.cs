@@ -33,7 +33,7 @@ public class LogInUserCommandValidatorTests
 
         // Assert
         result.ShouldHaveValidationErrorFor(x => x.Email)
-            .WithErrorMessage("Email must not be empty");
+            .WithErrorMessage("EmailPayload must not be empty");
     }
 
     [Fact]
@@ -48,7 +48,7 @@ public class LogInUserCommandValidatorTests
 
         // Assert
         result.ShouldHaveValidationErrorFor(x => x.Email)
-            .WithErrorMessage("Email can not exceed 256 characters");
+            .WithErrorMessage("EmailPayload can not exceed 256 characters");
     }
 
     [Fact]

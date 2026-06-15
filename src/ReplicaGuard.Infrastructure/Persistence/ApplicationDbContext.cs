@@ -1,10 +1,6 @@
-﻿using System.Reflection.Emit;
-using MassTransit;
+﻿using MassTransit;
 using Microsoft.EntityFrameworkCore;
-using ReplicaGuard.Application.Exceptions;
 using ReplicaGuard.Core.Abstractions;
-using ReplicaGuard.Core.Domain.Credentials;
-using ReplicaGuard.Core.Domain.Hoster;
 using ConcurrencyException = ReplicaGuard.Application.Exceptions.ConcurrencyException;
 
 namespace ReplicaGuard.Infrastructure.Persistence;
@@ -12,9 +8,6 @@ namespace ReplicaGuard.Infrastructure.Persistence;
 public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
     : DbContext(options), IUnitOfWork
 {
-    public DbSet<Hoster> Hosters => Set<Hoster>();
-    public DbSet<HosterCredentials> HosterCredentials => Set<HosterCredentials>();
-
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
