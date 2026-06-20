@@ -38,15 +38,9 @@ internal class SendCmRemoteFileUploadHandler : IRemoteFileUploadHandler
             .Identities
             .FirstOrDefault(id => id.Type == IdentityType.ApiKey);
 
-        if (apiKeyIdentity is null)
+        if (apiKeyIdentity is null || apiKeyIdentity.Status != IdentityVerificationStatus.Verified)
         {
-            return Result.Failure<RemoteFileUploadResponse>(
-                SendCmUploadErrors.IdentityMissing(input.Account.Id, IdentityType.ApiKey));
-        }
-        else if (apiKeyIdentity.Status != IdentityVerificationStatus.Verified)
-        {
-            return Result.Failure<RemoteFileUploadResponse>(
-                SendCmUploadErrors.IdentityNotVerified(input.Account.Id, apiKeyIdentity.Id));
+            throw new InvalidOperationException("The account does not have a verified API key identity.");
         }
         
         var decryptedApiKey = apiKeyIdentity.RevealSecret(SecretType.ApiKeyPair, _crypto);

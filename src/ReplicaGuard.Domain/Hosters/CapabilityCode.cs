@@ -7,6 +7,7 @@ public enum CapabilityCode : short
     RemoteFileUpload = 1,
     LocalFileUpload = 2,
     IdentityVerification = 3,
+    CopyFile = 4,
 }
 
 //public interface ICapability<THoster> where THoster : IHosterDefinition

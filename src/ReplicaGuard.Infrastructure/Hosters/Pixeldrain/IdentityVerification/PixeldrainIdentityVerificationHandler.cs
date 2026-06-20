@@ -28,7 +28,7 @@ internal class PixeldrainIdentityVerificationHandler : IIdentityVerificationHand
     // TODO: when handling the identity verification, we should handle all the identity types supported by the hoster.
     public async Task<Result> HandleAsync(IdentityVerificationRequest input, CancellationToken ct = default)
     {
-        var decryptedApiKey = input.identity
+        var decryptedApiKey = input.Identity
             .RevealSecret(SecretType.ApiKeyPair, _secretEncryptionService);
 
         var req = new HttpRequestMessage(HttpMethod.Head, _options.UserInfoEndpoint)

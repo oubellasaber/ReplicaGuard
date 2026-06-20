@@ -30,7 +30,7 @@ internal class SendCmIdentityVerificationHandler : IIdentityVerificationHandler
 
     public async Task<Result> HandleAsync(IdentityVerificationRequest input, CancellationToken ct = default)
     {
-        var decryptedApiKey = input.identity
+        var decryptedApiKey = input.Identity
             .RevealSecret(SecretType.ApiKeyPair, _secretEncryptionService);
 
         string url = QueryHelpers.AddQueryString(_options.UserInfoEndpoint, "key", decryptedApiKey);
