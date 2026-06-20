@@ -1,5 +1,7 @@
 ﻿using System.Text.Json;
 using System.Text.RegularExpressions;
+using MassTransit.Configuration;
+using Microsoft.Extensions.Options;
 using ReplicaGuard.Core.Abstractions;
 using ReplicaGuard.Core.HosterAccounts;
 using ReplicaGuard.Core.Hosters;
@@ -18,11 +20,11 @@ internal sealed class SendCmCopyFileHandler : ICopyFileCapabilityHandler
     public SendCmCopyFileHandler(
         HttpClient httpClient,
         ISecretEncryptionService secretEncryptionService,
-        SendCmOptions options)
+        IOptions<SendCmOptions> options)
     {
         _httpClient = httpClient;
         _secretEncryptionService = secretEncryptionService;
-        _options = options;
+        _options = options.Value;
     }
 
     public async Task<Result<CopyFileResponse>> HandleAsync(CopyFileRequest input, CancellationToken ct)
