@@ -1,6 +1,6 @@
-﻿using ReplicaGuard.Core.HosterAccounts;
+﻿using ReplicaGuard.Domain.HosterAccounts;
 
-namespace ReplicaGuard.Core.Hosters;
+namespace ReplicaGuard.Domain.Hosters;
 
 public sealed class PrimaryIdentityRequirement
 {

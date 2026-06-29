@@ -1,7 +1,7 @@
-﻿using ReplicaGuard.Core.Abstractions;
-using ReplicaGuard.Core.Hosters;
+﻿using ReplicaGuard.Domain.Abstractions;
+using ReplicaGuard.Domain.Hosters;
 
-namespace ReplicaGuard.Core.Capabilities;
+namespace ReplicaGuard.Domain.Capabilities;
 
 public interface ICapabilityHandler<TIn, TOut>
 {

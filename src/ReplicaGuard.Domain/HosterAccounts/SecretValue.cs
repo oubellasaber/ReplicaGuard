@@ -1,4 +1,4 @@
-﻿namespace ReplicaGuard.Core.HosterAccounts;
+﻿namespace ReplicaGuard.Domain.HosterAccounts;
 
 public sealed class SecretValue
 {
@@ -9,11 +9,11 @@ public sealed class SecretValue
         CipherBytes = cipherBytes ?? throw new ArgumentNullException(nameof(cipherBytes));
     }
 
-    public static SecretValue CreateFromPlaintext(string plaintext, ISecretEncryptionService encryptionService)
+    public static SecretValue CreateFromPlaintext(string plaintextPass, ISecretEncryptionService encryptionService)
     {
-        if (string.IsNullOrWhiteSpace(plaintext))
-            throw new ArgumentException("Plaintext cannot be null or whitespace.", nameof(plaintext));
-        var cipherBytes = encryptionService.Encrypt(plaintext);
+        if (string.IsNullOrWhiteSpace(plaintextPass))
+            throw new ArgumentException("Plaintext password cannot be null or whitespace.", nameof(plaintextPass));
+        var cipherBytes = encryptionService.Encrypt(plaintextPass);
         return new SecretValue(cipherBytes);
     }
 

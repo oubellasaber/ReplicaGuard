@@ -1,7 +1,7 @@
 using System.Net;
-using ReplicaGuard.Core.Abstractions;
-using ReplicaGuard.Core.HosterAccounts;
-using ReplicaGuard.Core.Hosters;
+using ReplicaGuard.Domain.Abstractions;
+using ReplicaGuard.Domain.HosterAccounts;
+using ReplicaGuard.Domain.Hosters;
 
 namespace ReplicaGuard.Infrastructure.Hosters.SendCm.Upload;
 

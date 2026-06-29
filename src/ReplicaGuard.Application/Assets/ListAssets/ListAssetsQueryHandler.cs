@@ -1,7 +1,7 @@
 using ReplicaGuard.Application.Abstractions.Authentication;
 using ReplicaGuard.Application.Abstractions.Messaging;
-using ReplicaGuard.Core.Abstractions;
-using ReplicaGuard.Core.Replication;
+using ReplicaGuard.Domain.Abstractions;
+using ReplicaGuard.Domain.Replication;
 
 namespace ReplicaGuard.Application.Assets.ListAssets;
 

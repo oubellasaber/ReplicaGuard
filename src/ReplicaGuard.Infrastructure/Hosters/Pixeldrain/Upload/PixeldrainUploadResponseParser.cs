@@ -1,6 +1,6 @@
 ﻿using System.Net;
 using System.Text.Json;
-using ReplicaGuard.Core.Abstractions;
+using ReplicaGuard.Domain.Abstractions;
 
 namespace ReplicaGuard.Infrastructure.Hosters.Pixeldrain.Upload;
 

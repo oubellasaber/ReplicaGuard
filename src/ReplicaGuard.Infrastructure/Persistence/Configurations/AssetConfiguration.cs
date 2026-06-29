@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using ReplicaGuard.Core.Replication;
+using ReplicaGuard.Domain.Replication;
 
 namespace ReplicaGuard.Infrastructure.Persistence.Configurations;
 

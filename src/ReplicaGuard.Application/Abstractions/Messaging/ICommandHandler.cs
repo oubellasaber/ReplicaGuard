@@ -1,5 +1,5 @@
 ﻿using MediatR;
-using ReplicaGuard.Core.Abstractions;
+using ReplicaGuard.Domain.Abstractions;
 
 namespace ReplicaGuard.Application.Abstractions.Messaging;
 

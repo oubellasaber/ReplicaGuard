@@ -1,7 +1,6 @@
-using ReplicaGuard.Core.Abstractions;
-using System.IO;
+using ReplicaGuard.Domain.Abstractions;
 
-namespace ReplicaGuard.Core.Replication;
+namespace ReplicaGuard.Domain.Replication;
 
 /// <summary>
 /// Represents a local file path on the user's computer.

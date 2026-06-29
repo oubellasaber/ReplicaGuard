@@ -1,6 +1,6 @@
 ﻿using MediatR;
 using Microsoft.Extensions.Logging;
-using ReplicaGuard.Core.Abstractions;
+using ReplicaGuard.Domain.Abstractions;
 using Serilog.Context;
 
 namespace ReplicaGuard.Application.Abstractions.Behaviors;

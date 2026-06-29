@@ -3,7 +3,7 @@
 namespace ReplicaGuard.Api.Controllers.HosterAccounts;
 
 public sealed record CreateHosterAccountRequest(
-    string HosterId,
+    Guid HosterId,
     string Alias,
     string? Description,
     List<IdentityPayloadRequest> Identities);

@@ -1,7 +1,7 @@
 using MassTransit;
 using Microsoft.Extensions.Logging;
 using ReplicaGuard.Contracts.IntegrationEvents;
-using ReplicaGuard.Core.Replication;
+using ReplicaGuard.Domain.Replication;
 using ReplicaGuard.Infrastructure.Messaging.Commands;
 using ReplicaGuard.Infrastructure.Persistence;
 

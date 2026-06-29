@@ -1,7 +1,7 @@
 using System.Collections.ObjectModel;
-using ReplicaGuard.Core.Abstractions;
+using ReplicaGuard.Domain.Abstractions;
 
-namespace ReplicaGuard.Core.Replication;
+namespace ReplicaGuard.Domain.Replication;
 
 /// <summary>
 /// Represents a remote file source with URL, custom headers, and optional body.

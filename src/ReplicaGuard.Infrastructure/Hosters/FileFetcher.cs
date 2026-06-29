@@ -2,8 +2,8 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ReplicaGuard.Application.Replication.UploadReplica.Fetching;
 using ReplicaGuard.Application.Replication.UploadReplica.Spooling;
-using ReplicaGuard.Core.Abstractions;
-using ReplicaGuard.Core.Replication;
+using ReplicaGuard.Domain.Abstractions;
+using ReplicaGuard.Domain.Replication;
 
 namespace ReplicaGuard.Infrastructure.Hosters;
 

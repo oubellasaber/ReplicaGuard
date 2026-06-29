@@ -1,10 +1,10 @@
 ﻿using System.Text.Json;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Options;
-using ReplicaGuard.Core.Abstractions;
-using ReplicaGuard.Core.Capabilities;
-using ReplicaGuard.Core.HosterAccounts;
-using ReplicaGuard.Core.Hosters;
+using ReplicaGuard.Domain.Abstractions;
+using ReplicaGuard.Domain.Capabilities;
+using ReplicaGuard.Domain.HosterAccounts;
+using ReplicaGuard.Domain.Hosters;
 
 namespace ReplicaGuard.Infrastructure.Hosters.SendCm.IdentityVerification;
 

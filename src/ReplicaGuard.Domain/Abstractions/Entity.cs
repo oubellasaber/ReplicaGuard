@@ -1,4 +1,4 @@
-﻿namespace ReplicaGuard.Core.Abstractions;
+﻿namespace ReplicaGuard.Domain.Abstractions;
 
 public abstract class Entity<TEntityId> : IEntity, IEquatable<Entity<TEntityId>>
 {

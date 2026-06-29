@@ -5,7 +5,7 @@ using ReplicaGuard.Api.Extensions;
 using ReplicaGuard.Application.Assets.CreateAsset;
 using ReplicaGuard.Application.Assets.GetAsset;
 using ReplicaGuard.Application.Assets.ListAssets;
-using ReplicaGuard.Core.Hosters;
+using ReplicaGuard.Domain.Hosters;
 
 namespace ReplicaGuard.Api.Controllers.Assets;
 
@@ -26,7 +26,7 @@ public class AssetsController(ISender sender) : ControllerBase
     {
         var hosters = request.Hosters
         .Select(h => new HosterAccountDto(
-            HosterId: Enum.Parse<HosterCode>(h.HosterId, ignoreCase: true),
+            HosterId: h.HosterId,
             HosterAccountId: h.AccountId))
         .ToList();
 

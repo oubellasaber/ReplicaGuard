@@ -1,5 +1,5 @@
 ﻿using System.Text.Json;
-using ReplicaGuard.Core.Abstractions;
+using ReplicaGuard.Domain.Abstractions;
 
 namespace ReplicaGuard.Infrastructure.Hosters.SendCm.Upload;
 

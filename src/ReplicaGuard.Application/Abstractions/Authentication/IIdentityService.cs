@@ -1,5 +1,5 @@
 ﻿using Microsoft.AspNetCore.Identity;
-using ReplicaGuard.Core.Abstractions;
+using ReplicaGuard.Domain.Abstractions;
 
 namespace ReplicaGuard.Application.Abstractions.Authentication;
 

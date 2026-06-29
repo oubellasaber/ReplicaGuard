@@ -1,6 +1,6 @@
-﻿using ReplicaGuard.Core.HosterAccounts;
+﻿using ReplicaGuard.Domain.HosterAccounts;
 
-namespace ReplicaGuard.Core.Hosters;
+namespace ReplicaGuard.Domain.Hosters;
 
 // A requirement path specifies a set of identities that must all be present and be in a valid state to satisfy the path.
 // Multiple paths in a CapabilityRequirement are OR‑ed together, but identities within a single RequirementPath are AND‑ed together.

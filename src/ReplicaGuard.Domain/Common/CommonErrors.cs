@@ -1,6 +1,6 @@
-﻿using ReplicaGuard.Core.Abstractions;
+﻿using ReplicaGuard.Domain.Abstractions;
 
-namespace ReplicaGuard.Core.Common;
+namespace ReplicaGuard.Domain.Common;
 
 public static class CommonErrors
 {

@@ -1,6 +1,6 @@
-﻿using ReplicaGuard.Core.Replication;
+﻿using ReplicaGuard.Domain.Replication;
 
-namespace ReplicaGuard.Core.Capabilities;
+namespace ReplicaGuard.Domain.Capabilities;
 
 public sealed record LocalFileUploadRequest(
     HosterAccounts.HosterAccount Account,

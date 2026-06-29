@@ -1,8 +1,7 @@
-﻿namespace ReplicaGuard.Core.Hosters;
+﻿namespace ReplicaGuard.Domain.Hosters;
 
 public interface IHosterRepository
 {
-    Task<Hoster?> GetByIdAsync(HosterCode id, CancellationToken ctn);
+    Task<Hoster?> GetByIdAsync(Guid id, CancellationToken ctn);
     Task<List<Hoster>> GetAllAsync(CancellationToken ctn = default);
-    //void Add(Hoster hoster);
 }

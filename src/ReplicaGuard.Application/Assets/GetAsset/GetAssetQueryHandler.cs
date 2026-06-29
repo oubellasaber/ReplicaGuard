@@ -1,8 +1,8 @@
 using ReplicaGuard.Application.Abstractions.Authentication;
 using ReplicaGuard.Application.Abstractions.Messaging;
-using ReplicaGuard.Core.Abstractions;
-using ReplicaGuard.Core.Hosters;
-using ReplicaGuard.Core.Replication;
+using ReplicaGuard.Domain.Abstractions;
+using ReplicaGuard.Domain.Hosters;
+using ReplicaGuard.Domain.Replication;
 
 namespace ReplicaGuard.Application.Assets.GetAsset;
 
@@ -31,7 +31,7 @@ public sealed class GetAssetQueryHandler(
             .OrderByDescending(r => r.Status)
             .Select(r => new ReplicaResponse(
                 r.Id,
-                r.HosterId.ToFriendlyString(),
+                r.HosterId,
                 r.HosterAccountId,
                 r.Status.ToString().ToLowerInvariant(),
                 r.Link?.ToString(),

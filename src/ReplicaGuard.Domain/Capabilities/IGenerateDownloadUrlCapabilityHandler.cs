@@ -1,4 +1,4 @@
-﻿namespace ReplicaGuard.Core.Capabilities;
+﻿namespace ReplicaGuard.Domain.Capabilities;
 
 public sealed record DownloadFileRequest(Uri Url);
 

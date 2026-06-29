@@ -1,11 +1,10 @@
 ﻿using ReplicaGuard.Application.Abstractions.Messaging;
-using ReplicaGuard.Core.HosterAccounts;
-using ReplicaGuard.Core.Hosters;
+using ReplicaGuard.Domain.HosterAccounts;
 
 namespace ReplicaGuard.Application.HosterAccounts.CreateHosterAccount;
 
 public sealed record CreateHosterAccountCommand(
-    HosterCode Id,
+    Guid HosterId,
     string Alias,
     string? Description,
     List<IdentityDto> Identities) : ICommand<CreateHosterAccountResponse>;

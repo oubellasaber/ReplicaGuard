@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using ReplicaGuard.Core.Users;
+using ReplicaGuard.Domain.Users;
 
 namespace ReplicaGuard.Infrastructure.Persistence.Configurations;
 

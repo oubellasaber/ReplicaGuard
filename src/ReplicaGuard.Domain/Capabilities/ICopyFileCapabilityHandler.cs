@@ -1,7 +1,6 @@
-﻿using ReplicaGuard.Core.Capabilities;
-using ReplicaGuard.Core.HosterAccounts;
+﻿using ReplicaGuard.Domain.HosterAccounts;
 
-namespace ReplicaGuard.Infrastructure.Hosters.Capabilities;
+namespace ReplicaGuard.Domain.Capabilities;
 
 public sealed record CopyFileRequest(HosterAccount Account, Uri Url);
 

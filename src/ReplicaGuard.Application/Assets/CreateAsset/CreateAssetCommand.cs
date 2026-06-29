@@ -1,5 +1,5 @@
 using ReplicaGuard.Application.Abstractions.Messaging;
-using ReplicaGuard.Core.Hosters;
+using ReplicaGuard.Domain.Hosters;
 
 namespace ReplicaGuard.Application.Assets.CreateAsset;
 
@@ -9,5 +9,5 @@ public sealed record CreateAssetCommand(
     List<HosterAccountDto> Hosters) : ICommand<CreateAssetResponse>;
 
 public sealed record HosterAccountDto(
-    HosterCode HosterId,
+    Guid HosterId,
     Guid HosterAccountId);

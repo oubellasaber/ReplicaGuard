@@ -1,14 +1,13 @@
-﻿using MediatR;
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using ReplicaGuard.Application.Abstractions.Clock;
 using ReplicaGuard.Application.Abstractions.Messaging;
 using ReplicaGuard.Application.Replication.UploadReplica.Fetching;
 using ReplicaGuard.Application.Replication.UploadReplica.Spooling;
-using ReplicaGuard.Core.Abstractions;
-using ReplicaGuard.Core.Capabilities;
-using ReplicaGuard.Core.HosterAccounts;
-using ReplicaGuard.Core.Hosters;
-using ReplicaGuard.Core.Replication;
+using ReplicaGuard.Domain.Abstractions;
+using ReplicaGuard.Domain.Capabilities;
+using ReplicaGuard.Domain.HosterAccounts;
+using ReplicaGuard.Domain.Hosters;
+using ReplicaGuard.Domain.Replication;
 
 namespace ReplicaGuard.Application.Replication.UploadReplica;
 
@@ -121,7 +120,7 @@ public sealed class UploadReplicaCommandHandler
         if (account is null)
             return Result.Failure<UploadContext>(HosterAccountErrors.NotFound(replica.HosterAccountId!.Value).AsPermanent());
 
-        var def = _resolver.Resolve(hoster.Id);
+        var def = _resolver.Resolve(hoster.Code);
         if (def is null)
             return Result.Failure<UploadContext>(HosterErrors.NotFound(hoster.Id).AsPermanent());
 
@@ -145,7 +144,7 @@ public sealed class UploadReplicaCommandHandler
             replica.MarkAsFailed();
             await _unitOfWork.SaveChangesAsync(ct);
             return Result.Failure<UploadContext>(
-                HosterErrors.CapabilityNotSupported(def.HosterId, capability).AsPermanent());
+                HosterErrors.CapabilityNotSupported(def.Code, capability).AsPermanent());
         }
 
         var verified = account.Identities
@@ -159,14 +158,14 @@ public sealed class UploadReplicaCommandHandler
             return Result.Failure<UploadContext>(
                 HosterAccountErrors.RequiredIdentitesNotSatisfied(
                     requirement,
-                    def.HosterId,
+                    def.Code,
                     capability).AsPermanent());
         }
 
         object? uploader = capability switch
         {
-            CapabilityCode.LocalFileUpload => _capabilityFactory.Get<ILocalFileUploadHandler>(def.HosterId),
-            CapabilityCode.RemoteFileUpload => _capabilityFactory.Get<IRemoteFileUploadHandler>(def.HosterId),
+            CapabilityCode.LocalFileUpload => _capabilityFactory.Get<ILocalFileUploadHandler>(def.Code),
+            CapabilityCode.RemoteFileUpload => _capabilityFactory.Get<IRemoteFileUploadHandler>(def.Code),
             _ => throw new InvalidOperationException("Unknown capability code")
         };
 
@@ -175,7 +174,7 @@ public sealed class UploadReplicaCommandHandler
             replica.MarkAsFailed();
             await _unitOfWork.SaveChangesAsync(ct);
             return Result.Failure<UploadContext>(
-                UploadReplicaErrors.UploadNotSupported(def.HosterId.ToFriendlyString()));
+                UploadReplicaErrors.UploadNotSupported(def.Code.ToFriendlyString()));
         }
 
         var lease = await _leases.GetAsync(asset.Id, ct);

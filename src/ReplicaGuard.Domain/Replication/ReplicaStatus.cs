@@ -1,4 +1,4 @@
-namespace ReplicaGuard.Core.Replication;
+namespace ReplicaGuard.Domain.Replication;
 
 /// <summary>
 /// Represents the state of a single replica on a hoster.
@@ -19,6 +19,7 @@ public enum ReplicaStatus
     /// Replica is downloading/spooling the source file.
     /// </summary>
     Downloading = 3,
+
     /// <summary>
     /// Replica is currently being uploaded by a worker.
     /// </summary>

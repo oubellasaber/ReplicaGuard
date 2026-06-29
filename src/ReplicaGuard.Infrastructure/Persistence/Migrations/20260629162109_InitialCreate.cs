@@ -7,7 +7,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace ReplicaGuard.Infrastructure.Persistence.Migrations
 {
     /// <inheritdoc />
-    public partial class Init : Migration
+    public partial class InitialCreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -59,7 +59,8 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
                 schema: "replicaguard",
                 columns: table => new
                 {
-                    id = table.Column<short>(type: "smallint", nullable: false),
+                    id = table.Column<Guid>(type: "uuid", nullable: false),
+                    code = table.Column<short>(type: "smallint", nullable: false),
                     display_name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
                     created_at_utc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "now()"),
                     updated_at_utc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "now()")
@@ -127,6 +128,7 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
                 schema: "replicaguard",
                 columns: table => new
                 {
+                    id = table.Column<Guid>(type: "uuid", nullable: false),
                     asset_id = table.Column<Guid>(type: "uuid", nullable: false),
                     owner_replica_id = table.Column<Guid>(type: "uuid", nullable: false),
                     expires_at_utc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
@@ -134,7 +136,7 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("pk_spool_leases", x => x.asset_id);
+                    table.PrimaryKey("pk_spool_leases", x => x.id);
                 });
 
             migrationBuilder.CreateTable(
@@ -161,7 +163,7 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
                 {
                     id = table.Column<Guid>(type: "uuid", nullable: false),
                     asset_id = table.Column<Guid>(type: "uuid", nullable: false),
-                    hoster_id = table.Column<short>(type: "smallint", nullable: false),
+                    hoster_id = table.Column<Guid>(type: "uuid", nullable: false),
                     hoster_account_id = table.Column<Guid>(type: "uuid", nullable: true),
                     status = table.Column<int>(type: "integer", nullable: false),
                     link = table.Column<string>(type: "character varying(2048)", maxLength: 2048, nullable: true),
@@ -367,13 +369,6 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
                 column: "asset_id");
 
             migrationBuilder.CreateIndex(
-                name: "ix_replicas_asset_id_id_hoster_id_hoster_account_id",
-                schema: "replicaguard",
-                table: "replicas",
-                columns: new[] { "asset_id", "id", "hoster_id", "hoster_account_id" },
-                unique: true);
-
-            migrationBuilder.CreateIndex(
                 name: "ix_replicas_hoster_account_id",
                 schema: "replicaguard",
                 table: "replicas",
@@ -396,6 +391,13 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
                 schema: "replicaguard",
                 table: "secrets",
                 column: "secret_set_id");
+
+            migrationBuilder.CreateIndex(
+                name: "ix_spool_leases_asset_id",
+                schema: "replicaguard",
+                table: "spool_leases",
+                column: "asset_id",
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "ix_users_created_at_utc",

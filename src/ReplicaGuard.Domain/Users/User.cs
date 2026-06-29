@@ -1,6 +1,6 @@
-﻿using ReplicaGuard.Core.Abstractions;
+﻿using ReplicaGuard.Domain.Abstractions;
 
-namespace ReplicaGuard.Core.Users;
+namespace ReplicaGuard.Domain.Users;
 public class User : Entity<Guid>
 {
     public string IdentityId { get; private set; }

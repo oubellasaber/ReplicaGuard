@@ -1,6 +1,6 @@
 using ReplicaGuard.Application.Abstractions.Messaging;
-using ReplicaGuard.Core.Abstractions;
-using ReplicaGuard.Core.Hosters;
+using ReplicaGuard.Domain.Abstractions;
+using ReplicaGuard.Domain.Hosters;
 
 namespace ReplicaGuard.Application.Hosters.GetHoster;
 
@@ -21,21 +21,14 @@ public sealed class GetHosterQueryHandler : IQueryHandler<GetHosterQuery, Hoster
         GetHosterQuery request,
         CancellationToken cancellationToken)
     {
-        string friendly = request.Id.Trim().ToLowerInvariant();
-        HosterCode hosterCode;
-        try
-        {
-            hosterCode = HosterCodeExtensions.FromFriendlyString(friendly);
-        }
-        catch
-        {
-            return Result.Failure<HosterResponse>(HosterErrors.NotFound(friendly));
-        }
-
-        Hoster? hoster = await _hosters.GetByIdAsync(hosterCode, cancellationToken);
+        var hosterId = request.Id;
+        
+        var hoster = await _hosters.GetByIdAsync(hosterId, cancellationToken);
         if (hoster is null)
-            return Result.Failure<HosterResponse>(HosterErrors.NotFound(friendly));
-        var hosterDef = _resolver.Resolve(hosterCode);
+            return Result.Failure<HosterResponse>(HosterErrors.NotFound(hosterId));
+
+        var hosterDef = _resolver.Resolve(hoster.Code);
+
         return Result.Success(HosterResponseMapper.Map(hoster, hosterDef));
     }
 }

@@ -1,7 +1,8 @@
 ﻿namespace ReplicaGuard.Application.Hosters;
 
 public sealed record HosterResponse(
-    string Id,
+    Guid Id,
+    string Code,
     PrimaryIdentitiesDto PrimaryIdentities,
     List<CapabilityRequirementDto> CapabilityRequirements
 );

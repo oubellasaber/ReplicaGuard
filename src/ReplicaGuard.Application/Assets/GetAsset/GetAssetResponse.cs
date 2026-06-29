@@ -11,7 +11,7 @@ public sealed record GetAssetResponse(
 
 public sealed record ReplicaResponse(
     Guid Id,
-    string HosterId,
+    Guid HosterId,
     Guid? AccountId,
     string Status,
     string? Link,

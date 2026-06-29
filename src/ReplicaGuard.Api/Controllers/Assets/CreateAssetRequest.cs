@@ -5,4 +5,4 @@ public sealed record CreateAssetRequest(
     string FileName,
     List<HosterDto> Hosters);
 
-public sealed record HosterDto(string HosterId, Guid AccountId);
+public sealed record HosterDto(Guid HosterId, Guid AccountId);

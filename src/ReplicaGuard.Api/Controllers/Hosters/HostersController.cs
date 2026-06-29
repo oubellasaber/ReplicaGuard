@@ -34,7 +34,7 @@ public class HostersController(ISender sender) : ControllerBase
     [ProducesResponseType(typeof(HosterResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Get(
-        [FromRoute] string id,
+        [FromRoute] Guid id,
         CancellationToken cancellationToken)
     {
         var query = new GetHosterQuery(id);

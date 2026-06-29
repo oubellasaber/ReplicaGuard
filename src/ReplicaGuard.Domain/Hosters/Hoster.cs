@@ -1,12 +1,13 @@
-﻿using ReplicaGuard.Core.Abstractions;
+﻿using ReplicaGuard.Domain.Abstractions;
 
-namespace ReplicaGuard.Core.Hosters;
+namespace ReplicaGuard.Domain.Hosters;
 
 /// <summary>
 /// Represents a hoster provider (e.g., "pixeldrain", "send", "krakenfiles")
 /// </summary>
-public sealed class Hoster : Entity<HosterCode>
+public sealed class Hoster : Entity<Guid>
 {
+    public HosterCode Code { get; }
     /// <summary>
     /// Human-readable name of the hoster.
     /// </summary>
@@ -14,25 +15,10 @@ public sealed class Hoster : Entity<HosterCode>
     public DateTime CreatedAtUtc { get; }
     public DateTime UpdatedAtUtc { get; private set; }
 
-    ///// <summary>
-    ///// OR-of-ANDs rule describing which identities are required
-    ///// for an account to be considered valid for this hoster.
-    ///// </summary>
-    //public PrimaryIdentityRequirement PrimaryIdentities { get; }
-
-    //private readonly List<CapabilityRequirement> _capabilityRequirements;
-
-    ///// <summary>
-    ///// Capability-specific OR-of-ANDs identity requirements.
-    ///// </summary>
-    //public IReadOnlyList<CapabilityRequirement> CapabilityRequirements => _capabilityRequirements;
-
-    //private readonly List<IdentityGroup> _identityGroups;
-    //public IReadOnlyList<IdentityGroup> IdentityGroups => _identityGroups;
-
-    public Hoster(HosterCode id, string displayName)
-        : base(id)
+    public Hoster(HosterCode code, string displayName)
+        : base(Guid.NewGuid())
     {
+        Code = code;
         DisplayName = displayName.Trim();
         CreatedAtUtc = DateTime.UtcNow;
         UpdatedAtUtc = CreatedAtUtc;

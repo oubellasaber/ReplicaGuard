@@ -1,8 +1,8 @@
 ﻿using ReplicaGuard.Application.Abstractions.Authentication;
 using ReplicaGuard.Application.Abstractions.Messaging;
-using ReplicaGuard.Core.Abstractions;
-using ReplicaGuard.Core.HosterAccounts;
-using ReplicaGuard.Core.Hosters;
+using ReplicaGuard.Domain.Abstractions;
+using ReplicaGuard.Domain.HosterAccounts;
+using ReplicaGuard.Domain.Hosters;
 
 namespace ReplicaGuard.Application.HosterAccounts.CreateHosterAccount;
 
@@ -34,14 +34,14 @@ public sealed class CreateHosterAccountHandler : ICommandHandler<CreateHosterAcc
     public async Task<Result<CreateHosterAccountResponse>> Handle(CreateHosterAccountCommand request, CancellationToken cancellationToken)
     {
         var userId = _userContext.UserId;
-        var hosterId = request.Id;
+        var hosterId = request.HosterId;
 
         var hoster = await _hosters.GetByIdAsync(hosterId, cancellationToken);
         if (hoster is null)
             return Result.Failure<CreateHosterAccountResponse>(HosterErrors.NotFound(hosterId));
 
         var accountCreationResult = HosterAccount.Create(
-            _resolver.Resolve(hoster.Id),
+            _resolver.Resolve(hoster.Code),
             userId,
             request.Alias,
             request.Description,

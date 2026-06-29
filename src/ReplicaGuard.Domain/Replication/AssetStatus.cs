@@ -1,4 +1,4 @@
-namespace ReplicaGuard.Core.Replication;
+namespace ReplicaGuard.Domain.Replication;
 
 /// <summary>
 /// Represents the lifecycle state of an asset.

@@ -1,13 +1,12 @@
-using ReplicaGuard.Core.Abstractions;
-using ReplicaGuard.Core.Hosters;
-using ReplicaGuard.Core.Replication.DomainEvents;
+using ReplicaGuard.Domain.Abstractions;
+using ReplicaGuard.Domain.Replication.DomainEvents;
 
-namespace ReplicaGuard.Core.Replication;
+namespace ReplicaGuard.Domain.Replication;
 
 public sealed class Replica : Entity<Guid>
 {
     public Guid AssetId { get; private set; }
-    public HosterCode HosterId { get; private set; }
+    public Guid HosterId { get; private set; }
     public Guid? HosterAccountId { get; private set; }
     public ReplicaStatus Status { get; set; }
     public Uri? Link { get; set; }
@@ -16,9 +15,9 @@ public sealed class Replica : Entity<Guid>
     public DateTime UpdatedAtUtc { get; private set; }
 
     // EF Core
-    private Replica() : base(Guid.NewGuid()) { }
+    private Replica() { }
 
-    internal static Replica Create(Guid assetId, HosterCode hosterId, Guid? accountId, DateTime utcNow)
+    internal static Replica Create(Guid assetId, Guid hosterId, Guid? accountId, DateTime utcNow)
     {
         var replica = new Replica
         {

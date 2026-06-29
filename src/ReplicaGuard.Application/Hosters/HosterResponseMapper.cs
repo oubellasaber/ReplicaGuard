@@ -1,4 +1,4 @@
-using ReplicaGuard.Core.Hosters;
+using ReplicaGuard.Domain.Hosters;
 
 namespace ReplicaGuard.Application.Hosters;
 
@@ -7,7 +7,8 @@ internal static class HosterResponseMapper
     public static HosterResponse Map(Hoster hoster, IHosterDefinition def)
     {
         return new HosterResponse(
-            Id: def.HosterId.ToString(),
+            Id: hoster.Id,
+            Code: hoster.Code.ToFriendlyString(),
             PrimaryIdentities: MapPrimary(def.PrimaryIdentities),
             CapabilityRequirements: def.CapabilityRequirements
                 .Select(MapCapability)

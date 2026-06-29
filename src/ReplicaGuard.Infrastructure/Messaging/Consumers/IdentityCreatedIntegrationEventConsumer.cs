@@ -2,8 +2,8 @@
 using MediatR;
 using ReplicaGuard.Application.HosterAccounts.VerifiyIdentity;
 using ReplicaGuard.Contracts.IntegrationEvents;
-using ReplicaGuard.Core.Abstractions;
-using ReplicaGuard.Core.HosterAccounts;
+using ReplicaGuard.Domain.Abstractions;
+using ReplicaGuard.Domain.HosterAccounts;
 using ReplicaGuard.Infrastructure.Persistence;
 
 namespace ReplicaGuard.Infrastructure.Messaging.Consumers;

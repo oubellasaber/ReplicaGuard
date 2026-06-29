@@ -1,7 +1,7 @@
-﻿using ReplicaGuard.Core.Abstractions;
-using ReplicaGuard.Core.Common;
+﻿using ReplicaGuard.Domain.Abstractions;
+using ReplicaGuard.Domain.Common;
 
-namespace ReplicaGuard.Core.HosterAccounts;
+namespace ReplicaGuard.Domain.HosterAccounts;
 
 public static class AuthIdentityErrors
 {

@@ -1,8 +1,7 @@
-using ReplicaGuard.Core.Abstractions;
-using ReplicaGuard.Core.Hosters;
-using ReplicaGuard.Core.Replication.DomainEvents;
+using ReplicaGuard.Domain.Abstractions;
+using ReplicaGuard.Domain.Replication.DomainEvents;
 
-namespace ReplicaGuard.Core.Replication;
+namespace ReplicaGuard.Domain.Replication;
 
 public sealed class Asset : Entity<Guid>
 {
@@ -23,9 +22,9 @@ public sealed class Asset : Entity<Guid>
     private Asset() : base(Guid.NewGuid()) { }
 
     private Asset(
-        Guid userId, 
-        FileSource source, 
-        FileName fileName, 
+        Guid userId,
+        FileSource source,
+        FileName fileName,
         DateTime createdAtUtc)
         : base(Guid.NewGuid())
     {
@@ -41,10 +40,10 @@ public sealed class Asset : Entity<Guid>
         FileSource source,
         FileName fileName,
         DateTime createdAtUtc,
-        IEnumerable<(HosterCode hosterId, Guid? accountId)> replicas)
+        IEnumerable<(Guid hosterId, Guid? accountId)> replicas)
     {
         Asset asset = new Asset(userId, source, fileName, createdAtUtc);
-        
+
         foreach (var (hosterId, accountId) in replicas)
         {
             var addResult = asset.AddReplica(hosterId, accountId, createdAtUtc);
@@ -53,7 +52,7 @@ public sealed class Asset : Entity<Guid>
         }
 
         asset.RaiseDomainEvent(new AssetCreatedDomainEvent(userId, asset.Id, asset.Replicas.Select(r => r.Id).ToList()));
-        
+
         return asset;
     }
 
@@ -65,7 +64,7 @@ public sealed class Asset : Entity<Guid>
         Guid userId,
         RemoteFileSource source,
         FileName fileName,
-        IEnumerable<(HosterCode hosterId, Guid? accountId)> replicas)
+        IEnumerable<(Guid hosterId, Guid? accountId)> replicas)
     {
         var result = Create(userId, source, fileName, DateTime.UtcNow, replicas);
         if (result.IsFailure)
@@ -81,7 +80,7 @@ public sealed class Asset : Entity<Guid>
         Guid userId,
         string url,
         FileName fileName,
-        IEnumerable<(HosterCode hosterId, Guid? accountId)> replicas)
+        IEnumerable<(Guid hosterId, Guid? accountId)> replicas)
     {
         Result<RemoteFileSource> sourceResult = RemoteFileSource.Create(url);
         if (sourceResult.IsFailure)
@@ -98,7 +97,7 @@ public sealed class Asset : Entity<Guid>
         Guid userId,
         LocalFileSource source,
         FileName fileName,
-        IEnumerable<(HosterCode hosterId, Guid? accountId)> replicas)
+        IEnumerable<(Guid hosterId, Guid? accountId)> replicas)
     {
         var result = Create(userId, source, fileName, DateTime.UtcNow, replicas);
         if (result.IsFailure)
@@ -114,7 +113,7 @@ public sealed class Asset : Entity<Guid>
         Guid userId,
         string filePath,
         FileName fileName,
-        IEnumerable<(HosterCode hosterId, Guid? accountId)> replicas)
+        IEnumerable<(Guid hosterId, Guid? accountId)> replicas)
     {
         Result<LocalFileSource> sourceResult = LocalFileSource.Create(filePath);
         if (sourceResult.IsFailure)
@@ -123,7 +122,7 @@ public sealed class Asset : Entity<Guid>
         return CreateFromLocalPath(userId, sourceResult.Value, fileName, replicas);
     }
 
-    private Result<Replica> AddReplica(HosterCode hosterId, Guid? accountId, DateTime utcNow)
+    private Result<Replica> AddReplica(Guid hosterId, Guid? accountId, DateTime utcNow)
     {
         if (_replicas.Any(r => r.HosterId == hosterId))
             return Result.Failure<Replica>(

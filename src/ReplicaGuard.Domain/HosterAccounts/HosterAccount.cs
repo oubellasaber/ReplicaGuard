@@ -1,7 +1,7 @@
-﻿using ReplicaGuard.Core.Abstractions;
-using ReplicaGuard.Core.Hosters;
+﻿using ReplicaGuard.Domain.Abstractions;
+using ReplicaGuard.Domain.Hosters;
 
-namespace ReplicaGuard.Core.HosterAccounts;
+namespace ReplicaGuard.Domain.HosterAccounts;
 
 public sealed class HosterAccount : Entity<Guid>
 {
@@ -43,10 +43,10 @@ public sealed class HosterAccount : Entity<Guid>
     {
         if (initialIdentities == null || !initialIdentities.Any())
             return Result.Failure<HosterAccount>(
-                HosterAccountErrors.PrimaryIdentitiesNotSatisfied(hoster.PrimaryIdentities, hoster.HosterId));
+                HosterAccountErrors.PrimaryIdentitiesNotSatisfied(hoster.PrimaryIdentities, hoster.Code));
 
         var account = new HosterAccount(
-            hoster.HosterId,
+            hoster.Code,
             userId,
             alias,
             description);
@@ -61,7 +61,7 @@ public sealed class HosterAccount : Entity<Guid>
 
         if (!hoster.PrimaryIdentities.IsSatisfiedBy(account.Identities, false))
             return Result.Failure<HosterAccount>(
-                HosterAccountErrors.PrimaryIdentitiesNotSatisfied(hoster.PrimaryIdentities, hoster.HosterId));
+                HosterAccountErrors.PrimaryIdentitiesNotSatisfied(hoster.PrimaryIdentities, hoster.Code));
 
         return Result.Success(account);
     }
@@ -114,7 +114,7 @@ public sealed class HosterAccount : Entity<Guid>
 
 
     /// <summary>
-    /// Adds a new identity to this hoster account.  
+    /// Adds a new identity to this hoster account.
     /// 
     /// Domain rules enforced:
     /// 1. The provided <see cref="IHosterDefinition"/> MUST match this account's <see cref="HosterId"/>.
@@ -148,7 +148,7 @@ public sealed class HosterAccount : Entity<Guid>
     {
         // 1. Ensure the hoster definition matches the account.
         //    Prevents using Pixeldrain rules on a Send.cm account, etc.
-        if (hoster.HosterId != HosterId)
+        if (hoster.Code != HosterId)
             throw new InvalidOperationException("HosterCode mismatch.");
 
         // 2. Determine which identity group this identity belongs to.
@@ -158,7 +158,7 @@ public sealed class HosterAccount : Entity<Guid>
         if (group == null)
             throw new InvalidOperationException("No identity group found for the specified type.");
 
-        // Convert plaintext → encrypted Secret objects
+        // Convert plaintext => encrypted Secret objects
         var encryptedSecrets = plaintextSecrets
             .Select(kvp => Secret.CreateNew(kvp.Key, SecretValue.CreateFromPlaintext(kvp.Value, encryptionService)))
             .ToList();
@@ -216,6 +216,7 @@ public sealed class HosterAccount : Entity<Guid>
         return SecretSet.Create(secrets);
     }
 
+    // TODO: allow update of identity value
     public void UpdateIdentity(
         IdentityType identityType,
         IdentityPayload payload,
@@ -248,8 +249,6 @@ public sealed class HosterAccount : Entity<Guid>
     }
 
 
-    // TODO: what if user sent secrets that does not belong to this identity type's group? (e.g. password for API key identity)
-    // Current implementatin does trough at the SecretSet level
     // This method also should not allow such invalid input, but we might want to validate this earlier at the API level to give better error messages.
     private void UpdateSecrets(
         IdentityType identityType,
@@ -274,7 +273,7 @@ public sealed class HosterAccount : Entity<Guid>
     // Validate primary credentials (OR-of-ANDs)
     public bool HasValidPrimaryIdentities(IHosterDefinition hoster)
     {
-        if (hoster.HosterId != HosterId)
+        if (hoster.Code != HosterId)
             throw new InvalidOperationException("The provided hoster does not match the hoster account's hoster.");
 
         var requirement = hoster.PrimaryIdentities;
@@ -287,7 +286,7 @@ public sealed class HosterAccount : Entity<Guid>
 
     public bool CanPerform(CapabilityCode capability, IHosterDefinition hoster)
     {
-        if (hoster.HosterId != HosterId)
+        if (hoster.Code != HosterId)
             throw new InvalidOperationException("The provided hoster does not match the hoster account's hoster.");
         var requirement = hoster.GetRequirement(capability);
         return requirement != null && CanPerform(requirement);

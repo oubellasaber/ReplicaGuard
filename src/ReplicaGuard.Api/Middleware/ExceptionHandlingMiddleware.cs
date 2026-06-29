@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using ReplicaGuard.Api.Extensions;
-using ReplicaGuard.Core.Abstractions;
 using ValidationException = ReplicaGuard.Application.Exceptions.ValidationException;
 
 namespace ReplicaGuard.Api.Middleware;
