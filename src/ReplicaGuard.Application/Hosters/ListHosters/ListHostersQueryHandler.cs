@@ -1,6 +1,6 @@
 using ReplicaGuard.Application.Abstractions.Messaging;
-using ReplicaGuard.Core.Abstractions;
-using ReplicaGuard.Core.Hosters;
+using ReplicaGuard.Domain.Abstractions;
+using ReplicaGuard.Domain.Hosters;
 
 namespace ReplicaGuard.Application.Hosters.ListHosters;
 
@@ -26,7 +26,7 @@ public sealed class ListHostersQueryHandler : IQueryHandler<ListHostersQuery, Li
         List<HosterResponse> response = items
             .Select(h =>
             {
-                var def = _resolver.Resolve(h.Id);
+                var def = _resolver.Resolve(h.Code);
                 return HosterResponseMapper.Map(h, def);
             })
             .ToList();

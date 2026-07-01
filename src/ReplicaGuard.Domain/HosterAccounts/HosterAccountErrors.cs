@@ -1,8 +1,8 @@
-﻿using ReplicaGuard.Core.Abstractions;
-using ReplicaGuard.Core.Common;
-using ReplicaGuard.Core.Hosters;
+﻿using ReplicaGuard.Domain.Abstractions;
+using ReplicaGuard.Domain.Common;
+using ReplicaGuard.Domain.Hosters;
 
-namespace ReplicaGuard.Core.HosterAccounts;
+namespace ReplicaGuard.Domain.HosterAccounts;
 
 public sealed class HosterAccountErrors
 {

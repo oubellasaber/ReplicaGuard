@@ -1,5 +1,5 @@
-﻿using ReplicaGuard.Core.Abstractions;
-using ReplicaGuard.Core.Hosters;
+﻿using ReplicaGuard.Domain.Abstractions;
+using ReplicaGuard.Domain.Hosters;
 
 namespace ReplicaGuard.Infrastructure.Hosters;
 

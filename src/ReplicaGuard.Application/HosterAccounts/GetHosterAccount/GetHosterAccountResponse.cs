@@ -1,5 +1,5 @@
-﻿using ReplicaGuard.Core.HosterAccounts;
-using ReplicaGuard.Core.Hosters;
+﻿using ReplicaGuard.Domain.HosterAccounts;
+using ReplicaGuard.Domain.Hosters;
 
 namespace ReplicaGuard.Application.HosterAccounts.GetHosterAccount;
 

@@ -1,6 +1,6 @@
 ﻿using MediatR;
 
-namespace ReplicaGuard.Core.Abstractions;
+namespace ReplicaGuard.Domain.Abstractions;
 
 public interface IDomainEvent : INotification
 {

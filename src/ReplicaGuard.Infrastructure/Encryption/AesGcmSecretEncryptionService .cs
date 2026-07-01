@@ -1,7 +1,7 @@
 ﻿using System.Security.Cryptography;
 using System.Text;
 using Microsoft.Extensions.Options;
-using ReplicaGuard.Core.HosterAccounts;
+using ReplicaGuard.Domain.HosterAccounts;
 
 namespace ReplicaGuard.Infrastructure.Encryption;
 

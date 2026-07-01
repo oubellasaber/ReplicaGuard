@@ -12,8 +12,8 @@ using ReplicaGuard.Infrastructure.Persistence;
 namespace ReplicaGuard.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260614220017_AddIdToSpoolLease")]
-    partial class AddIdToSpoolLease
+    [Migration("20260629162109_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -280,7 +280,7 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
                     b.ToTable("spool_leases", "replicaguard");
                 });
 
-            modelBuilder.Entity("ReplicaGuard.Core.HosterAccounts.AuthIdentity", b =>
+            modelBuilder.Entity("ReplicaGuard.Domain.HosterAccounts.AuthIdentity", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -332,7 +332,7 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
                     b.ToTable("auth_identities", "replicaguard");
                 });
 
-            modelBuilder.Entity("ReplicaGuard.Core.HosterAccounts.HosterAccount", b =>
+            modelBuilder.Entity("ReplicaGuard.Domain.HosterAccounts.HosterAccount", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -372,7 +372,7 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
                     b.ToTable("hoster_accounts", "replicaguard");
                 });
 
-            modelBuilder.Entity("ReplicaGuard.Core.HosterAccounts.Secret", b =>
+            modelBuilder.Entity("ReplicaGuard.Domain.HosterAccounts.Secret", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -413,7 +413,7 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
                     b.ToTable("secrets", "replicaguard");
                 });
 
-            modelBuilder.Entity("ReplicaGuard.Core.HosterAccounts.SecretSet", b =>
+            modelBuilder.Entity("ReplicaGuard.Domain.HosterAccounts.SecretSet", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -426,11 +426,16 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
                     b.ToTable("secret_sets", "replicaguard");
                 });
 
-            modelBuilder.Entity("ReplicaGuard.Core.Hosters.Hoster", b =>
+            modelBuilder.Entity("ReplicaGuard.Domain.Hosters.Hoster", b =>
                 {
-                    b.Property<short>("Id")
-                        .HasColumnType("smallint")
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
                         .HasColumnName("id");
+
+                    b.Property<short>("Code")
+                        .HasColumnType("smallint")
+                        .HasColumnName("code");
 
                     b.Property<DateTime>("CreatedAtUtc")
                         .ValueGeneratedOnAdd()
@@ -456,7 +461,7 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
                     b.ToTable("hosters", "replicaguard");
                 });
 
-            modelBuilder.Entity("ReplicaGuard.Core.Replication.Asset", b =>
+            modelBuilder.Entity("ReplicaGuard.Domain.Replication.Asset", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -503,7 +508,7 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
                     b.ToTable("assets", "replicaguard");
                 });
 
-            modelBuilder.Entity("ReplicaGuard.Core.Replication.Replica", b =>
+            modelBuilder.Entity("ReplicaGuard.Domain.Replication.Replica", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -524,8 +529,8 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("hoster_account_id");
 
-                    b.Property<short>("HosterId")
-                        .HasColumnType("smallint")
+                    b.Property<Guid>("HosterId")
+                        .HasColumnType("uuid")
                         .HasColumnName("hoster_id");
 
                     b.Property<string>("Link")
@@ -562,14 +567,10 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
                     b.HasIndex("WaitingForReplicaId")
                         .HasDatabaseName("ix_replicas_waiting_for_replica_id");
 
-                    b.HasIndex("AssetId", "Id", "HosterId", "HosterAccountId")
-                        .IsUnique()
-                        .HasDatabaseName("ix_replicas_asset_id_id_hoster_id_hoster_account_id");
-
                     b.ToTable("replicas", "replicaguard");
                 });
 
-            modelBuilder.Entity("ReplicaGuard.Core.Users.User", b =>
+            modelBuilder.Entity("ReplicaGuard.Domain.Users.User", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -637,15 +638,15 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
                         .HasConstraintName("fk_outbox_message_inbox_state_inbox_message_id_inbox_consumer_");
                 });
 
-            modelBuilder.Entity("ReplicaGuard.Core.HosterAccounts.AuthIdentity", b =>
+            modelBuilder.Entity("ReplicaGuard.Domain.HosterAccounts.AuthIdentity", b =>
                 {
-                    b.HasOne("ReplicaGuard.Core.HosterAccounts.HosterAccount", null)
+                    b.HasOne("ReplicaGuard.Domain.HosterAccounts.HosterAccount", null)
                         .WithMany("Identities")
                         .HasForeignKey("HosterAccountId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .HasConstraintName("fk_auth_identities_hoster_account_hoster_account_id");
 
-                    b.HasOne("ReplicaGuard.Core.HosterAccounts.SecretSet", "SecretSet")
+                    b.HasOne("ReplicaGuard.Domain.HosterAccounts.SecretSet", "SecretSet")
                         .WithMany()
                         .HasForeignKey("SecretSetId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -655,55 +656,55 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
                     b.Navigation("SecretSet");
                 });
 
-            modelBuilder.Entity("ReplicaGuard.Core.HosterAccounts.Secret", b =>
+            modelBuilder.Entity("ReplicaGuard.Domain.HosterAccounts.Secret", b =>
                 {
-                    b.HasOne("ReplicaGuard.Core.HosterAccounts.SecretSet", null)
+                    b.HasOne("ReplicaGuard.Domain.HosterAccounts.SecretSet", null)
                         .WithMany("Secrets")
                         .HasForeignKey("SecretSetId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .HasConstraintName("fk_secrets_secret_set_secret_set_id");
                 });
 
-            modelBuilder.Entity("ReplicaGuard.Core.Replication.Replica", b =>
+            modelBuilder.Entity("ReplicaGuard.Domain.Replication.Replica", b =>
                 {
-                    b.HasOne("ReplicaGuard.Core.Replication.Asset", null)
+                    b.HasOne("ReplicaGuard.Domain.Replication.Asset", null)
                         .WithMany("Replicas")
                         .HasForeignKey("AssetId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_replicas_assets_asset_id");
 
-                    b.HasOne("ReplicaGuard.Core.HosterAccounts.HosterAccount", null)
+                    b.HasOne("ReplicaGuard.Domain.HosterAccounts.HosterAccount", null)
                         .WithMany()
                         .HasForeignKey("HosterAccountId")
                         .OnDelete(DeleteBehavior.SetNull)
                         .HasConstraintName("fk_replicas_hoster_accounts_hoster_account_id");
 
-                    b.HasOne("ReplicaGuard.Core.Hosters.Hoster", null)
+                    b.HasOne("ReplicaGuard.Domain.Hosters.Hoster", null)
                         .WithMany()
                         .HasForeignKey("HosterId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_replicas_hosters_hoster_id");
 
-                    b.HasOne("ReplicaGuard.Core.Replication.Replica", null)
+                    b.HasOne("ReplicaGuard.Domain.Replication.Replica", null)
                         .WithMany()
                         .HasForeignKey("WaitingForReplicaId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .HasConstraintName("fk_replicas_replicas_waiting_for_replica_id");
                 });
 
-            modelBuilder.Entity("ReplicaGuard.Core.HosterAccounts.HosterAccount", b =>
+            modelBuilder.Entity("ReplicaGuard.Domain.HosterAccounts.HosterAccount", b =>
                 {
                     b.Navigation("Identities");
                 });
 
-            modelBuilder.Entity("ReplicaGuard.Core.HosterAccounts.SecretSet", b =>
+            modelBuilder.Entity("ReplicaGuard.Domain.HosterAccounts.SecretSet", b =>
                 {
                     b.Navigation("Secrets");
                 });
 
-            modelBuilder.Entity("ReplicaGuard.Core.Replication.Asset", b =>
+            modelBuilder.Entity("ReplicaGuard.Domain.Replication.Asset", b =>
                 {
                     b.Navigation("Replicas");
                 });

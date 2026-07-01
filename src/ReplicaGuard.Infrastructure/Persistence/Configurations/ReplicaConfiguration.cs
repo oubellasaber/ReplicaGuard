@@ -1,8 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using ReplicaGuard.Core.HosterAccounts;
-using ReplicaGuard.Core.Hosters;
-using ReplicaGuard.Core.Replication;
+using ReplicaGuard.Domain.HosterAccounts;
+using ReplicaGuard.Domain.Hosters;
+using ReplicaGuard.Domain.Replication;
 
 namespace ReplicaGuard.Infrastructure.Persistence.Configurations;
 
@@ -55,6 +55,6 @@ internal sealed class ReplicaConfiguration : IEntityTypeConfiguration<Replica>
         // Indexes
         builder.HasIndex(x => x.AssetId);
         builder.HasIndex(x => x.HosterId);
-        builder.HasIndex(x => new { x.AssetId, x.Id, x.HosterId, x.HosterAccountId }).IsUnique();
+        builder.HasIndex(x => x.HosterAccountId);
     }
 }

@@ -1,11 +1,11 @@
-﻿using ReplicaGuard.Core.Abstractions;
-using ReplicaGuard.Core.HosterAccounts;
+﻿using ReplicaGuard.Domain.Abstractions;
+using ReplicaGuard.Domain.HosterAccounts;
 
-namespace ReplicaGuard.Core.Hosters;
+namespace ReplicaGuard.Domain.Hosters;
 
 public interface IHosterDefinition
 {
-    HosterCode HosterId { get; }
+    HosterCode Code { get; }
 
     PrimaryIdentityRequirement PrimaryIdentities { get; }
     IReadOnlyList<CapabilityRequirement> CapabilityRequirements { get; }
@@ -21,7 +21,7 @@ public interface IHosterDefinition
 
 public abstract class HosterDefinitionBase : IHosterDefinition
 {
-    public abstract HosterCode HosterId { get; }
+    public abstract HosterCode Code { get; }
     public abstract PrimaryIdentityRequirement PrimaryIdentities { get; }
     public abstract IReadOnlyList<CapabilityRequirement> CapabilityRequirements { get; }
     public abstract IReadOnlyList<IdentityGroup> IdentityGroups { get; }
@@ -34,7 +34,7 @@ public abstract class HosterDefinitionBase : IHosterDefinition
 
     public Result ValidatePrimaryCredentials(HosterAccount account)
     {
-        if (account.HosterId != HosterId)
+        if (account.HosterId != Code)
             return Result.Failure(
                 HosterErrors.AccountDoesNotBelongToHoster(account.HosterId, account.Id));
 
@@ -47,7 +47,7 @@ public abstract class HosterDefinitionBase : IHosterDefinition
 
     public Result ValidateCapability(HosterAccount account, CapabilityCode capability)
     {
-        if (account.HosterId != HosterId)
+        if (account.HosterId != Code)
             return Result.Failure(
                 HosterErrors.AccountDoesNotBelongToHoster(account.HosterId, account.Id));
 
@@ -68,7 +68,7 @@ public abstract class HosterDefinitionBase : IHosterDefinition
 
 public sealed class Pixeldrain : HosterDefinitionBase
 {
-    public override HosterCode HosterId => HosterCode.Pixeldrain;
+    public override HosterCode Code => HosterCode.Pixeldrain;
 
     public override PrimaryIdentityRequirement PrimaryIdentities { get; }
     public override IReadOnlyList<CapabilityRequirement> CapabilityRequirements { get; }
@@ -77,12 +77,12 @@ public sealed class Pixeldrain : HosterDefinitionBase
     public Pixeldrain()
     {
         var emailUsernameGroup = new IdentityGroup(
-            HosterId,
+            Code,
             new[] { IdentityType.Email, IdentityType.Username }
         );
 
         var apiGroup = new IdentityGroup(
-            HosterId,
+            Code,
             new[] { IdentityType.ApiKey }
         );
 
@@ -136,7 +136,7 @@ public sealed class Pixeldrain : HosterDefinitionBase
 
 public sealed class SendCm : HosterDefinitionBase
 {
-    public override HosterCode HosterId => HosterCode.SendCm;
+    public override HosterCode Code => HosterCode.SendCm;
     public override PrimaryIdentityRequirement PrimaryIdentities { get; }
     public override IReadOnlyList<CapabilityRequirement> CapabilityRequirements { get; }
     public override IReadOnlyList<IdentityGroup> IdentityGroups { get; }
@@ -144,7 +144,7 @@ public sealed class SendCm : HosterDefinitionBase
     public SendCm()
     {
         var apiGroup = new IdentityGroup(
-            HosterId,
+            Code,
             new[] { IdentityType.ApiKey }
         );
 

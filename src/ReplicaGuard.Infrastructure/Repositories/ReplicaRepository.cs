@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Connections;
 using Microsoft.EntityFrameworkCore;
 using ReplicaGuard.Application.Abstractions.Data;
 using ReplicaGuard.Application.Replication.UploadReplica.Spooling;
-using ReplicaGuard.Core.Replication;
+using ReplicaGuard.Domain.Replication;
 using ReplicaGuard.Infrastructure.Persistence;
 
 namespace ReplicaGuard.Infrastructure.Repositories;

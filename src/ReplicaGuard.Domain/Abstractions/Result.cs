@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 
-namespace ReplicaGuard.Core.Abstractions;
+namespace ReplicaGuard.Domain.Abstractions;
 
 public class Result
 {

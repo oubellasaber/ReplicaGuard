@@ -1,4 +1,4 @@
-﻿namespace ReplicaGuard.Core.Hosters;
+﻿namespace ReplicaGuard.Domain.Hosters;
 
 public interface IHosterDefinitionResolver
 {

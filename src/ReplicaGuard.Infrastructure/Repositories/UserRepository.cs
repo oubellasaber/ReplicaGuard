@@ -1,4 +1,4 @@
-﻿using ReplicaGuard.Core.Users;
+﻿using ReplicaGuard.Domain.Users;
 using ReplicaGuard.Infrastructure.Persistence;
 
 namespace ReplicaGuard.Infrastructure.Repositories;

@@ -1,5 +1,5 @@
 ﻿using ReplicaGuard.Application.HosterAccounts.CreateHosterAccount;
-using ReplicaGuard.Core.HosterAccounts;
+using ReplicaGuard.Domain.HosterAccounts;
 using static ReplicaGuard.Api.Controllers.HosterAccounts.IdentityPayloadRequest;
 
 namespace ReplicaGuard.Api.Controllers.HosterAccounts;

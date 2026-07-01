@@ -1,5 +1,5 @@
-﻿using ReplicaGuard.Core.Abstractions;
+﻿using ReplicaGuard.Domain.Abstractions;
 
-namespace ReplicaGuard.Core.HosterAccounts;
+namespace ReplicaGuard.Domain.HosterAccounts;
 
 public sealed record IdentityCreatedDomainEvent(Guid IdentityId) : IDomainEvent;

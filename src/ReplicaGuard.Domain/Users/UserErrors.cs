@@ -1,7 +1,7 @@
-﻿using ReplicaGuard.Core.Abstractions;
-using ReplicaGuard.Core.Common;
+﻿using ReplicaGuard.Domain.Abstractions;
+using ReplicaGuard.Domain.Common;
 
-namespace ReplicaGuard.Core.Users;
+namespace ReplicaGuard.Domain.Users;
 public class UserErrors
 {
     public static Error NotFound(Guid id) => CommonErrors.NotFound(nameof(User), id);

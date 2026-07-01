@@ -1,8 +1,8 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using ReplicaGuard.Core.Hosters;
-using ReplicaGuard.Core.Users;
+using ReplicaGuard.Domain.Hosters;
+using ReplicaGuard.Domain.Users;
 using ReplicaGuard.Infrastructure.Persistence;
 
 namespace ReplicaGuard.Infrastructure.Seeding;
@@ -48,24 +48,25 @@ public class AppSeeder
 
         foreach (var def in HosterDefinitions.All)
         {
-            var hoster = existing.SingleOrDefault(h => h.Id == def.HosterId);
+            var hoster = existing.SingleOrDefault(h => h.Code == def.Code);
 
             if (hoster is null)
             {
                 // Insert new hoster
-                hoster = new Hoster(def.HosterId, def.HosterId.ToString());
+                hoster = new Hoster(def.Code, def.Code.ToFriendlyString());
 
                 _db.Set<Hoster>().Add(hoster);
 
-                _logger.LogInformation("Seeded hoster {HosterId}", def.HosterId);
+                _logger.LogInformation("Seeded hoster {HosterId}", def.Code);
             }
             //else
             //{
-            //    // Update display name if needed
-            //    if (hoster.DisplayName != def.HosterId.ToString())
+            //    Update display name if needed
+            //    var displayName = def.Code.ToFriendlyString();
+            //    if (hoster.DisplayName != displayName)
             //    {
-            //        hoster.UpdateDisplayName(def.HosterId.ToString());
-            //        _logger.LogInformation("Updated hoster {HosterId}", def.HosterId);
+            //        hoster.UpdateDisplayName(displayName);
+            //        _logger.LogInformation("Updated hoster {HosterCode}", displayName);
             //    }
             //}
         }

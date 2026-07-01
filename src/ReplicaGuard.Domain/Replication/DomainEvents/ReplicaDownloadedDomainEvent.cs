@@ -1,8 +1,8 @@
 ﻿using MediatR;
 using ReplicaGuard.Contracts.IntegrationEvents;
-using ReplicaGuard.Core.Abstractions;
+using ReplicaGuard.Domain.Abstractions;
 
-namespace ReplicaGuard.Core.Replication.DomainEvents;
+namespace ReplicaGuard.Domain.Replication.DomainEvents;
 public sealed record ReplicaDownloadedDomainEvent(Guid ReplicaId) : IDomainEvent;
 
 public sealed class ReplicaDownloadedDomainEventHandler(IIntegrationEventOutbox outbox)

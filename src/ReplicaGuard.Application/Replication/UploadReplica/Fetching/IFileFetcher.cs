@@ -1,6 +1,6 @@
 ﻿using ReplicaGuard.Application.Replication.UploadReplica.Spooling;
-using ReplicaGuard.Core.Abstractions;
-using ReplicaGuard.Core.Replication;
+using ReplicaGuard.Domain.Abstractions;
+using ReplicaGuard.Domain.Replication;
 
 namespace ReplicaGuard.Application.Replication.UploadReplica.Fetching;
 

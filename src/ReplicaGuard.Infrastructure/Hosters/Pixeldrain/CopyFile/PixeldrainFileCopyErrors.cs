@@ -1,4 +1,4 @@
-﻿using ReplicaGuard.Core.Abstractions;
+﻿using ReplicaGuard.Domain.Abstractions;
 
 namespace ReplicaGuard.Infrastructure.Hosters.Pixeldrain.CopyFile;
 

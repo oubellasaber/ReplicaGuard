@@ -1,8 +1,8 @@
 using MassTransit;
 using MediatR;
 using Microsoft.Extensions.Logging;
-using ReplicaGuard.Core.Abstractions;
-using ReplicaGuard.Core.Replication;
+using ReplicaGuard.Domain.Abstractions;
+using ReplicaGuard.Domain.Replication;
 using ReplicaGuard.Infrastructure.Messaging.Commands;
 
 namespace ReplicaGuard.Infrastructure.Messaging.Consumers;

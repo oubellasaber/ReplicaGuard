@@ -1,5 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using ReplicaGuard.Core.Hosters;
+using ReplicaGuard.Domain.Hosters;
 using ReplicaGuard.Infrastructure.Persistence;
 
 namespace ReplicaGuard.Infrastructure.Repositories;
@@ -13,7 +13,7 @@ internal class HosterRepository : IHosterRepository
         DbContext = dbContext;
     }
 
-    public async Task<Hoster?> GetByIdAsync(HosterCode id, CancellationToken ctn)
+    public async Task<Hoster?> GetByIdAsync(Guid id, CancellationToken ctn)
     {
         return await DbContext
             .Set<Hoster>()

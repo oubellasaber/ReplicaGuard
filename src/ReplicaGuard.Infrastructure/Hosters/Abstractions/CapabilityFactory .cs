@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
-using ReplicaGuard.Core.Capabilities;
-using ReplicaGuard.Core.Hosters;
+using ReplicaGuard.Domain.Capabilities;
+using ReplicaGuard.Domain.Hosters;
 
 namespace ReplicaGuard.Infrastructure.Hosters.Abstractions;
 

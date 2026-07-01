@@ -1,6 +1,6 @@
-﻿using ReplicaGuard.Core.HosterAccounts;
+﻿using ReplicaGuard.Domain.HosterAccounts;
 
-namespace ReplicaGuard.Core.Hosters;
+namespace ReplicaGuard.Domain.Hosters;
 
 // A capability requirement specifies the identities required to use a specific capability of a hoster.
 // Each RequirementPath is one OR‑branch. To satisfy the requirement, at least one of the paths must be satisfied.

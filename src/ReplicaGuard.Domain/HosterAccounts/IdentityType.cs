@@ -1,4 +1,4 @@
-﻿namespace ReplicaGuard.Core.HosterAccounts;
+﻿namespace ReplicaGuard.Domain.HosterAccounts;
 
 public enum IdentityType : short
 {
@@ -16,7 +16,7 @@ public static class IdentityTypeExtensions
             IdentityType.Email => true,
             IdentityType.Username => true,
             IdentityType.ApiKey => false,
-            _ => false
+            _ => true
         };
     }
 }

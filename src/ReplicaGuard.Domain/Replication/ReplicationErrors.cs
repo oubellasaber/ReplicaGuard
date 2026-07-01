@@ -1,8 +1,8 @@
-using ReplicaGuard.Core.Abstractions;
-using ReplicaGuard.Core.Common;
-using ReplicaGuard.Core.Hosters;
+using ReplicaGuard.Domain.Abstractions;
+using ReplicaGuard.Domain.Common;
+using ReplicaGuard.Domain.Hosters;
 
-namespace ReplicaGuard.Core.Replication;
+namespace ReplicaGuard.Domain.Replication;
 
 public static class ReplicationErrors
 {
@@ -10,15 +10,15 @@ public static class ReplicationErrors
         CommonErrors.NotFound(nameof(Asset), id);
 
     // Replica errors
-    public static Error DuplicateReplica(Guid assetId, HosterCode hosterId) =>
-        new("Replica.Duplicate",
-            $"A replica for asset '{assetId}' on hoster '{hosterId.ToFriendlyString()}' already exists.",
-            ErrorType.Conflict);
+    public static Error DuplicateReplica(Guid assetId, Guid hosterId) =>
+        new Error("Replica.Duplicate",
+            $"A replica for the specified asset already exists for this hoster.",
+            ErrorType.Conflict)
+        .WithMetadata("AssetId", assetId)
+        .WithMetadata("HosterId", hosterId);
 
     public static Error ReplicaNotFound(Guid id) =>
-        new("Replica.NotFound",
-            $"Replica with ID '{id}' was not found.",
-            ErrorType.NotFound);
+        CommonErrors.NotFound(nameof(Replica), id);
 
     public static Error ReplicaTerminalState(Guid id) =>
         new Error("Replica.TerminalState",

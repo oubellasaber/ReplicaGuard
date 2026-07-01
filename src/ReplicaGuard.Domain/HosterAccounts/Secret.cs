@@ -1,4 +1,4 @@
-﻿namespace ReplicaGuard.Core.HosterAccounts;
+﻿namespace ReplicaGuard.Domain.HosterAccounts;
 
 public sealed class Secret
 {

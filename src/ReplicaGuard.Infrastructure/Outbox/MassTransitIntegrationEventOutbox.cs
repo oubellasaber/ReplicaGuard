@@ -1,5 +1,5 @@
 ﻿using MassTransit;
-using ReplicaGuard.Core.Abstractions;
+using ReplicaGuard.Domain.Abstractions;
 
 namespace ReplicaGuard.Infrastructure.Outbox;
 

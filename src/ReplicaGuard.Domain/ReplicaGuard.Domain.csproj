@@ -1,8 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <RootNamespace>ReplicaGuard.Core</RootNamespace>
-    <AssemblyName>ReplicaGuard.Core</AssemblyName>
+    <RootNamespace>ReplicaGuard.Domain</RootNamespace>
+    <AssemblyName>ReplicaGuard.Domain</AssemblyName>
   </PropertyGroup>
   
   <ItemGroup>
@@ -10,7 +10,7 @@
   </ItemGroup>
   
   <ItemGroup>
-    <ProjectReference Include="..\..\ReplicaGuard.Contracts\ReplicaGuard.Contracts.csproj" />
+    <ProjectReference Include="..\ReplicaGuard.Contracts\ReplicaGuard.Contracts.csproj" />
   </ItemGroup>
 
 </Project>

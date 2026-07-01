@@ -1,6 +1,6 @@
-﻿using ReplicaGuard.Core.Abstractions;
+﻿using ReplicaGuard.Domain.Abstractions;
 
-namespace ReplicaGuard.Core.HosterAccounts;
+namespace ReplicaGuard.Domain.HosterAccounts;
 
 // A cohesive authentication bundle required by the hoster.
 // Think of password and otp secret key as a secret set.

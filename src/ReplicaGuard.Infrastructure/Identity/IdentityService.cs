@@ -2,7 +2,7 @@
 using Microsoft.Extensions.Options;
 using ReplicaGuard.Application.Abstractions.Authentication;
 using ReplicaGuard.Application.Users;
-using ReplicaGuard.Core.Abstractions;
+using ReplicaGuard.Domain.Abstractions;
 using ReplicaGuard.Infrastructure.Authentication;
 
 namespace ReplicaGuard.Infrastructure.Identity;

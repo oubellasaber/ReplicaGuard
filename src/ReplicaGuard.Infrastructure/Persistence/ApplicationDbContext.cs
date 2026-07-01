@@ -1,6 +1,6 @@
 ﻿using MassTransit;
 using Microsoft.EntityFrameworkCore;
-using ReplicaGuard.Core.Abstractions;
+using ReplicaGuard.Domain.Abstractions;
 using ConcurrencyException = ReplicaGuard.Application.Exceptions.ConcurrencyException;
 
 namespace ReplicaGuard.Infrastructure.Persistence;

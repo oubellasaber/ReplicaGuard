@@ -2,10 +2,10 @@ using Microsoft.Extensions.Logging;
 using ReplicaGuard.Application.Abstractions.Authentication;
 using ReplicaGuard.Application.Abstractions.Clock;
 using ReplicaGuard.Application.Abstractions.Messaging;
-using ReplicaGuard.Core.Abstractions;
-using ReplicaGuard.Core.HosterAccounts;
-using ReplicaGuard.Core.Hosters;
-using ReplicaGuard.Core.Replication;
+using ReplicaGuard.Domain.Abstractions;
+using ReplicaGuard.Domain.HosterAccounts;
+using ReplicaGuard.Domain.Hosters;
+using ReplicaGuard.Domain.Replication;
 
 namespace ReplicaGuard.Application.Assets.CreateAsset;
 
@@ -129,7 +129,7 @@ public sealed class CreateAssetCommandHandler(
             if (requirement is null)
             {
                 return Result.Failure(
-                    HosterErrors.CapabilityNotSupported(def.HosterId, capability));
+                    HosterErrors.CapabilityNotSupported(def.Code, capability));
             }
 
             // 2. Filter verified identities
@@ -143,7 +143,7 @@ public sealed class CreateAssetCommandHandler(
                 return Result.Failure(
                     HosterAccountErrors.RequiredIdentitesNotSatisfied(
                         requirement,
-                        def.HosterId,
+                        def.Code,
                         capability));
             }
         }
@@ -155,7 +155,7 @@ public sealed class CreateAssetCommandHandler(
         Guid userId,
         string source,
         FileName fileName,
-        IEnumerable<(HosterCode hosterId, Guid? accountId)> replicas)
+        IEnumerable<(Guid hosterId, Guid? accountId)> replicas)
     {
         bool isRemote = IsUrl(source);
 

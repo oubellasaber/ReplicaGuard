@@ -1,15 +1,20 @@
-﻿using ReplicaGuard.Core.Abstractions;
-using ReplicaGuard.Core.Common;
+﻿using ReplicaGuard.Domain.Abstractions;
+using ReplicaGuard.Domain.Common;
 
-namespace ReplicaGuard.Core.Hosters;
+namespace ReplicaGuard.Domain.Hosters;
 
 public static class HosterErrors
 {
+    public static Error NotFound(Guid id)
+        => CommonErrors.NotFound<Guid>(nameof(Hoster), id);
+
+    // Delete
     public static Error NotFound(HosterCode hosterId)
         => CommonErrors.NotFound(nameof(HosterCode), hosterId.ToFriendlyString());
 
     public static Error NotFound(string friendlyName)
         => CommonErrors.NotFound(nameof(HosterCode), friendlyName);
+    // Delete
 
     public static Error AccountDoesNotBelongToHoster(HosterCode hosterId, Guid accountId)
         => new Error(

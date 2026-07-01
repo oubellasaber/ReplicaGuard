@@ -1,4 +1,4 @@
-﻿using ReplicaGuard.Core.Abstractions;
+﻿using ReplicaGuard.Domain.Abstractions;
 
 public sealed class TransientException : Exception
 {

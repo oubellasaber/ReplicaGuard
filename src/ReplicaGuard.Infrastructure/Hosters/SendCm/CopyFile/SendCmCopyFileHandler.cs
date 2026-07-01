@@ -2,10 +2,10 @@
 using System.Text.RegularExpressions;
 using MassTransit.Configuration;
 using Microsoft.Extensions.Options;
-using ReplicaGuard.Core.Abstractions;
-using ReplicaGuard.Core.HosterAccounts;
-using ReplicaGuard.Core.Hosters;
-using ReplicaGuard.Infrastructure.Hosters.Capabilities;
+using ReplicaGuard.Domain.Abstractions;
+using ReplicaGuard.Domain.Capabilities;
+using ReplicaGuard.Domain.HosterAccounts;
+using ReplicaGuard.Domain.Hosters;
 
 namespace ReplicaGuard.Infrastructure.Hosters.SendCm.CopyFile;
 internal sealed class SendCmCopyFileHandler : ICopyFileCapabilityHandler

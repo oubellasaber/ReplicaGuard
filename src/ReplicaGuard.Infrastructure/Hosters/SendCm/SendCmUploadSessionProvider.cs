@@ -1,7 +1,7 @@
 ﻿using System.Text.Json;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Options;
-using ReplicaGuard.Core.Abstractions;
+using ReplicaGuard.Domain.Abstractions;
 using ReplicaGuard.Infrastructure.Hosters.SendCm.Upload;
 
 namespace ReplicaGuard.Infrastructure.Hosters.SendCm;

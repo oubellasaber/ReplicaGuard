@@ -1,7 +1,7 @@
-﻿using ReplicaGuard.Core.HosterAccounts;
-using ReplicaGuard.Core.Replication;
+﻿using ReplicaGuard.Domain.HosterAccounts;
+using ReplicaGuard.Domain.Replication;
 
-namespace ReplicaGuard.Core.Capabilities;
+namespace ReplicaGuard.Domain.Capabilities;
 
 public sealed record RemoteFileUploadRequest(
     HosterAccount Account,

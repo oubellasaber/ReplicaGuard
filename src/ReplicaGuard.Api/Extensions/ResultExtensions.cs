@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
-using ReplicaGuard.Core.Abstractions;
+using ReplicaGuard.Domain.Abstractions;
 
 namespace ReplicaGuard.Api.Extensions;
 

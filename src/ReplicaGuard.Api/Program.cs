@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization.Metadata;
 using Microsoft.OpenApi.Models;
+using ReplicaGuard.Api.Controllers.HosterAccounts;
 using ReplicaGuard.Api.Extensions;
 using ReplicaGuard.Api.Middleware;
 using ReplicaGuard.Application;

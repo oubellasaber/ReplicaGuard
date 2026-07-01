@@ -1,6 +1,6 @@
-﻿using ReplicaGuard.Core.Hosters;
+﻿using ReplicaGuard.Domain.Hosters;
 
-namespace ReplicaGuard.Core.Capabilities;
+namespace ReplicaGuard.Domain.Capabilities;
 
 public interface ICapabilityFactory
 {

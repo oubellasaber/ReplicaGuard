@@ -1,4 +1,4 @@
-﻿namespace ReplicaGuard.Core.Hosters;
+﻿namespace ReplicaGuard.Domain.Hosters;
 
 public sealed class HosterDefinitionResolver : IHosterDefinitionResolver
 {
@@ -7,7 +7,7 @@ public sealed class HosterDefinitionResolver : IHosterDefinitionResolver
     public HosterDefinitionResolver()
     {
         var defs = HosterDefinitions.All;
-        _definitions = defs.ToDictionary(d => d.HosterId);
+        _definitions = defs.ToDictionary(d => d.Code);
     }
 
     public IHosterDefinition Resolve(HosterCode code)

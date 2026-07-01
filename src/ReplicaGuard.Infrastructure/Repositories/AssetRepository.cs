@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using ReplicaGuard.Core.Replication;
+using ReplicaGuard.Domain.Replication;
 using ReplicaGuard.Infrastructure.Persistence;
 
 namespace ReplicaGuard.Infrastructure.Repositories;

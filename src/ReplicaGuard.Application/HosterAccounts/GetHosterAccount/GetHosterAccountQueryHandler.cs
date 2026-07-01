@@ -1,6 +1,6 @@
 ﻿using ReplicaGuard.Application.Abstractions.Messaging;
-using ReplicaGuard.Core.Abstractions;
-using ReplicaGuard.Core.HosterAccounts;
+using ReplicaGuard.Domain.Abstractions;
+using ReplicaGuard.Domain.HosterAccounts;
 
 namespace ReplicaGuard.Application.HosterAccounts.GetHosterAccount;
 

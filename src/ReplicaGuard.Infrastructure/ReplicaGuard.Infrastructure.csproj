@@ -23,9 +23,5 @@
     <PackageReference Include="MassTransit.SqlTransport.PostgreSQL" />
     <PackageReference Include="EFCore.NamingConventions" />
   </ItemGroup>
-  
-  <ItemGroup>
-    <Folder Include="Persistence\Migrations\" />
-  </ItemGroup>
 
 </Project>

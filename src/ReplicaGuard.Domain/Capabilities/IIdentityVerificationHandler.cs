@@ -1,6 +1,6 @@
-﻿using ReplicaGuard.Core.HosterAccounts;
+﻿using ReplicaGuard.Domain.HosterAccounts;
 
-namespace ReplicaGuard.Core.Capabilities;
+namespace ReplicaGuard.Domain.Capabilities;
 
 public record IdentityVerificationRequest(AuthIdentity Identity);
 

@@ -1,6 +1,6 @@
 ﻿using System.Reflection.Metadata.Ecma335;
 
-namespace ReplicaGuard.Core.Abstractions;
+namespace ReplicaGuard.Domain.Abstractions;
 
 public sealed record Error
 {

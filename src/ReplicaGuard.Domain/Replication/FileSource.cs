@@ -1,6 +1,4 @@
-using ReplicaGuard.Core.Abstractions;
-
-namespace ReplicaGuard.Core.Replication;
+namespace ReplicaGuard.Domain.Replication;
 
 /// <summary>
 /// Abstract base class representing the source of a file for replication.
