@@ -33,7 +33,7 @@ public sealed class Hoster : Entity<HosterCode>
     public Hoster(HosterCode id, string displayName)
         : base(id)
     {
-        DisplayName = displayName;
+        DisplayName = displayName.Trim();
         CreatedAtUtc = DateTime.UtcNow;
         UpdatedAtUtc = CreatedAtUtc;
     }

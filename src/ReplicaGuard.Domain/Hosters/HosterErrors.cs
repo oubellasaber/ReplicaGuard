@@ -40,4 +40,18 @@ public static class HosterErrors
                 type: ErrorType.Validation)
             .WithMetadata("HosterId", hosterId.ToFriendlyString())
             .WithMetadata("Capability", capability);
+
+    public static Error UnsupportedHosterDomain(string host)
+        => new Error(
+                code: "Hoster.UnsupportedDomain",
+                message: "The provided URL does not belong to a supported hoster domain.",
+                type: ErrorType.Validation)
+            .WithMetadata("Host", host);
+
+    public static Error MissingFileCode(Uri url)
+        => new Error(
+                code: "Hoster.MissingFileCode",
+                message: "No file code found in URL.",
+                type: ErrorType.Validation)
+        .WithMetadata("Url", url.ToString());
 }

@@ -16,6 +16,7 @@ public interface IHosterDefinition
 
     Result ValidatePrimaryCredentials(HosterAccount account);
     Result ValidateCapability(HosterAccount account, CapabilityCode capability);
+    Result<string> ExtractFileCode(Uri url);
 }
 
 public abstract class HosterDefinitionBase : IHosterDefinition
@@ -60,6 +61,8 @@ public abstract class HosterDefinitionBase : IHosterDefinition
                 HosterErrors.CapabilityRequirementsNotSatisfied(account.HosterId, capability));
         return Result.Success();
     }
+
+    public abstract Result<string> ExtractFileCode(Uri url);
 }
 
 
@@ -102,6 +105,33 @@ public sealed class Pixeldrain : HosterDefinitionBase
                 })
         };
     }
+
+    public override Result<string> ExtractFileCode(Uri url)
+    {
+        ArgumentNullException.ThrowIfNull(url, nameof(url));
+
+        var host = url.Host.ToLowerInvariant();
+
+        if (host != "pixeldrain.com" && host != "pixeldra.in")
+            return Result.Failure<string>(
+                HosterErrors.UnsupportedHosterDomain(host));
+
+        var segments = url.AbsolutePath
+            .Split('/', StringSplitOptions.RemoveEmptyEntries);
+
+        if (segments.Length < 2)
+            return Result.Failure<string>(
+                HosterErrors.MissingFileCode(url));
+
+        if (segments.Length >= 2 &&
+            segments[0].Equals("u", StringComparison.OrdinalIgnoreCase))
+        {
+            return Result.Success(segments[1]);
+        }
+
+        return Result.Failure<string>(
+                HosterErrors.MissingFileCode(url));
+    }
 }
 
 public sealed class SendCm : HosterDefinitionBase
@@ -140,6 +170,27 @@ public sealed class SendCm : HosterDefinitionBase
                     new RequirementPath(new[] { IdentityType.ApiKey })
                 })
         };
+    }
+
+    public override Result<string> ExtractFileCode(Uri url)
+    {
+        ArgumentNullException.ThrowIfNull(url, nameof(url));
+
+        // Ensure it's a supported host
+        var host = url.Host.ToLowerInvariant();
+        if (host != "send.cm" && host != "send.now")
+            return Result.Failure<string>(HosterErrors.UnsupportedHosterDomain(host));
+
+        // Get last segment of the path
+        var segments = url.AbsolutePath
+            .Split('/', StringSplitOptions.RemoveEmptyEntries);
+
+        if (segments.Length == 0)
+            return Result.Failure<string>(HosterErrors.MissingFileCode(url));
+
+        var code = segments[^1];
+
+        return code;
     }
 }
 

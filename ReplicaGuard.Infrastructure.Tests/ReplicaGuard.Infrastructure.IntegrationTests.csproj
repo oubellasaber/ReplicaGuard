@@ -4,21 +4,20 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="coverlet.collector" />
-    <PackageReference Include="FluentAssertions" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="xunit" />
     <PackageReference Include="xunit.runner.visualstudio" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\src\ReplicaGuard.Domain\ReplicaGuard.Core.csproj" />
-    <ProjectReference Include="..\..\..\src\ReplicaGuard.Domain\ReplicaGuard.Domain.csproj" />
+    <ProjectReference Include="..\src\ReplicaGuard.Infrastructure\ReplicaGuard.Infrastructure.csproj" />
   </ItemGroup>
 
   <ItemGroup>

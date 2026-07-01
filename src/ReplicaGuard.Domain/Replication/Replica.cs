@@ -80,4 +80,10 @@ public sealed class Replica : Entity<Guid>
         Status = ReplicaStatus.Retrying;
         UpdatedAtUtc = DateTime.UtcNow;
     }
+
+    internal void SetStatusForTesting(ReplicaStatus status)
+    {
+        Status = status;
+        UpdatedAtUtc = DateTime.UtcNow;
+    }
 }
