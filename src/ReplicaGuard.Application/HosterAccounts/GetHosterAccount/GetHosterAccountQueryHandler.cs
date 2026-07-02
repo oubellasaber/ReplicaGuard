@@ -33,7 +33,7 @@ public sealed class GetHosterAccountQueryHandler
 
         var response = new GetHosterAccountResponse(
             account.Id,
-            account.HosterId,
+            account.HosterCode,
             account.Alias,
             account.Description,
             account.CreatedAtUtc,

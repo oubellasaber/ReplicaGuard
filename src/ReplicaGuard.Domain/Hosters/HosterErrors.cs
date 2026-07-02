@@ -16,34 +16,34 @@ public static class HosterErrors
         => CommonErrors.NotFound(nameof(HosterCode), friendlyName);
     // Delete
 
-    public static Error AccountDoesNotBelongToHoster(HosterCode hosterId, Guid accountId)
+    public static Error AccountDoesNotBelongToHoster(HosterCode code, Guid accountId)
         => new Error(
                 code: "Hoster.AccountMismatch",
                 message: $"Account does not belong to hoster.",
                 type: ErrorType.Validation)
-            .WithMetadata("HosterId", hosterId.ToFriendlyString())
+            .WithMetadata("HosterCode", code.ToFriendlyString())
             .WithMetadata("AccountId", accountId);
 
-    public static Error PrimaryIdentitiesNotSatisfied(HosterCode hosterId)
+    public static Error PrimaryIdentitiesNotSatisfied(HosterCode code)
         => new Error(
                 code: "Hoster.PrimaryIdentitiesNotSatisfied",
                 message: $"Primary identity requirements not satisfied.",
                 type: ErrorType.Validation)
-            .WithMetadata("HosterId", hosterId.ToFriendlyString());
-    public static Error CapabilityNotSupported(HosterCode hosterId, CapabilityCode capability)
+            .WithMetadata("HosterId", code.ToFriendlyString());
+    public static Error CapabilityNotSupported(HosterCode code, CapabilityCode capability)
         => new Error(
                 code: "Hoster.CapabilityNotSupported",
                 message: $"CapabilityCode not supported by this hoster.",
                 type: ErrorType.Validation)
-            .WithMetadata("HosterId", hosterId.ToFriendlyString())
+            .WithMetadata("HosterId", code.ToFriendlyString())
             .WithMetadata("Capability", capability);
 
-    public static Error CapabilityRequirementsNotSatisfied(HosterCode hosterId, CapabilityCode capability)
+    public static Error CapabilityRequirementsNotSatisfied(HosterCode code, CapabilityCode capability)
         => new Error(
                 code: "Hoster.CapabilityRequirementsNotSatisfied",
                 message: $"CapabilityCode requirements not satisfied.",
                 type: ErrorType.Validation)
-            .WithMetadata("HosterId", hosterId.ToFriendlyString())
+            .WithMetadata("HosterId", code.ToFriendlyString())
             .WithMetadata("Capability", capability);
 
     public static Error UnsupportedHosterDomain(string host)
@@ -58,5 +58,5 @@ public static class HosterErrors
                 code: "Hoster.MissingFileCode",
                 message: "No file code found in URL.",
                 type: ErrorType.Validation)
-        .WithMetadata("Url", url.ToString());
+        .WithMetadata("Url", url);
 }

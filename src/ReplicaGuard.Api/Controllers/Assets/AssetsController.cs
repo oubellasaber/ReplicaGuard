@@ -5,7 +5,6 @@ using ReplicaGuard.Api.Extensions;
 using ReplicaGuard.Application.Assets.CreateAsset;
 using ReplicaGuard.Application.Assets.GetAsset;
 using ReplicaGuard.Application.Assets.ListAssets;
-using ReplicaGuard.Domain.Hosters;
 
 namespace ReplicaGuard.Api.Controllers.Assets;
 

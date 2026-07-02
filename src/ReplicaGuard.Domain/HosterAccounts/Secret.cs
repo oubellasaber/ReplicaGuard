@@ -1,8 +1,9 @@
-﻿namespace ReplicaGuard.Domain.HosterAccounts;
+﻿using ReplicaGuard.Domain.Abstractions;
 
-public sealed class Secret
+namespace ReplicaGuard.Domain.HosterAccounts;
+
+public sealed class Secret : Entity<Guid>
 {
-    public Guid Id { get; }
     public SecretType Type { get; }
     public SecretValue Value { get; private set; } = null!;
     public DateTime CreatedAtUtc { get; private set; }
@@ -10,9 +11,8 @@ public sealed class Secret
 
     private Secret() { }
 
-    internal Secret(Guid id, SecretType type, SecretValue value)
+    internal Secret(SecretType type, SecretValue value) : base(Guid.NewGuid())
     {
-        Id = id;
         Type = type;
         Value = value;
         CreatedAtUtc = DateTime.UtcNow;
@@ -21,7 +21,7 @@ public sealed class Secret
 
     public static Secret CreateNew(SecretType type, SecretValue secret)
     {
-        return new Secret(Guid.NewGuid(), type, secret);
+        return new Secret(type, secret);
     }
 
     internal void Update(SecretValue encryptedValue)

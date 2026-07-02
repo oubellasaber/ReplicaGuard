@@ -13,16 +13,6 @@ internal sealed class ReplicaRepository : Repository<Replica>, IReplicaRepositor
     {
     }
 
-    public async Task<List<Replica>> GetPendingReplicasAsync(int batchSize, CancellationToken cancellationToken = default)
-    {
-        return await DbContext
-            .Set<Replica>()
-            .Where(r => r.Status == ReplicaStatus.Pending)
-            .OrderBy(r => r.CreatedAtUtc)
-            .Take(batchSize)
-            .ToListAsync(cancellationToken);
-    }
-
     public async Task<MarkWaitingResult> TryMarkWaitingIfDownloaderStillActive(
         Guid assetId,
         Guid replicaId,

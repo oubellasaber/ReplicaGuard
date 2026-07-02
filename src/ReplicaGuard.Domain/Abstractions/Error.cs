@@ -40,7 +40,7 @@ public sealed record Error
     public Error WithDetail(string detail) => this with { Detail = detail };
     public Error WithMetadata(string key, object value)
     {
-        var newMetadata = new Dictionary<string, object>(Metadata) { [key] = value };
+        var newMetadata = new Dictionary<string, object>(Metadata) { [key] = value.ToString() ?? "null" };
         return this with { Metadata = newMetadata };
     }
     public Error WithType(ErrorType type) => this with { Type = type };

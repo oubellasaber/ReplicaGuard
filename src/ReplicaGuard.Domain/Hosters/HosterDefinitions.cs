@@ -34,31 +34,31 @@ public abstract class HosterDefinitionBase : IHosterDefinition
 
     public Result ValidatePrimaryCredentials(HosterAccount account)
     {
-        if (account.HosterId != Code)
+        if (account.HosterCode != Code)
             return Result.Failure(
-                HosterErrors.AccountDoesNotBelongToHoster(account.HosterId, account.Id));
+                HosterErrors.AccountDoesNotBelongToHoster(account.HosterCode, account.Id));
 
-        if (!PrimaryIdentities.IsSatisfiedBy(account.Identities))
+        if (!PrimaryIdentities.IsVerifiedSatisfiedBy(account.Identities))
             return Result.Failure(
-                HosterErrors.PrimaryIdentitiesNotSatisfied(account.HosterId));
+                HosterErrors.PrimaryIdentitiesNotSatisfied(account.HosterCode));
 
         return Result.Success();
     }
 
     public Result ValidateCapability(HosterAccount account, CapabilityCode capability)
     {
-        if (account.HosterId != Code)
+        if (account.HosterCode != Code)
             return Result.Failure(
-                HosterErrors.AccountDoesNotBelongToHoster(account.HosterId, account.Id));
+                HosterErrors.AccountDoesNotBelongToHoster(account.HosterCode, account.Id));
 
         var requirement = GetRequirement(capability);
         if (requirement == null)
             return Result.Failure(
-                HosterErrors.CapabilityNotSupported(account.HosterId, capability));
+                HosterErrors.CapabilityNotSupported(account.HosterCode, capability));
 
         if (!requirement.IsSatisfiedBy(account.Identities))
             return Result.Failure(
-                HosterErrors.CapabilityRequirementsNotSatisfied(account.HosterId, capability));
+                HosterErrors.CapabilityRequirementsNotSatisfied(account.HosterCode, capability));
         return Result.Success();
     }
 

@@ -12,6 +12,9 @@ public sealed class PrimaryIdentityRequirement
         _paths = paths.ToList();
     }
 
-    public bool IsSatisfiedBy(IEnumerable<AuthIdentity> identities, bool onlyVerified = true)
-        => _paths.Any(path => path.IsSatisfiedBy(identities, onlyVerified));
+    public bool IsVerifiedSatisfiedBy(IEnumerable<AuthIdentity> identities)
+        => _paths.Any(path => path.IsVerifiedSatisfiedBy(identities));
+
+    public bool IsSatisfiedBy(IEnumerable<AuthIdentity> identities)
+        => _paths.Any(path => path.IsSatisfiedBy(identities));
 }

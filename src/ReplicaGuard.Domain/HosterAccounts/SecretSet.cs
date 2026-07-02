@@ -10,7 +10,6 @@ public sealed class SecretSet : Entity<Guid>
 {
     private readonly List<Secret> _secrets = new();
     public IReadOnlyList<Secret> Secrets => _secrets;
-    // validation to ensure that the secrets in the set are consistent with each other and with the hoster's requirements can be added here.
 
     private SecretSet() { }
 
