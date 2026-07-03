@@ -433,8 +433,8 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
-                    b.Property<short>("Code")
-                        .HasColumnType("smallint")
+                    b.Property<int>("Code")
+                        .HasColumnType("integer")
                         .HasColumnName("code");
 
                     b.Property<DateTime>("CreatedAtUtc")

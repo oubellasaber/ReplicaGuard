@@ -1,6 +1,6 @@
 ﻿namespace ReplicaGuard.Domain.Hosters;
 
-public enum HosterCode : short
+public enum HosterCode
 {
     [FriendlyString("pixeldrain")]
     Pixeldrain = 1,
