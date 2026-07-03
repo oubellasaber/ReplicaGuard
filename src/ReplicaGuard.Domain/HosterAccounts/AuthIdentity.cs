@@ -5,7 +5,6 @@ namespace ReplicaGuard.Domain.HosterAccounts;
 public sealed class AuthIdentity : Entity<Guid>
 {
     public IdentityType Type { get; }
-    // is active
     public string? Value { get; }
 
     // The identity does NOT own secrets.

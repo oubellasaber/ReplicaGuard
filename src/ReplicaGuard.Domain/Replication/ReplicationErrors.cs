@@ -1,6 +1,5 @@
 using ReplicaGuard.Domain.Abstractions;
 using ReplicaGuard.Domain.Common;
-using ReplicaGuard.Domain.Hosters;
 
 namespace ReplicaGuard.Domain.Replication;
 
@@ -33,19 +32,22 @@ public static class ReplicationErrors
             ErrorType.InvalidInput);
 
     public static Error FileUrlInvalid(string url) =>
-        new("FileUrl.Invalid",
-            $"The provided URL '{url}' is not a valid absolute URI.",
-            ErrorType.InvalidInput);
+        new Error("FileUrl.Invalid",
+            $"The provided URL is not a valid absolute URI.",
+            ErrorType.InvalidInput)
+        .WithMetadata("Url", url);
 
     public static Error FileUrlUnsupportedScheme(string scheme) =>
-        new("FileUrl.UnsupportedScheme",
-            $"URL scheme '{scheme}' is not supported. Only HTTP and HTTPS are allowed.",
-            ErrorType.InvalidInput);
+        new Error("FileUrl.UnsupportedScheme",
+            $"URL scheme is not supported. Only HTTP and HTTPS are allowed.",
+            ErrorType.InvalidInput)
+        .WithMetadata("schema", scheme)
+        .WithMetadata("SupportedSchemas", new string[] { "https", "http" });
 
     // RemoteFileSource errors
-    public static Error HeadersCannotBeNull =>
-        new("RemoteFileSource.HeadersNull",
-            "Headers dictionary cannot be null.",
+    public static Error HeadersCannotBeEmpty =>
+        new("RemoteFileSource.HeadersNullOrEmpty",
+            "Headers dictionary cannot be null or empty.",
             ErrorType.InvalidInput);
 
     // LocalFileSource errors
@@ -60,9 +62,10 @@ public static class ReplicationErrors
             ErrorType.NotFound);
 
     public static Error FileAccessDenied(string filePath) =>
-        new("LocalFileSource.FileAccessDenied",
-            $"Access denied to file: {filePath}",
-            ErrorType.Forbidden);
+        new Error("LocalFileSource.FileAccessDenied",
+            $"Access denied to the file in the specified path.",
+            ErrorType.Forbidden)
+        .WithMetadata("FilePath", filePath);
 
     // FileName errors
     public static Error FileNameEmpty =>
@@ -76,7 +79,9 @@ public static class ReplicationErrors
             ErrorType.InvalidInput);
 
     public static Error FileNameTooLong(int length) =>
-        new("FileName.TooLong",
-            $"File name is too long ({length} characters). Maximum allowed is 255 characters.",
-            ErrorType.InvalidInput);
+        new Error("FileName.TooLong",
+            $"File name is too long than maximum allowed characters.",
+            ErrorType.InvalidInput)
+        .WithMetadata("FileLength", length)
+        .WithMetadata("AllowedLength", 255);
 }

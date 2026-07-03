@@ -11,7 +11,7 @@ public sealed class Asset : Entity<Guid>
     public FileSource Source { get; private set; } = null!;
     public FileName FileName { get; private set; } = default!;
     // Calculated
-    public AssetStatus Status => RecalculateStatus();
+    public AssetStatus Status => CalculateStatus();
     public long? SizeBytes { get; private set; }
     public DateTime CreatedAtUtc { get; private set; }
     public DateTime UpdatedAtUtc { get; private set; }
@@ -91,7 +91,7 @@ public sealed class Asset : Entity<Guid>
 
     /// <summary>
     /// Creates an asset from a local file path on the user's computer.
-    /// File is already accessible, no download needed (starts as Created, but can be immediately spooled).
+    /// File is already accessible, no download needed (starts as Created, but can be immediately uploaded).
     /// </summary>
     public static Result<Asset> CreateFromLocalPath(
         Guid userId,
@@ -147,7 +147,7 @@ public sealed class Asset : Entity<Guid>
         UpdatedAtUtc = utcNow;
     }
 
-    private AssetStatus RecalculateStatus()
+    private AssetStatus CalculateStatus()
     {
         if (!_replicas.Any() || _replicas.All(r => r.Status == ReplicaStatus.Pending))
             return AssetStatus.Created;

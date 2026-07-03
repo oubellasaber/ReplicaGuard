@@ -14,10 +14,19 @@ public sealed class RequirementPath
         _required = required.ToHashSet();
     }
 
-    public bool IsSatisfiedBy(IEnumerable<AuthIdentity> identities, bool onlyVerified = true)
+    public bool IsVerifiedSatisfiedBy(IEnumerable<AuthIdentity> identities)
     {
         var provided = identities
-            .Where(i => !onlyVerified || i.Status == IdentityVerificationStatus.Verified)
+            .Where(i => i.Status == IdentityVerificationStatus.Verified)
+            .Select(i => i.Type)
+            .ToHashSet();
+
+        return _required.IsSubsetOf(provided);
+    }
+
+    public bool IsSatisfiedBy(IEnumerable<AuthIdentity> identities)
+    {
+        var provided = identities
             .Select(i => i.Type)
             .ToHashSet();
 

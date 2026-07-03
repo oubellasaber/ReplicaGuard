@@ -1,7 +1,7 @@
-﻿using System.Reflection.Emit;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using ReplicaGuard.Domain.HosterAccounts;
+using ReplicaGuard.Domain.Hosters;
 
 namespace ReplicaGuard.Infrastructure.Persistence.Configurations;
 
@@ -13,8 +13,8 @@ public sealed class HosterAccountConfiguration : IEntityTypeConfiguration<Hoster
 
         b.HasKey(x => x.Id);
 
-        b.Property(x => x.HosterId)
-            .HasConversion<int>()
+        b.Property(x => x.HosterCode)
+            .HasConversion<short>()
             .IsRequired();
 
         b.Property(x => x.UserId)
@@ -33,6 +33,11 @@ public sealed class HosterAccountConfiguration : IEntityTypeConfiguration<Hoster
 
         b.Property(x => x.UpdatedAtUtc)
             .IsRequired();
+
+        b.HasOne<Hoster>()
+            .WithMany()
+            .HasForeignKey(x => x.HosterCode)
+            .HasPrincipalKey(x => x.Code);
 
         b.HasMany(x => x.Identities)
             .WithOne()

@@ -26,14 +26,14 @@ internal sealed class VerifiyIdentityCommandHandler(
         var identity = account.Identities.Single(i => i.Id == identityId);
 
         // 3. Resolve hoster definition
-        var def = resolver.Resolve(account.HosterId);
+        var def = resolver.Resolve(account.HosterCode);
         if (def is null)
-            return Result.Failure(HosterErrors.NotFound(account.HosterId));
+            return Result.Failure(HosterErrors.NotFound(account.HosterCode));
 
         // 4. Resolve verification capability handler
-        var handler = factory.Get<IIdentityVerificationHandler>(account.HosterId);
+        var handler = factory.Get<IIdentityVerificationHandler>(account.HosterCode);
         if (handler is null)
-            return Result.Failure(IdentityVerificationErrors.NotSupported(account.HosterId));
+            return Result.Failure(IdentityVerificationErrors.NotSupported(account.HosterCode));
         
         // 5. Build verification request
         var verifyRequest = new IdentityVerificationRequest(identity);

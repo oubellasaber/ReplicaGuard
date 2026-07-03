@@ -117,7 +117,7 @@ public sealed class CreateAssetCommandHandler(
 
         foreach (var account in accounts)
         {
-            var def = resolver.Resolve(account.HosterId);
+            var def = resolver.Resolve(account.HosterCode);
 
             // 1. Resolve capability requirement
             var requirement = def.GetRequirement(capability);

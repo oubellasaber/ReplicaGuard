@@ -9,7 +9,7 @@ public class UserErrors
     public static Error UsernameAlreadyTaken(string username) =>
         new Error(
             code: "User.UsernameAlreadyTaken",
-            message: "Username Already Taken"
+            message: "The provided username is already taken"
         )
         .WithDetail($"The username '{username}' is already in use.")
         .WithType(ErrorType.Conflict);
@@ -17,13 +17,13 @@ public class UserErrors
     public static Error EmailAlreadyTaken(string email) =>
         new Error(
             code: "User.EmailAlreadyTaken",
-            message: "EmailPayload Already Taken"
+            message: "The provided email is already taken"
         )
         .WithDetail($"The email address '{email}' is already registered.")
         .WithType(ErrorType.Conflict);
 
     public static readonly Error InvalidCredentials =
-       new Error(code: "User.InvalidCredentials", message: "Invalid Credentials")
+       new Error(code: "User.InvalidCredentials", message: "Invalid credentials")
        .WithDetail("The email or password you entered is incorrect.")
        .WithType(ErrorType.Unauthorized);
 }

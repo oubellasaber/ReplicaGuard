@@ -44,10 +44,10 @@ public sealed class HosterAccountErrors
         .WithMetadata("Capability", capability)
         .WithMetadata("RequiredIdentities", requirement);
 
-    public static Error NoAccountSetUp(Guid userId, IEnumerable<HosterCode> hosterIds) => new Error(
+    public static Error NoAccountSetUp(Guid userId, IEnumerable<Guid> hosterIds) => new Error(
         code: "HosterAccount.NoAccountSetUp",
         message: "The user does not have any accounts set up for the specified hosters.",
         type: ErrorType.Validation)
         .WithMetadata("UserId", userId)
-        .WithMetadata("HosterIds", hosterIds.Select(h => h.ToFriendlyString()));
+        .WithMetadata("HosterIds", hosterIds);
 }
