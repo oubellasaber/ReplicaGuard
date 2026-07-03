@@ -37,30 +37,12 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "hoster_accounts",
-                schema: "replicaguard",
-                columns: table => new
-                {
-                    id = table.Column<Guid>(type: "uuid", nullable: false),
-                    hoster_id = table.Column<int>(type: "integer", nullable: false),
-                    user_id = table.Column<Guid>(type: "uuid", nullable: false),
-                    alias = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: false),
-                    description = table.Column<string>(type: "character varying(1024)", maxLength: 1024, nullable: true),
-                    created_at_utc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    updated_at_utc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("pk_hoster_accounts", x => x.id);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "hosters",
                 schema: "replicaguard",
                 columns: table => new
                 {
                     id = table.Column<Guid>(type: "uuid", nullable: false),
-                    code = table.Column<short>(type: "smallint", nullable: false),
+                    code = table.Column<int>(type: "integer", nullable: false),
                     display_name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
                     created_at_utc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "now()"),
                     updated_at_utc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "now()")
@@ -68,6 +50,7 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("pk_hosters", x => x.id);
+                    table.UniqueConstraint("ak_hoster_code", x => x.code);
                 });
 
             migrationBuilder.CreateTable(
@@ -157,51 +140,28 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "replicas",
+                name: "hoster_accounts",
                 schema: "replicaguard",
                 columns: table => new
                 {
                     id = table.Column<Guid>(type: "uuid", nullable: false),
-                    asset_id = table.Column<Guid>(type: "uuid", nullable: false),
-                    hoster_id = table.Column<Guid>(type: "uuid", nullable: false),
-                    hoster_account_id = table.Column<Guid>(type: "uuid", nullable: true),
-                    status = table.Column<int>(type: "integer", nullable: false),
-                    link = table.Column<string>(type: "character varying(2048)", maxLength: 2048, nullable: true),
-                    waiting_for_replica_id = table.Column<Guid>(type: "uuid", nullable: true),
-                    created_at_utc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "now()"),
-                    updated_at_utc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "now()")
+                    hoster_code = table.Column<int>(type: "integer", nullable: false),
+                    user_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    alias = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: false),
+                    description = table.Column<string>(type: "character varying(1024)", maxLength: 1024, nullable: true),
+                    created_at_utc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    updated_at_utc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("pk_replicas", x => x.id);
+                    table.PrimaryKey("pk_hoster_accounts", x => x.id);
                     table.ForeignKey(
-                        name: "fk_replicas_assets_asset_id",
-                        column: x => x.asset_id,
-                        principalSchema: "replicaguard",
-                        principalTable: "assets",
-                        principalColumn: "id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "fk_replicas_hoster_accounts_hoster_account_id",
-                        column: x => x.hoster_account_id,
-                        principalSchema: "replicaguard",
-                        principalTable: "hoster_accounts",
-                        principalColumn: "id",
-                        onDelete: ReferentialAction.SetNull);
-                    table.ForeignKey(
-                        name: "fk_replicas_hosters_hoster_id",
-                        column: x => x.hoster_id,
+                        name: "fk_hoster_accounts_hoster_hoster_code",
+                        column: x => x.hoster_code,
                         principalSchema: "replicaguard",
                         principalTable: "hosters",
-                        principalColumn: "id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "fk_replicas_replicas_waiting_for_replica_id",
-                        column: x => x.waiting_for_replica_id,
-                        principalSchema: "replicaguard",
-                        principalTable: "replicas",
-                        principalColumn: "id",
-                        onDelete: ReferentialAction.Restrict);
+                        principalColumn: "code",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -250,6 +210,30 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "secrets",
+                schema: "replicaguard",
+                columns: table => new
+                {
+                    id = table.Column<Guid>(type: "uuid", nullable: false),
+                    type = table.Column<int>(type: "integer", nullable: false),
+                    encrypted_secret = table.Column<byte[]>(type: "bytea", nullable: false),
+                    created_at_utc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "now()"),
+                    updated_at_utc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "now()"),
+                    secret_set_id = table.Column<Guid>(type: "uuid", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("pk_secrets", x => x.id);
+                    table.ForeignKey(
+                        name: "fk_secrets_secret_set_secret_set_id",
+                        column: x => x.secret_set_id,
+                        principalSchema: "replicaguard",
+                        principalTable: "secret_sets",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "auth_identities",
                 schema: "replicaguard",
                 columns: table => new
@@ -283,27 +267,51 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "secrets",
+                name: "replicas",
                 schema: "replicaguard",
                 columns: table => new
                 {
                     id = table.Column<Guid>(type: "uuid", nullable: false),
-                    type = table.Column<int>(type: "integer", nullable: false),
-                    encrypted_secret = table.Column<byte[]>(type: "bytea", nullable: false),
+                    asset_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    hoster_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    hoster_account_id = table.Column<Guid>(type: "uuid", nullable: true),
+                    status = table.Column<int>(type: "integer", nullable: false),
+                    link = table.Column<string>(type: "character varying(2048)", maxLength: 2048, nullable: true),
+                    waiting_for_replica_id = table.Column<Guid>(type: "uuid", nullable: true),
                     created_at_utc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "now()"),
-                    updated_at_utc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "now()"),
-                    secret_set_id = table.Column<Guid>(type: "uuid", nullable: true)
+                    updated_at_utc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "now()")
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("pk_secrets", x => x.id);
+                    table.PrimaryKey("pk_replicas", x => x.id);
                     table.ForeignKey(
-                        name: "fk_secrets_secret_set_secret_set_id",
-                        column: x => x.secret_set_id,
+                        name: "fk_replicas_assets_asset_id",
+                        column: x => x.asset_id,
                         principalSchema: "replicaguard",
-                        principalTable: "secret_sets",
+                        principalTable: "assets",
                         principalColumn: "id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "fk_replicas_hoster_accounts_hoster_account_id",
+                        column: x => x.hoster_account_id,
+                        principalSchema: "replicaguard",
+                        principalTable: "hoster_accounts",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.SetNull);
+                    table.ForeignKey(
+                        name: "fk_replicas_hosters_hoster_id",
+                        column: x => x.hoster_id,
+                        principalSchema: "replicaguard",
+                        principalTable: "hosters",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "fk_replicas_replicas_waiting_for_replica_id",
+                        column: x => x.waiting_for_replica_id,
+                        principalSchema: "replicaguard",
+                        principalTable: "replicas",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateIndex(
@@ -323,6 +331,12 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
                 schema: "replicaguard",
                 table: "auth_identities",
                 column: "secret_set_id");
+
+            migrationBuilder.CreateIndex(
+                name: "ix_hoster_accounts_hoster_code",
+                schema: "replicaguard",
+                table: "hoster_accounts",
+                column: "hoster_code");
 
             migrationBuilder.CreateIndex(
                 name: "ix_inbox_state_delivered",
@@ -464,11 +478,11 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
                 schema: "replicaguard");
 
             migrationBuilder.DropTable(
-                name: "hosters",
+                name: "secret_sets",
                 schema: "replicaguard");
 
             migrationBuilder.DropTable(
-                name: "secret_sets",
+                name: "hosters",
                 schema: "replicaguard");
         }
     }

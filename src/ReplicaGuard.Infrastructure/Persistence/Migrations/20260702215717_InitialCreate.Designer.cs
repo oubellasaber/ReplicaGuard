@@ -12,7 +12,7 @@ using ReplicaGuard.Infrastructure.Persistence;
 namespace ReplicaGuard.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260629162109_InitialCreate")]
+    [Migration("20260702215717_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -354,9 +354,9 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(1024)")
                         .HasColumnName("description");
 
-                    b.Property<int>("HosterId")
+                    b.Property<int>("HosterCode")
                         .HasColumnType("integer")
-                        .HasColumnName("hoster_id");
+                        .HasColumnName("hoster_code");
 
                     b.Property<DateTime>("UpdatedAtUtc")
                         .HasColumnType("timestamp with time zone")
@@ -368,6 +368,9 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_hoster_accounts");
+
+                    b.HasIndex("HosterCode")
+                        .HasDatabaseName("ix_hoster_accounts_hoster_code");
 
                     b.ToTable("hoster_accounts", "replicaguard");
                 });
@@ -433,8 +436,8 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
-                    b.Property<short>("Code")
-                        .HasColumnType("smallint")
+                    b.Property<int>("Code")
+                        .HasColumnType("integer")
                         .HasColumnName("code");
 
                     b.Property<DateTime>("CreatedAtUtc")
@@ -457,6 +460,9 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_hosters");
+
+                    b.HasAlternateKey("Code")
+                        .HasName("ak_hoster_code");
 
                     b.ToTable("hosters", "replicaguard");
                 });
@@ -654,6 +660,17 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
                         .HasConstraintName("fk_auth_identities_secret_set_secret_set_id");
 
                     b.Navigation("SecretSet");
+                });
+
+            modelBuilder.Entity("ReplicaGuard.Domain.HosterAccounts.HosterAccount", b =>
+                {
+                    b.HasOne("ReplicaGuard.Domain.Hosters.Hoster", null)
+                        .WithMany()
+                        .HasForeignKey("HosterCode")
+                        .HasPrincipalKey("Code")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_hoster_accounts_hoster_hoster_code");
                 });
 
             modelBuilder.Entity("ReplicaGuard.Domain.HosterAccounts.Secret", b =>
