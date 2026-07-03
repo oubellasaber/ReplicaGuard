@@ -1,0 +1,6 @@
+we should be tracking state changes
+(download, upload) => with progress
+
+up and dl endpoints should be ablt to report progress to some kind of services either by posting events and blocking function call
+
+There should be a handler for those events, it does stream chnages to the client and also save to db the updates to later be analyzed

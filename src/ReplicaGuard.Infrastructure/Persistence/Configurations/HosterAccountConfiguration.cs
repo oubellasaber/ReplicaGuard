@@ -14,7 +14,7 @@ public sealed class HosterAccountConfiguration : IEntityTypeConfiguration<Hoster
         b.HasKey(x => x.Id);
 
         b.Property(x => x.HosterCode)
-            .HasConversion<int>()
+            .HasConversion<short>()
             .IsRequired();
 
         b.Property(x => x.UserId)
