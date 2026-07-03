@@ -13,6 +13,5 @@ public sealed class ReplicaFailedDomainEventHandler(IIntegrationEventOutbox outb
     {
         var integrationEvent = new ReplicaFailedIntegrationEvent(evt.ReplicaId);
         await outbox.Add(integrationEvent);
-        return;
     }
 }

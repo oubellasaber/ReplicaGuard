@@ -14,6 +14,8 @@ public sealed class Replica : Entity<Guid>
     public DateTime CreatedAtUtc { get; private set; }
     public DateTime UpdatedAtUtc { get; private set; }
 
+    private readonly List<ReplicaStatusUpdate> _statusUpdates = [];
+
     // EF Core
     private Replica() { }
 
@@ -38,30 +40,24 @@ public sealed class Replica : Entity<Guid>
 
     public void MarkAsFailed()
     {
-        Status = ReplicaStatus.Failed;
-        UpdatedAtUtc = DateTime.UtcNow;
         RaiseDomainEvent(new ReplicaFailedDomainEvent(Id));
+        RecordTransition(ReplicaStatus.Failed);
     }
 
     public void MarkAsCompleted(Uri link)
     {
-        Status = ReplicaStatus.Completed;
         Link = link;
-        UpdatedAtUtc = DateTime.UtcNow;
+        RecordTransition(ReplicaStatus.Completed);
     }
 
     public void MarkAsWaitingForPeer(Guid peerReplicaId)
     {
-        Status = ReplicaStatus.WaitingForPeer;
         WaitingForReplicaId = peerReplicaId;
-        UpdatedAtUtc = DateTime.UtcNow;
+        RecordTransition(ReplicaStatus.WaitingForPeer);
     }
 
     public void MarkAsDownloading()
-    {
-        Status = ReplicaStatus.Downloading;
-        UpdatedAtUtc = DateTime.UtcNow;
-    }
+        => RecordTransition(ReplicaStatus.Downloading);
 
     public void MarkAsDownloaded()
     {
@@ -69,15 +65,60 @@ public sealed class Replica : Entity<Guid>
     }
 
     public void MarkAsUploading()
-    {
-        Status = ReplicaStatus.Uploading;
-        UpdatedAtUtc = DateTime.UtcNow;
-    }
+        => RecordTransition(ReplicaStatus.Uploading);
 
     public void MarkAsRetrying()
+        => RecordTransition(ReplicaStatus.Retrying);
+
+    public void ReportDownloadProgress(long bytesTransferred)
     {
-        Status = ReplicaStatus.Retrying;
+        if (Status is not ReplicaStatus.Downloading)
+        {
+            throw new InvalidOperationException(
+                "Cannot report transfer progress unless the replica is downloading.");
+        }
+
+        ReportTransferProgress(bytesTransferred);
+    }
+
+    public void ReportUploadProgress(long bytesTransferred)
+    {
+        if (Status is not ReplicaStatus.Uploading)
+        {
+            throw new InvalidOperationException(
+                "Cannot report transfer progress unless the replica is uploading.");
+        }
+
+        ReportTransferProgress(bytesTransferred);
+    }
+
+    private void ReportTransferProgress(long bytesTransferred)
+    {
+        if (bytesTransferred < 0)
+        {
+            throw new Exception(
+                "Bytes transferred cannot be negative.");
+        }
+
+        RecordTransition(
+            Status,
+            bytesTransferred);
+    }
+
+    private void RecordTransition(ReplicaStatus status, long? progress = null)
+    {
+        //EnsureTransitionIsValid(Status, newStatus);
+        Status = status;
         UpdatedAtUtc = DateTime.UtcNow;
+
+        _statusUpdates.Add(
+            new ReplicaStatusUpdate(
+                Id,
+                Status,
+                UpdatedAtUtc,
+                progress));
+
+        RaiseDomainEvent(new ReplicaStatusUpdatedDomainEvent(Id, Status, UpdatedAtUtc, progress));
     }
 
     internal void SetStatusForTesting(ReplicaStatus status)
