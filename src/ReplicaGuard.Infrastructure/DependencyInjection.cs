@@ -11,6 +11,7 @@ using Microsoft.IdentityModel.Tokens;
 using ReplicaGuard.Application.Abstractions.Authentication;
 using ReplicaGuard.Application.Abstractions.Clock;
 using ReplicaGuard.Application.Abstractions.Data;
+using ReplicaGuard.Application.Replication.ProgressStreaming;
 using ReplicaGuard.Application.Replication.UploadReplica.Fetching;
 using ReplicaGuard.Application.Replication.UploadReplica.Spooling;
 using ReplicaGuard.Domain.Abstractions;
@@ -35,6 +36,7 @@ using ReplicaGuard.Infrastructure.Persistence;
 using ReplicaGuard.Infrastructure.Repositories;
 using ReplicaGuard.Infrastructure.Seeding;
 using ReplicaGuard.Infrastructure.Spool;
+using ReplicaGuard.Infrastructure.Streaming;
 
 namespace ReplicaGuard.Infrastructure;
 
@@ -52,6 +54,7 @@ public static class DependencyInjection
         services.AddSingleton<ISpoolFileLocator, DiskSpoolFileLocator>();
         services.AddScoped<ISpoolLeaseService, SqlSpoolLeaseService>();
         services.AddScoped<IFileFetcher, FileFetcher>();
+        services.AddSingleton<IReplicaEventStream, SseReplicaEventStream>();
 
         //AddCaching(services, configuration);
 

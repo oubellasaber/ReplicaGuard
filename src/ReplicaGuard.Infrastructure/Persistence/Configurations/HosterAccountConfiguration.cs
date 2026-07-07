@@ -1,11 +1,11 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using ReplicaGuard.Domain.HosterAccounts;
-using ReplicaGuard.Domain.Hosters;
 
 namespace ReplicaGuard.Infrastructure.Persistence.Configurations;
 
-public sealed class HosterAccountConfiguration : IEntityTypeConfiguration<HosterAccount>
+internal sealed class HosterAccountConfiguration
+    : IEntityTypeConfiguration<HosterAccount>
 {
     public void Configure(EntityTypeBuilder<HosterAccount> b)
     {
@@ -13,8 +13,7 @@ public sealed class HosterAccountConfiguration : IEntityTypeConfiguration<Hoster
 
         b.HasKey(x => x.Id);
 
-        b.Property(x => x.HosterCode)
-            .HasConversion<int>()
+        b.Property(x => x.HosterId)
             .IsRequired();
 
         b.Property(x => x.UserId)
@@ -25,8 +24,7 @@ public sealed class HosterAccountConfiguration : IEntityTypeConfiguration<Hoster
             .IsRequired();
 
         b.Property(x => x.Description)
-            .HasMaxLength(1024)
-            .IsRequired(false);
+            .HasMaxLength(1024);
 
         b.Property(x => x.CreatedAtUtc)
             .IsRequired();
@@ -34,14 +32,14 @@ public sealed class HosterAccountConfiguration : IEntityTypeConfiguration<Hoster
         b.Property(x => x.UpdatedAtUtc)
             .IsRequired();
 
-        b.HasOne<Hoster>()
+        b.HasOne(x => x.Hoster)
             .WithMany()
-            .HasForeignKey(x => x.HosterCode)
-            .HasPrincipalKey(x => x.Code);
+            .HasForeignKey(x => x.HosterId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         b.HasMany(x => x.Identities)
             .WithOne()
-            .HasForeignKey("HosterAccountId") // shadow FK
+            .HasForeignKey("HosterAccountId")
             .OnDelete(DeleteBehavior.Cascade);
     }
 }

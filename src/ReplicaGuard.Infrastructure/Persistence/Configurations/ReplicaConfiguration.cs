@@ -52,6 +52,15 @@ internal sealed class ReplicaConfiguration : IEntityTypeConfiguration<Replica>
             .HasForeignKey(x => x.WaitingForReplicaId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        builder.HasMany(a => a.StatusTransitions)
+            .WithOne()
+            .HasForeignKey(r => r.ReplicaId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Navigation(x => x.StatusTransitions)
+            .UsePropertyAccessMode(PropertyAccessMode.Field)
+            .HasField("_statusTransitions");
+
         // Indexes
         builder.HasIndex(x => x.AssetId);
         builder.HasIndex(x => x.HosterId);

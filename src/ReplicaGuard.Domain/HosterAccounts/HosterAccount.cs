@@ -5,7 +5,10 @@ namespace ReplicaGuard.Domain.HosterAccounts;
 
 public sealed class HosterAccount : Entity<Guid>
 {
-    public HosterCode HosterCode { get; }
+    public Hoster Hoster { get; private set; } = null!;
+    public Guid HosterId { get; private set; }
+    public HosterCode HosterCode => Hoster.Code;
+
     public Guid UserId { get; }
     public string Alias { get; } = null!;
     public string? Description { get; }
@@ -23,23 +26,23 @@ public sealed class HosterAccount : Entity<Guid>
     internal HosterAccount() { }
 
     internal HosterAccount(
-        HosterCode code,
+        Guid hosterId,
         Guid userId,
         string alias,
         string? description)
         : base(Guid.NewGuid())
     {
-        HosterCode = code;
+        HosterId = hosterId;
         UserId = userId;
         Alias = alias;
         Description = description;
-        _identities = new List<AuthIdentity>();
         CreatedAtUtc = DateTime.UtcNow;
         UpdatedAtUtc = CreatedAtUtc;
     }
 
     public static Result<HosterAccount> Create(
-        IHosterDefinition hoster,
+        IHosterDefinition hosterDefinition,
+        Hoster hoster,
         Guid userId,
         string alias,
         string? description,
@@ -48,10 +51,10 @@ public sealed class HosterAccount : Entity<Guid>
     {
         if (initialIdentities == null || !initialIdentities.Any())
             return Result.Failure<HosterAccount>(
-                HosterAccountErrors.PrimaryIdentitiesNotSatisfied(hoster.PrimaryIdentities, hoster.Code));
+                HosterAccountErrors.PrimaryIdentitiesNotSatisfied(hosterDefinition.PrimaryIdentities, hoster.Code));
 
         var account = new HosterAccount(
-            hoster.Code,
+            hoster.Id,
             userId,
             alias,
             description);
@@ -59,20 +62,20 @@ public sealed class HosterAccount : Entity<Guid>
         foreach (var pending in initialIdentities)
         {
             account.AddIdentity(
-                hoster,
+                hosterDefinition,
                 pending,
                 encryptionService);
         }
 
-        if (!hoster.PrimaryIdentities.IsVerifiedSatisfiedBy(account.Identities))
+        if (!hosterDefinition.PrimaryIdentities.IsSatisfiedBy(account.Identities))
             return Result.Failure<HosterAccount>(
-                HosterAccountErrors.PrimaryIdentitiesNotSatisfied(hoster.PrimaryIdentities, hoster.Code));
+                HosterAccountErrors.PrimaryIdentitiesNotSatisfied(hosterDefinition.PrimaryIdentities, hosterDefinition.Code));
 
         return Result.Success(account);
     }
 
     public AuthIdentity AddIdentity(
-        IHosterDefinition hoster,
+        IHosterDefinition hosterDefinition,
         IdentityPayload payload,
         ISecretEncryptionService encryption)
     {
@@ -80,7 +83,7 @@ public sealed class HosterAccount : Entity<Guid>
         {
             IdentityPayload.EmailPayload e =>
                 AddIdentity(
-                    hoster,
+                    hosterDefinition,
                     IdentityType.Email,
                     e.Email,
                     new Dictionary<SecretType, string>
@@ -91,7 +94,7 @@ public sealed class HosterAccount : Entity<Guid>
 
             IdentityPayload.UsernamePayload u =>
                 AddIdentity(
-                    hoster,
+                    hosterDefinition,
                     IdentityType.Username,
                     u.Username,
                     new Dictionary<SecretType, string>
@@ -102,7 +105,7 @@ public sealed class HosterAccount : Entity<Guid>
 
             IdentityPayload.ApiKeyPayload a =>
                 AddIdentity(
-                    hoster,
+                    hosterDefinition,
                     IdentityType.ApiKey,
                     null,
                     new Dictionary<SecretType, string>
@@ -145,20 +148,15 @@ public sealed class HosterAccount : Entity<Guid>
     /// This method guarantees the aggregate cannot enter an invalid state.
     /// </summary>
     private AuthIdentity AddIdentity(
-        IHosterDefinition hoster,
+        IHosterDefinition hosterDefinition,
         IdentityType type,
         string? value,
         Dictionary<SecretType, string> plaintextSecrets,
         ISecretEncryptionService encryptionService)
     {
-        // 1. Ensure the hoster definition matches the account.
-        //    Prevents using Pixeldrain rules on a Send.cm account, etc.
-        if (hoster.Code != HosterCode)
-            throw new InvalidOperationException("HosterCode mismatch.");
-
-        // 2. Determine which identity group this identity belongs to.
+        // 1. Determine which identity group this identity belongs to.
         //    Each identity type MUST belong to exactly one group.
-        var group = hoster.GroupFor(type);
+        var group = hosterDefinition.GroupFor(type);
 
         if (group == null)
             throw new InvalidOperationException("No identity group found for the specified type.");
@@ -168,10 +166,10 @@ public sealed class HosterAccount : Entity<Guid>
             .Select(kvp => Secret.CreateNew(kvp.Key, SecretValue.CreateFromPlaintext(kvp.Value, encryptionService)))
             .ToList();
 
-        // 3. Resolve the correct SecretSet:
+        // 2. Resolve the correct SecretSet:
         //    - Reuse an existing one if another identity in the same group exists.
         //    - Otherwise create a new SecretSet.
-        var secretSet = ResolveSecretSetFor(hoster, type, group, encryptedSecrets);
+        var secretSet = ResolveSecretSetFor(hosterDefinition, type, group, encryptedSecrets);
         // 4. Create the identity and attach it to the account.
         var identity = AuthIdentity.CreateNew(type, value, secretSet);
         _identities.Add(identity);
@@ -278,7 +276,7 @@ public sealed class HosterAccount : Entity<Guid>
     // Validate primary credentials (OR-of-ANDs)
     public bool HasValidPrimaryIdentities(IHosterDefinition hoster)
     {
-        if (hoster.Code != HosterCode)
+        if (hoster.Code != Hoster.Code)
             throw new InvalidOperationException("The provided hoster does not match the hoster account's hoster.");
 
         var requirement = hoster.PrimaryIdentities;
@@ -288,14 +286,6 @@ public sealed class HosterAccount : Entity<Guid>
     // Check if the account can perform a specific capability by validating the associated requirement against the account's identities. (OR-of-ANDs)
     internal bool CanPerform(CapabilityRequirement requirement)
         => requirement.IsSatisfiedBy(_identities);
-
-    public bool CanPerform(CapabilityCode capability, IHosterDefinition hoster)
-    {
-        if (hoster.Code != HosterCode)
-            throw new InvalidOperationException("The provided hoster does not match the hoster account's hoster.");
-        var requirement = hoster.GetRequirement(capability);
-        return requirement != null && CanPerform(requirement);
-    }
 
     public AuthIdentity GetAuthIdentity(IdentityType type)
     {

@@ -103,7 +103,15 @@ internal sealed class AssetConfiguration : IEntityTypeConfiguration<Asset>
             ?? new Dictionary<string, string>();
         object? body = data["Body"]?.ToObject<object>();
 
-        return RemoteFileSource.Create(url, headers, body).Value;
+        var result = RemoteFileSource.Create(url, headers, body);
+
+        if (result.IsFailure)
+        {
+            throw new InvalidOperationException(
+                $"Failed to deserialize RemoteFileSource: {result.Error}");
+        }
+
+        return result.Value;
     }
 
     private static LocalFileSource DeserializeLocalFileSource(JObject data)

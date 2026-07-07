@@ -52,7 +52,7 @@ public sealed record RemoteFileSource : FileSource
         if (fileUrlResult.IsFailure)
             return Result.Failure<RemoteFileSource>(fileUrlResult.Error);
 
-        if (headers == null || !headers.Any())
+        if (headers == null)
             return Result.Failure<RemoteFileSource>(
                 ReplicationErrors.HeadersCannotBeEmpty);
 
@@ -74,7 +74,7 @@ public sealed record RemoteFileSource : FileSource
         if (fileUrlResult.IsFailure)
             return Result.Failure<RemoteFileSource>(fileUrlResult.Error);
 
-        if (headers is null || !headers.Any())
+        if (headers is null)
             return Result.Failure<RemoteFileSource>(
                 ReplicationErrors.HeadersCannotBeEmpty);
 

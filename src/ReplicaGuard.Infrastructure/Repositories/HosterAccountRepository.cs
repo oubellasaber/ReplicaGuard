@@ -14,6 +14,7 @@ internal sealed class HosterAccountRepository : Repository<HosterAccount>, IHost
     {
         return await DbContext.Set<HosterAccount>()
             .Where(a => a.Id == id)
+            .Include(a => a.Hoster)
             .Include(a => a.Identities)
                 .ThenInclude(i => i.SecretSet)
                     .ThenInclude(s => s.Secrets)
@@ -24,6 +25,7 @@ internal sealed class HosterAccountRepository : Repository<HosterAccount>, IHost
     {
         return await DbContext.Set<HosterAccount>()
             .Where(a => a.UserId == userId && accounts.Contains(a.Id))
+            .Include(a => a.Hoster)
             .Include(a => a.Identities)
                 .ThenInclude(i => i.SecretSet)
                     .ThenInclude(s => s.Secrets)
@@ -34,6 +36,7 @@ internal sealed class HosterAccountRepository : Repository<HosterAccount>, IHost
     {
         return await DbContext.Set<HosterAccount>()
             .Where(a => a.Identities.Any(i => i.Id == identityId))
+            .Include(a => a.Hoster)
             .Include(a => a.Identities)
                 .ThenInclude(i => i.SecretSet)
                     .ThenInclude(s => s.Secrets)

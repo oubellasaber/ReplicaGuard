@@ -7,7 +7,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace ReplicaGuard.Infrastructure.Persistence.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class Init : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -50,7 +50,6 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("pk_hosters", x => x.id);
-                    table.UniqueConstraint("ak_hoster_code", x => x.code);
                 });
 
             migrationBuilder.CreateTable(
@@ -145,7 +144,7 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
                 columns: table => new
                 {
                     id = table.Column<Guid>(type: "uuid", nullable: false),
-                    hoster_code = table.Column<int>(type: "integer", nullable: false),
+                    hoster_id = table.Column<Guid>(type: "uuid", nullable: false),
                     user_id = table.Column<Guid>(type: "uuid", nullable: false),
                     alias = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: false),
                     description = table.Column<string>(type: "character varying(1024)", maxLength: 1024, nullable: true),
@@ -156,11 +155,11 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
                 {
                     table.PrimaryKey("pk_hoster_accounts", x => x.id);
                     table.ForeignKey(
-                        name: "fk_hoster_accounts_hoster_hoster_code",
-                        column: x => x.hoster_code,
+                        name: "fk_hoster_accounts_hoster_hoster_id",
+                        column: x => x.hoster_id,
                         principalSchema: "replicaguard",
                         principalTable: "hosters",
-                        principalColumn: "code",
+                        principalColumn: "id",
                         onDelete: ReferentialAction.Cascade);
                 });
 
@@ -314,6 +313,28 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
                         onDelete: ReferentialAction.Restrict);
                 });
 
+            migrationBuilder.CreateTable(
+                name: "replica_status_transitions",
+                schema: "replicaguard",
+                columns: table => new
+                {
+                    id = table.Column<Guid>(type: "uuid", nullable: false),
+                    replica_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    status = table.Column<int>(type: "integer", nullable: false),
+                    occurred_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("pk_replica_status_transitions", x => x.id);
+                    table.ForeignKey(
+                        name: "fk_replica_status_transitions_replicas_replica_id",
+                        column: x => x.replica_id,
+                        principalSchema: "replicaguard",
+                        principalTable: "replicas",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
             migrationBuilder.CreateIndex(
                 name: "ix_assets_user_id",
                 schema: "replicaguard",
@@ -333,10 +354,17 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
                 column: "secret_set_id");
 
             migrationBuilder.CreateIndex(
-                name: "ix_hoster_accounts_hoster_code",
+                name: "ix_hoster_accounts_hoster_id",
                 schema: "replicaguard",
                 table: "hoster_accounts",
-                column: "hoster_code");
+                column: "hoster_id");
+
+            migrationBuilder.CreateIndex(
+                name: "ix_hosters_code",
+                schema: "replicaguard",
+                table: "hosters",
+                column: "code",
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "ix_inbox_state_delivered",
@@ -375,6 +403,12 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
                 schema: "transport",
                 table: "outbox_state",
                 column: "created");
+
+            migrationBuilder.CreateIndex(
+                name: "ix_replica_status_transitions_replica_id",
+                schema: "replicaguard",
+                table: "replica_status_transitions",
+                column: "replica_id");
 
             migrationBuilder.CreateIndex(
                 name: "ix_replicas_asset_id",
@@ -446,7 +480,7 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
                 schema: "transport");
 
             migrationBuilder.DropTable(
-                name: "replicas",
+                name: "replica_status_transitions",
                 schema: "replicaguard");
 
             migrationBuilder.DropTable(
@@ -470,15 +504,19 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
                 schema: "transport");
 
             migrationBuilder.DropTable(
+                name: "replicas",
+                schema: "replicaguard");
+
+            migrationBuilder.DropTable(
+                name: "secret_sets",
+                schema: "replicaguard");
+
+            migrationBuilder.DropTable(
                 name: "assets",
                 schema: "replicaguard");
 
             migrationBuilder.DropTable(
                 name: "hoster_accounts",
-                schema: "replicaguard");
-
-            migrationBuilder.DropTable(
-                name: "secret_sets",
                 schema: "replicaguard");
 
             migrationBuilder.DropTable(

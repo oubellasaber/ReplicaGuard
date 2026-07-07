@@ -11,7 +11,6 @@ internal static class SendCmFileCodeParser
     {
         try
         {
-            await using var stream = await response.Content.ReadAsStreamAsync(ct);
             var body = await response.Content.ReadAsStringAsync();
             int jsonStart = body.IndexOf('[');
             if (jsonStart < 0)

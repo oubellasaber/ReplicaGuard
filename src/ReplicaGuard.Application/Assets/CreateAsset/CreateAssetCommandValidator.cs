@@ -36,8 +36,8 @@ public sealed class CreateAssetCommandValidator : AbstractValidator<CreateAssetC
             .ChildRules(hoster =>
             {
                 hoster.RuleFor(h => h.HosterId)
-                    .IsInEnum()
-                    .WithMessage("Invalid hoster code provided.");
+                    .NotEmpty()
+                    .WithMessage("HosterId cannot be empty.");
 
                 hoster.RuleFor(h => h.HosterAccountId)
                     .NotEmpty()

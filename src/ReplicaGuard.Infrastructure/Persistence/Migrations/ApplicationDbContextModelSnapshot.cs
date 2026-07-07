@@ -351,9 +351,9 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(1024)")
                         .HasColumnName("description");
 
-                    b.Property<int>("HosterCode")
-                        .HasColumnType("integer")
-                        .HasColumnName("hoster_code");
+                    b.Property<Guid>("HosterId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("hoster_id");
 
                     b.Property<DateTime>("UpdatedAtUtc")
                         .HasColumnType("timestamp with time zone")
@@ -366,8 +366,8 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
                     b.HasKey("Id")
                         .HasName("pk_hoster_accounts");
 
-                    b.HasIndex("HosterCode")
-                        .HasDatabaseName("ix_hoster_accounts_hoster_code");
+                    b.HasIndex("HosterId")
+                        .HasDatabaseName("ix_hoster_accounts_hoster_id");
 
                     b.ToTable("hoster_accounts", "replicaguard");
                 });
@@ -458,8 +458,9 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
                     b.HasKey("Id")
                         .HasName("pk_hosters");
 
-                    b.HasAlternateKey("Code")
-                        .HasName("ak_hoster_code");
+                    b.HasIndex("Code")
+                        .IsUnique()
+                        .HasDatabaseName("ix_hosters_code");
 
                     b.ToTable("hosters", "replicaguard");
                 });
@@ -573,6 +574,34 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
                     b.ToTable("replicas", "replicaguard");
                 });
 
+            modelBuilder.Entity("ReplicaGuard.Domain.Replication.ReplicaStatusTransition", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("OccurredAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("occurred_at");
+
+                    b.Property<Guid>("ReplicaId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("replica_id");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer")
+                        .HasColumnName("status");
+
+                    b.HasKey("Id")
+                        .HasName("pk_replica_status_transitions");
+
+                    b.HasIndex("ReplicaId")
+                        .HasDatabaseName("ix_replica_status_transitions_replica_id");
+
+                    b.ToTable("replica_status_transitions", "replicaguard");
+                });
+
             modelBuilder.Entity("ReplicaGuard.Domain.Users.User", b =>
                 {
                     b.Property<Guid>("Id")
@@ -661,13 +690,14 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("ReplicaGuard.Domain.HosterAccounts.HosterAccount", b =>
                 {
-                    b.HasOne("ReplicaGuard.Domain.Hosters.Hoster", null)
+                    b.HasOne("ReplicaGuard.Domain.Hosters.Hoster", "Hoster")
                         .WithMany()
-                        .HasForeignKey("HosterCode")
-                        .HasPrincipalKey("Code")
+                        .HasForeignKey("HosterId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
-                        .HasConstraintName("fk_hoster_accounts_hoster_hoster_code");
+                        .HasConstraintName("fk_hoster_accounts_hoster_hoster_id");
+
+                    b.Navigation("Hoster");
                 });
 
             modelBuilder.Entity("ReplicaGuard.Domain.HosterAccounts.Secret", b =>
@@ -708,6 +738,16 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
                         .HasConstraintName("fk_replicas_replicas_waiting_for_replica_id");
                 });
 
+            modelBuilder.Entity("ReplicaGuard.Domain.Replication.ReplicaStatusTransition", b =>
+                {
+                    b.HasOne("ReplicaGuard.Domain.Replication.Replica", null)
+                        .WithMany("StatusTransitions")
+                        .HasForeignKey("ReplicaId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_replica_status_transitions_replicas_replica_id");
+                });
+
             modelBuilder.Entity("ReplicaGuard.Domain.HosterAccounts.HosterAccount", b =>
                 {
                     b.Navigation("Identities");
@@ -721,6 +761,11 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("ReplicaGuard.Domain.Replication.Asset", b =>
                 {
                     b.Navigation("Replicas");
+                });
+
+            modelBuilder.Entity("ReplicaGuard.Domain.Replication.Replica", b =>
+                {
+                    b.Navigation("StatusTransitions");
                 });
 #pragma warning restore 612, 618
         }

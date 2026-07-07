@@ -3,6 +3,7 @@ using Microsoft.Extensions.Options;
 using ReplicaGuard.Application.Replication.UploadReplica.Fetching;
 using ReplicaGuard.Application.Replication.UploadReplica.Spooling;
 using ReplicaGuard.Domain.Abstractions;
+using ReplicaGuard.Domain.Capabilities;
 using ReplicaGuard.Domain.Replication;
 
 namespace ReplicaGuard.Infrastructure.Hosters;
@@ -29,6 +30,7 @@ public sealed class FileFetcher : IFileFetcher
     public async Task<Result<SpooledFile>> DownloadAsync(
         Guid assetId,
         RemoteFileSource source,
+        Action<TransferProgress>? onProgress = null,
         CancellationToken ct = default)
     {
         string spoolPath = _spoolFileLocator.GetSpoolPath(assetId);
@@ -59,13 +61,22 @@ public sealed class FileFetcher : IFileFetcher
             response.EnsureSuccessStatusCode();
 
             await using FileStream fs = File.Create(spoolPath);
-            await response.Content.CopyToAsync(fs, ct);
+            await using Stream remoteStream = await response.Content.ReadAsStreamAsync(ct);
 
-            long sizeBytes = fs.Length;
+            byte[] buffer = new byte[81920]; // 80 KB chunks
+            int bytesRead;
+            long totalRead = 0;
 
-            _logger.LogInformation("Downloaded {Bytes} bytes to {Path}", sizeBytes, spoolPath);
+            while ((bytesRead = await remoteStream.ReadAsync(buffer, 0, buffer.Length, ct)) > 0)
+            {
+                await fs.WriteAsync(buffer, 0, bytesRead, ct);
+                totalRead += bytesRead;
+                onProgress?.Invoke(new TransferProgress(totalRead));
+            }
 
-            return Result.Success(new SpooledFile(spoolPath, sizeBytes));
+            _logger.LogInformation("Downloaded {Bytes} bytes to {Path}", totalRead, spoolPath);
+
+            return Result.Success(new SpooledFile(spoolPath, totalRead));
         }
         catch (Exception ex)
         {
@@ -74,5 +85,3 @@ public sealed class FileFetcher : IFileFetcher
         }
     }
 }
-
-

@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
 using ReplicaGuard.Application.Abstractions.Clock;
 using ReplicaGuard.Application.Abstractions.Messaging;
+using ReplicaGuard.Application.Replication.ProgressStreaming;
 using ReplicaGuard.Application.Replication.UploadReplica.Fetching;
 using ReplicaGuard.Application.Replication.UploadReplica.Spooling;
 using ReplicaGuard.Domain.Abstractions;
@@ -26,6 +27,7 @@ public sealed class UploadReplicaCommandHandler
     private readonly IUnitOfWork _unitOfWork;
     private readonly IDateTimeProvider _dateTimeProvider;
     private readonly ILogger<UploadReplicaCommandHandler> _logger;
+    private readonly IReplicaEventStream _eventStream;
 
     public UploadReplicaCommandHandler(
         IReplicaRepository replicas,
@@ -39,7 +41,8 @@ public sealed class UploadReplicaCommandHandler
         ISpoolFileLocator fileLocator,
         IUnitOfWork unitOfWork,
         IDateTimeProvider dateTimeProvider,
-        ILogger<UploadReplicaCommandHandler> logger)
+        ILogger<UploadReplicaCommandHandler> logger,
+        IReplicaEventStream eventStream)
     {
         _replicas = replicas;
         _hosters = hosters;
@@ -53,6 +56,7 @@ public sealed class UploadReplicaCommandHandler
         _unitOfWork = unitOfWork;
         _dateTimeProvider = dateTimeProvider;
         _logger = logger;
+        _eventStream = eventStream;
     }
 
     public async Task<Result> Handle(UploadReplicaCommand cmd, CancellationToken ct)
@@ -79,7 +83,7 @@ public sealed class UploadReplicaCommandHandler
         {
             ctx.Replica.MarkAsRetrying();
 
-            await _unitOfWork.SaveChangesAsync(ct);
+            await SaveAndPublishStateAsync(ctx.Asset, ctx.Replica, ct);
             throw;
         }
         finally
@@ -142,7 +146,7 @@ public sealed class UploadReplicaCommandHandler
         if (requirement is null)
         {
             replica.MarkAsFailed();
-            await _unitOfWork.SaveChangesAsync(ct);
+            await SaveAndPublishStateAsync(asset, replica, ct);
             return Result.Failure<UploadContext>(
                 HosterErrors.CapabilityNotSupported(def.Code, capability).AsPermanent());
         }
@@ -154,7 +158,7 @@ public sealed class UploadReplicaCommandHandler
         if (!requirement.IsSatisfiedBy(verified))
         {
             replica.MarkAsFailed();
-            await _unitOfWork.SaveChangesAsync(ct);
+            await SaveAndPublishStateAsync(asset, replica, ct);
             return Result.Failure<UploadContext>(
                 HosterAccountErrors.RequiredIdentitesNotSatisfied(
                     requirement,
@@ -172,7 +176,7 @@ public sealed class UploadReplicaCommandHandler
         if (uploader is null)
         {
             replica.MarkAsFailed();
-            await _unitOfWork.SaveChangesAsync(ct);
+            await SaveAndPublishStateAsync(asset, replica, ct);
             return Result.Failure<UploadContext>(
                 UploadReplicaErrors.UploadNotSupported(def.Code.ToFriendlyString()));
         }
@@ -201,23 +205,24 @@ public sealed class UploadReplicaCommandHandler
         {
             _logger.LogWarning("Local file {FilePath} not found for asset {AssetId}", local.FilePath, ctx.Asset.Id);
             ctx.Replica.MarkAsFailed();
-            await _unitOfWork.SaveChangesAsync(ct);
+            await SaveAndPublishStateAsync(ctx.Asset, ctx.Replica, ct);
             return Result.Failure(UploadReplicaErrors.LocalFileNotFound(local.FilePath));
         }
 
         ctx.Replica.MarkAsUploading();
-        await _unitOfWork.SaveChangesAsync(ct);
+        await SaveAndPublishStateAsync(ctx.Asset, ctx.Replica, ct);
 
-        await using var stream = File.OpenRead(local.FilePath);
+        long? totalBytes = ctx.Asset.SizeBytes ?? new FileInfo(local.FilePath).Length;
+        var progressDelegate = CreateProgressDelegate(ctx, totalBytes);
 
         var handler = (ILocalFileUploadHandler)ctx.Uploader;
-        var request = new LocalFileUploadRequest(ctx.Account, ctx.Asset.FileName.Value, local);
+        var request = new LocalFileUploadRequest(ctx.Account, ctx.Asset.FileName.Value, local, progressDelegate);
         var result = await handler.HandleAsync(request, ct);
 
         if (result.IsFailure)
         {
             ctx.Replica.MarkAsFailed();
-            await _unitOfWork.SaveChangesAsync(ct);
+            await SaveAndPublishStateAsync(ctx.Asset, ctx.Replica, ct);
             return Result.Failure(result.Error);
         }
 
@@ -225,7 +230,7 @@ public sealed class UploadReplicaCommandHandler
         if (result.Value.SizeBytes is long bytes)
             ctx.Asset.RecordFileSize(bytes, _dateTimeProvider.UtcNow);
 
-        await _unitOfWork.SaveChangesAsync(ct);
+        await SaveAndPublishStateAsync(ctx.Asset, ctx.Replica, ct);
         return Result.Success();
     }
 
@@ -256,16 +261,16 @@ public sealed class UploadReplicaCommandHandler
         CancellationToken ct)
     {
         ctx.Replica.MarkAsUploading();
-        await _unitOfWork.SaveChangesAsync(ct);
+        await SaveAndPublishStateAsync(ctx.Asset, ctx.Replica, ct);
 
-        var request = new RemoteFileUploadRequest(ctx.Account, ctx.Asset.FileName.Value, remoteSource);
+        var request = new RemoteFileUploadRequest(ctx.Account, ctx.Asset.FileName.Value, remoteSource, CreateProgressDelegate(ctx, ctx.Asset.SizeBytes));
         var result = await handler.HandleAsync(request, ct);
 
         if (result.IsFailure)
         {
             ctx.Replica.MarkAsRetrying();
 
-            await _unitOfWork.SaveChangesAsync(ct);
+            await SaveAndPublishStateAsync(ctx.Asset, ctx.Replica, ct);
             return Result.Failure(result.Error);
         }
 
@@ -273,7 +278,7 @@ public sealed class UploadReplicaCommandHandler
         if (result.Value.SizeBytes is long bytes)
             ctx.Asset.RecordFileSize(bytes, _dateTimeProvider.UtcNow);
 
-        await _unitOfWork.SaveChangesAsync(ct);
+        await SaveAndPublishStateAsync(ctx.Asset, ctx.Replica, ct);
         return Result.Success();
     }
 
@@ -313,21 +318,22 @@ public sealed class UploadReplicaCommandHandler
         }
 
         ctx.Replica.MarkAsDownloading();
-        await _unitOfWork.SaveChangesAsync(ct);
+        await SaveAndPublishStateAsync(ctx.Asset, ctx.Replica, ct);
 
-        var fetched = await _fileFetcher.DownloadAsync(ctx.Asset.Id, remoteSource, ct);
+        var progressDelegate = CreateProgressDelegate(ctx, ctx.Asset.SizeBytes);
+        var fetched = await _fileFetcher.DownloadAsync(ctx.Asset.Id, remoteSource, progressDelegate, ct);
 
         await _leases.ReleaseForAsset(ctx.Asset.Id);
         if (fetched.IsFailure)
         {
             ctx.Replica.MarkAsRetrying();
-            await _unitOfWork.SaveChangesAsync(ct);
+            await SaveAndPublishStateAsync(ctx.Asset, ctx.Replica, ct);
             return Result.Failure(fetched.Error);
         }
 
         ctx.Asset.RecordFileSize(fetched.Value.SizeBytes, _dateTimeProvider.UtcNow);
         ctx.Replica.MarkAsDownloaded();
-        await _unitOfWork.SaveChangesAsync(ct);
+        await SaveAndPublishStateAsync(ctx.Asset, ctx.Replica, ct);
 
         return Result.Success();
     }
@@ -337,29 +343,66 @@ public sealed class UploadReplicaCommandHandler
         CancellationToken ct)
     {
         ctx.Replica.MarkAsUploading();
-        await _unitOfWork.SaveChangesAsync(ct);
+        await SaveAndPublishStateAsync(ctx.Asset, ctx.Replica, ct);
 
-        await using var stream = File.OpenRead(ctx.Spool.FilePath);
+        long totalBytes = ctx.Asset.SizeBytes ?? new FileInfo(ctx.Spool.FilePath).Length;
+        var progressDelegate = CreateProgressDelegate(ctx, totalBytes);
 
         var handler = (ILocalFileUploadHandler)ctx.Uploader;
-        var request = new LocalFileUploadRequest(ctx.Account, ctx.Asset.FileName.Value, LocalFileSource.Create(ctx.Spool.FilePath).Value);
+        var request = new LocalFileUploadRequest(ctx.Account, ctx.Asset.FileName.Value, LocalFileSource.Create(ctx.Spool.FilePath).Value, progressDelegate);
         var result = await handler.HandleAsync(request, ct);
 
         if (result.IsFailure)
         {
             ctx.Replica.MarkAsRetrying();
-            await _unitOfWork.SaveChangesAsync(ct);
+            await SaveAndPublishStateAsync(ctx.Asset, ctx.Replica, ct);
             return Result.Failure(result.Error);
         }
 
         ctx.Replica.MarkAsCompleted(result.Value.FileUrl);
-        await _unitOfWork.SaveChangesAsync(ct);
+        await SaveAndPublishStateAsync(ctx.Asset, ctx.Replica, ct);
 
         return Result.Success();
     }
 
     private Result WaitForSpool(UploadContext ctx)
         => Result.Success();
+
+    private async Task SaveAndPublishStateAsync(Asset asset, Replica replica, CancellationToken ct)
+    {
+        await _unitOfWork.SaveChangesAsync(ct);
+
+        var evt = new ReplicaStreamEvent(
+            ReplicaId: replica.Id,
+            OccurredAtUtc: replica.UpdatedAtUtc,
+            Status: replica.Status);
+
+        _eventStream.Publish(asset.UserId, asset.Id, evt);
+    }
+
+    private Action<TransferProgress> CreateProgressDelegate(UploadContext ctx, long? totalBytes)
+    {
+        long lastTick = Environment.TickCount64;
+
+        return progress =>
+        {
+            var now = Environment.TickCount64;
+            // Throttle to 250ms, unless we've finished the stream.
+            if (now - lastTick > 250 || (totalBytes.HasValue && progress.BytesTransferred == totalBytes.Value))
+            {
+                lastTick = now;
+                var evt = new ReplicaStreamEvent(
+                    ReplicaId: ctx.Replica.Id,
+                    Status: ctx.Replica.Status,
+                    OccurredAtUtc: _dateTimeProvider.UtcNow,
+                    BytesTransferred: progress.BytesTransferred,
+                    TotalBytes: totalBytes);
+
+                // Fire and forget publish to channels
+                _eventStream.Publish(ctx.Cmd.UserId, ctx.Asset.Id, evt);
+            }
+        };
+    }
 
     public sealed record UploadContext(
         UploadReplicaCommand Cmd,
