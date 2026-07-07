@@ -10,10 +10,14 @@ internal sealed class HosterConfiguration : IEntityTypeConfiguration<Hoster>
     {
         builder.ToTable("hosters");
 
+        builder.HasKey(x => x.Id);
+
         builder.Property(x => x.Code)
+            .HasConversion<int>()
             .IsRequired();
 
-        builder.HasKey(x => x.Id);
+        builder.HasIndex(x => x.Code)
+            .IsUnique();
 
         builder.Property(x => x.DisplayName)
             .HasMaxLength(100)

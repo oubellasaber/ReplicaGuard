@@ -14,13 +14,11 @@ public sealed class AssetCreatedDomainEventHandler(IIntegrationEventOutbox outbo
 {
     public async Task Handle(AssetCreatedDomainEvent evt, CancellationToken ct)
     {
-        Console.WriteLine("handling the domain event");
         var integrationEvent = new AssetCreatedIntegrationEvent(
             evt.UserId,
             evt.AssetId,
             evt.ReplicasIds
         );
         await outbox.Add(integrationEvent);
-        return;
     }
 }

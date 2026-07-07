@@ -10,7 +10,7 @@ public static class CommonErrors
         .WithMetadata($"{entity}Id", id);
 
     public static Error NotFound(string entity, Guid id) =>
-        NotFound(entity, id);
+        NotFound<Guid>(entity, id);
 
     public static Error NotFound(string entity, string field, string value) =>
         new Error($"{entity}.NotFound", $"{entity} with the specified ${field} was not found.")

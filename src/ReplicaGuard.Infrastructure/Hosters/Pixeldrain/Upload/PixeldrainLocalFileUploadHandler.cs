@@ -32,7 +32,7 @@ internal sealed class PixeldrainLocalFileUploadHandler : ILocalFileUploadHandler
 
     public async Task<Result<LocalFileUploadResponse>> HandleAsync(LocalFileUploadRequest input, CancellationToken ct = default)
     {
-        var (account, fileName, source) = input;
+        var (account, fileName, source, onProgress) = input;
 
         // Find later how to validate that this account can be used for upload (e.g. check if API key is present and valid)
         // This is just to ensure we don't proceed with invalid data and to provide early feedback in case of misconfiguration
@@ -53,7 +53,9 @@ internal sealed class PixeldrainLocalFileUploadHandler : ILocalFileUploadHandler
         try
         {
             await using var fileStream = new FileStream(source.FilePath, FileMode.Open, FileAccess.Read, FileShare.Read);
-            using var content = new StreamContent(fileStream);
+            await using var progressStream = new ProgressStream(fileStream, onProgress, leaveOpen: true);
+
+            using var content = new StreamContent(progressStream);
             content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
             var escapedFileName = Uri.EscapeDataString(fileName);
             var fileUploadUrl = $"{_options.FileUploadEndpoint.TrimEnd('/')}/{escapedFileName}";

@@ -1,3 +1,4 @@
+using System;
 using ReplicaGuard.Domain.Abstractions;
 using ReplicaGuard.Domain.Replication.DomainEvents;
 
@@ -5,6 +6,8 @@ namespace ReplicaGuard.Domain.Replication;
 
 public sealed class Replica : Entity<Guid>
 {
+    private readonly List<ReplicaStatusTransition> _statusTransitions = new();
+
     public Guid AssetId { get; private set; }
     public Guid HosterId { get; private set; }
     public Guid? HosterAccountId { get; private set; }
@@ -13,6 +16,8 @@ public sealed class Replica : Entity<Guid>
     public Guid? WaitingForReplicaId { get; set; }
     public DateTime CreatedAtUtc { get; private set; }
     public DateTime UpdatedAtUtc { get; private set; }
+
+    public IReadOnlyCollection<ReplicaStatusTransition> StatusTransitions => _statusTransitions;
 
     // EF Core
     private Replica() { }
@@ -38,30 +43,34 @@ public sealed class Replica : Entity<Guid>
 
     public void MarkAsFailed()
     {
-        Status = ReplicaStatus.Failed;
-        UpdatedAtUtc = DateTime.UtcNow;
+        RecordTransition(ReplicaStatus.Failed);
         RaiseDomainEvent(new ReplicaFailedDomainEvent(Id));
+        RaiseDomainEvent(
+        new ReplicaTerminalStateReachedDomainEvent(
+            Id,
+            AssetId,
+            Status));
     }
 
     public void MarkAsCompleted(Uri link)
     {
-        Status = ReplicaStatus.Completed;
         Link = link;
-        UpdatedAtUtc = DateTime.UtcNow;
+        RecordTransition(ReplicaStatus.Completed);
+        RaiseDomainEvent(
+        new ReplicaTerminalStateReachedDomainEvent(
+            Id,
+            AssetId,
+            Status));
     }
 
     public void MarkAsWaitingForPeer(Guid peerReplicaId)
     {
-        Status = ReplicaStatus.WaitingForPeer;
         WaitingForReplicaId = peerReplicaId;
-        UpdatedAtUtc = DateTime.UtcNow;
+        RecordTransition(ReplicaStatus.WaitingForPeer);
     }
 
     public void MarkAsDownloading()
-    {
-        Status = ReplicaStatus.Downloading;
-        UpdatedAtUtc = DateTime.UtcNow;
-    }
+        => RecordTransition(ReplicaStatus.Downloading);
 
     public void MarkAsDownloaded()
     {
@@ -69,15 +78,20 @@ public sealed class Replica : Entity<Guid>
     }
 
     public void MarkAsUploading()
-    {
-        Status = ReplicaStatus.Uploading;
-        UpdatedAtUtc = DateTime.UtcNow;
-    }
+        => RecordTransition(ReplicaStatus.Uploading);
 
     public void MarkAsRetrying()
+        => RecordTransition(ReplicaStatus.Retrying);
+
+    private void RecordTransition(ReplicaStatus status)
     {
-        Status = ReplicaStatus.Retrying;
+        Status = status;
         UpdatedAtUtc = DateTime.UtcNow;
+        _statusTransitions.Add(
+            new ReplicaStatusTransition(
+                Id,
+                status,
+                UpdatedAtUtc));
     }
 
     internal void SetStatusForTesting(ReplicaStatus status)

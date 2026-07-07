@@ -31,6 +31,7 @@ public static class MessagingConfiguration
             x.AddConsumer<IdentityCreatedIntegrationEventFaultConsumer>();
             x.AddConsumer<AssetCreatedIntegrationEventConsumer, AssetCreatedIntegrationEventConsumerDefinition>();
             x.AddConsumers(typeof(UploadReplicaConsumer).Assembly);
+            x.AddConsumer<ReplicaTerminalIntegrationEventConsumer>();
             EndpointConvention.Map<UploadReplicaCommand>(new Uri("queue:upload-replica"));
 
 

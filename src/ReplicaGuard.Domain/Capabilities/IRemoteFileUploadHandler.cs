@@ -6,7 +6,8 @@ namespace ReplicaGuard.Domain.Capabilities;
 public sealed record RemoteFileUploadRequest(
     HosterAccount Account,
     string FileName,
-    RemoteFileSource Source);
+    RemoteFileSource Source,
+    Action<TransferProgress>? OnProgress);
 
 public sealed record RemoteFileUploadResponse(
     string FileId,

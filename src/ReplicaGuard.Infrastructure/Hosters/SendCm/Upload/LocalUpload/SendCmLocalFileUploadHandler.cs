@@ -64,6 +64,11 @@ internal sealed class SendCmLocalFileUploadHandler : ILocalFileUploadHandler
             FileAccess.Read,
             FileShare.Read);
 
+        await using var progressStream = new ProgressStream(
+            fileStream,
+            input.OnProgress,
+            leaveOpen: true);
+
         var uploadUrl = $"{session.UploadServer}?upload_type=file&utype=reg";
         var content = new RawMultipartFormDataContent(
             new Dictionary<string, string>

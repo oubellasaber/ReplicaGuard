@@ -42,6 +42,7 @@ public sealed class CreateHosterAccountHandler : ICommandHandler<CreateHosterAcc
 
         var accountCreationResult = HosterAccount.Create(
             _resolver.Resolve(hoster.Code),
+            hoster,
             userId,
             request.Alias,
             request.Description,

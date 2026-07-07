@@ -1,4 +1,4 @@
-﻿namespace ReplicaGuard.Infrastructure.Hosters.Pixeldrain.DownloadCapability;
+﻿namespace ReplicaGuard.Infrastructure.Hosters.Pixeldrain.GenerateDownloadUrl;
 
 internal class PixeldrainGenerateDownloadUrlCapabilityHandler
 {
