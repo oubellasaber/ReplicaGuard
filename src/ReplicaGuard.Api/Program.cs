@@ -1,9 +1,10 @@
 using System.Text.Json.Serialization.Metadata;
 using Microsoft.OpenApi.Models;
-using ReplicaGuard.Api.Controllers.HosterAccounts;
+using ReplicaGuard.Api.Controllers.Assets;
 using ReplicaGuard.Api.Extensions;
 using ReplicaGuard.Api.Middleware;
 using ReplicaGuard.Application;
+using ReplicaGuard.Application.Replication.UploadReplica.Fetching;
 using ReplicaGuard.Infrastructure;
 using ReplicaGuard.Infrastructure.Seeding;
 
@@ -50,6 +51,8 @@ builder.Services.AddSwaggerGen(options =>
 builder.Services.AddInfrastructure(builder.Configuration);
 
 builder.Services.AddApplication();
+builder.Services.Configure<UserUploadsOptions>(
+    builder.Configuration.GetSection(UserUploadsOptions.SectionName));
 
 var app = builder.Build();
 

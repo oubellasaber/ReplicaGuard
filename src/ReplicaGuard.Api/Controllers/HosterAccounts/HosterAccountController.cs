@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Mvc;
 using ReplicaGuard.Api.Extensions;
 using ReplicaGuard.Application.HosterAccounts.CreateHosterAccount;
 using ReplicaGuard.Application.HosterAccounts.GetHosterAccount;
-using ReplicaGuard.Domain.Hosters;
 
 namespace ReplicaGuard.Api.Controllers.HosterAccounts;
 

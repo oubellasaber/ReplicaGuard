@@ -2,7 +2,7 @@ using FluentValidation;
 
 namespace ReplicaGuard.Application.Assets.CreateAsset;
 
-public sealed class CreateAssetCommandValidator : AbstractValidator<CreateAssetCommand>
+internal sealed class CreateAssetCommandValidator : AbstractValidator<CreateAssetCommand>
 {
     public CreateAssetCommandValidator()
     {
@@ -28,7 +28,7 @@ public sealed class CreateAssetCommandValidator : AbstractValidator<CreateAssetC
             .Must(list => list.Count <= 10)
             .WithMessage("Too many hosters specified. Maximum allowed is 10.")
             .Must(list => list.Select(h => h.HosterId).Distinct().Count() == list.Count)
-            .WithMessage("Duplicate hoster codes are not allowed.")
+            .WithMessage("Duplicate hoster ids are not allowed.")
             .Must(list => list.Select(h => h.HosterAccountId).Distinct().Count() == list.Count)
             .WithMessage("Duplicate hoster account IDs are not allowed.");
 

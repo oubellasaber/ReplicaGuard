@@ -9,7 +9,7 @@ using ReplicaGuard.Domain.Replication;
 
 namespace ReplicaGuard.Application.Assets.CreateAsset;
 
-public sealed class CreateAssetCommandHandler(
+internal sealed class CreateAssetCommandHandler(
     IUserContext userContext,
     IHosterDefinitionResolver resolver,
     IHosterAccountRepository accountRepository,
