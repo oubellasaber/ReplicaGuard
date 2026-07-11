@@ -37,7 +37,7 @@ public sealed class AssetCompletedConsumer
         // 2. Guard: only proceed if STILL terminal
         // (prevents stale / duplicate events from acting)
         //
-        if (asset.Status is not AssetStatus.Completed or AssetStatus.Failed)
+        if (asset.Status is not (AssetStatus.Completed or AssetStatus.Failed))
             return;
 
         //

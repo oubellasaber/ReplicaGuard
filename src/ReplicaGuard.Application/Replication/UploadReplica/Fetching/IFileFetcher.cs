@@ -12,6 +12,7 @@ public interface IFileFetcher
 {
     Task<Result<SpooledFile>> DownloadAsync(
         Guid assetId,
+        string fileName,
         RemoteFileSource source,
         Action<TransferProgress>? onProgress = null,
         CancellationToken ct = default);

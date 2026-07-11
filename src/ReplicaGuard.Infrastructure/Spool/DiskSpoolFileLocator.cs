@@ -16,9 +16,12 @@ internal sealed class DiskSpoolFileLocator : ISpoolFileLocator
         _spoolDirectory = options.Value.SpoolDirectory;
     }
 
-    public string GetSpoolPath(Guid assetId) =>
-        Path.Combine(_spoolDirectory, assetId.ToString());
+    public string GetSpoolPath(Guid assetId, string fileName) =>
+        Path.Combine(_spoolDirectory, $"spl_{assetId}_{fileName}");
 
-    public bool IsSpooled(Guid assetId) =>
-        File.Exists(GetSpoolPath(assetId));
+    public string GetTempSpoolPath(Guid assetId, string fileName) =>
+        Path.Combine(_spoolDirectory, $"spl_{assetId}_{fileName}.tmp");
+
+    public bool IsSpooled(Guid assetId, string fileName) =>
+        File.Exists(GetSpoolPath(assetId, fileName));
 }

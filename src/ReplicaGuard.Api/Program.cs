@@ -49,10 +49,7 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 builder.Services.AddInfrastructure(builder.Configuration);
-
 builder.Services.AddApplication();
-builder.Services.Configure<UserUploadsOptions>(
-    builder.Configuration.GetSection(UserUploadsOptions.SectionName));
 
 var app = builder.Build();
 

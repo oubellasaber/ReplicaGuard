@@ -11,6 +11,8 @@ using Microsoft.IdentityModel.Tokens;
 using ReplicaGuard.Application.Abstractions.Authentication;
 using ReplicaGuard.Application.Abstractions.Clock;
 using ReplicaGuard.Application.Abstractions.Data;
+using ReplicaGuard.Application.Abstractions.Storage;
+using ReplicaGuard.Application.Assets.Services;
 using ReplicaGuard.Application.Replication.ProgressStreaming;
 using ReplicaGuard.Application.Replication.UploadReplica.Fetching;
 using ReplicaGuard.Application.Replication.UploadReplica.Spooling;
@@ -21,6 +23,7 @@ using ReplicaGuard.Domain.Hosters;
 using ReplicaGuard.Domain.Replication;
 using ReplicaGuard.Domain.Replication.DomainEvents;
 using ReplicaGuard.Infrastructure.Authentication;
+using ReplicaGuard.Infrastructure.Cleanup;
 using ReplicaGuard.Infrastructure.Clock;
 using ReplicaGuard.Infrastructure.Data;
 using ReplicaGuard.Infrastructure.Encryption;
@@ -36,6 +39,7 @@ using ReplicaGuard.Infrastructure.Persistence;
 using ReplicaGuard.Infrastructure.Repositories;
 using ReplicaGuard.Infrastructure.Seeding;
 using ReplicaGuard.Infrastructure.Spool;
+using ReplicaGuard.Infrastructure.Storage;
 using ReplicaGuard.Infrastructure.Streaming;
 
 namespace ReplicaGuard.Infrastructure;
@@ -55,6 +59,11 @@ public static class DependencyInjection
         services.AddScoped<ISpoolLeaseService, SqlSpoolLeaseService>();
         services.AddScoped<IFileFetcher, FileFetcher>();
         services.AddSingleton<IReplicaEventStream, SseReplicaEventStream>();
+        services.Configure<StorageOptions>(configuration.GetSection(StorageOptions.SectionName));
+        services.AddSingleton<IStorageMonitor, DiskSpaceMonitor>();
+        services.AddScoped<IAssetCleanupService, AssetCleanupService>();
+        services.AddHostedService<AssetCleanupBackgroundService>();
+        services.Configure<StorageOptions>(configuration.GetSection(StorageOptions.SectionName));
 
         //AddCaching(services, configuration);
 

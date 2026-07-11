@@ -5,8 +5,9 @@
 /// </summary>
 public interface ISpoolFileLocator
 {
-    string GetSpoolPath(Guid assetId);
-    bool IsSpooled(Guid assetId);
+    string GetSpoolPath(Guid assetId, string fileName);
+    string GetTempSpoolPath(Guid assetId, string fileName);
+    bool IsSpooled(Guid assetId, string fileName);
 }
 
 public sealed record SpooledFile(string Path, long SizeBytes);

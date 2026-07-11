@@ -23,11 +23,12 @@ public static class SpoolStateResolver
 {
     public static SpoolState Resolve(
         Guid assetId,
+        string fileName,
         ISpoolFileLocator locator,
         SpoolLease? lease)
     {
-        var status = ResolveStatus(assetId, locator, lease);
-        var filePath = locator.GetSpoolPath(assetId);
+        var status = ResolveStatus(assetId, fileName, locator, lease);
+        var filePath = locator.GetSpoolPath(assetId, fileName);
 
         return new SpoolState(
             Status: status,
@@ -38,18 +39,15 @@ public static class SpoolStateResolver
 
     public static SpoolStatus ResolveStatus(
         Guid assetId,
+        string fileName,
         ISpoolFileLocator locator,
         SpoolLease? lease)
     {
-        var fileExists = locator.IsSpooled(assetId);
+        var fileExists = locator.IsSpooled(assetId, fileName);
 
-        // File present — spool is complete regardless of lease state.
-        // A lease may linger until the service releases it; that is not
-        // our concern here.
         if (fileExists && lease is not null)
             return SpoolStatus.Downloading;
 
-        // No file, but someone holds the slot — download is in progress.
         if (fileExists)
             return SpoolStatus.Completed;
 

@@ -1,4 +1,4 @@
-﻿namespace ReplicaGuard.Api.Controllers.Assets;
+﻿namespace ReplicaGuard.Infrastructure.Cleanup;
 
 public sealed class UserUploadsOptions
 {

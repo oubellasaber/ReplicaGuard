@@ -76,7 +76,7 @@ public sealed class UploadReplicaConsumerDefinition : ConsumerDefinition<UploadR
     public UploadReplicaConsumerDefinition()
     {
         EndpointName = "upload-replica";
-        ConcurrentMessageLimit = 5;
+        ConcurrentMessageLimit = 3;
     }
 
     protected override void ConfigureConsumer(

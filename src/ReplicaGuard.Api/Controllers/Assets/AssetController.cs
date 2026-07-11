@@ -15,6 +15,8 @@ using ReplicaGuard.Application.Assets.GetAsset;
 using ReplicaGuard.Application.Assets.ListAssets;
 using ReplicaGuard.Application.Replication.ProgressStreaming;
 using ReplicaGuard.Domain.Replication;
+using ReplicaGuard.Infrastructure.Cleanup;
+using ReplicaGuard.Infrastructure.Storage;
 
 namespace ReplicaGuard.Api.Controllers.Assets;
 
@@ -26,7 +28,8 @@ public class AssetController(
     IReplicaEventStream stream,
     IUserContext userContext,
     IAssetRepository assets,
-    IOptions<UserUploadsOptions> userUploadsOptions) : ControllerBase
+    IOptions<UserUploadsOptions> userUploadsOptions,
+    IOptions<StorageOptions> storageOptions) : ControllerBase
 {
     /// <summary>
     /// Create a new asset and begin replication to the specified hosters.
@@ -82,7 +85,17 @@ public class AssetController(
             return result.ToActionResult();
         }
 
-        return CreatedAtAction(nameof(Get), new { id = result.Value.AssetId }, result.Value);
+        var assetId = result.Value.AssetId;
+        var uploadsDir = userUploadsOptions.Value.UploadDirectory;
+        var finalPath = Path.Combine(uploadsDir, $"upl_{assetId}_{fileName}");
+
+        if (tempPath != finalPath)
+        {
+            try { System.IO.File.Move(tempPath, finalPath, overwrite: true); }
+            catch { /* best effort */ }
+        }
+
+        return CreatedAtAction(nameof(Get), new { id = assetId }, result.Value);
     }
 
     private async Task<(string TempPath, string FileName, string HostersRaw)> ParseMultipartAsync(HttpRequest request, CancellationToken ct)
@@ -113,10 +126,10 @@ public class AssetController(
                 var uploadsDir = userUploadsOptions.Value.UploadDirectory;
                 Directory.CreateDirectory(uploadsDir);
 
-                tempPath = Path.Combine(uploadsDir, Guid.NewGuid() + "_" + fileName);
-
+                tempPath = Path.Combine(uploadsDir, $"upl_temp_{Guid.NewGuid()}_{fileName}.tmp");
                 using var fs = System.IO.File.Create(tempPath);
-                await section.Body.CopyToAsync(fs, ct);
+                using var countingStream = new CountingStream(fs, storageOptions.Value.MaxFileSizeBytes);
+                await section.Body.CopyToAsync(countingStream, ct);
 
                 continue;
             }

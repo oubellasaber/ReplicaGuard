@@ -43,6 +43,8 @@ internal sealed class AssetConfiguration : IEntityTypeConfiguration<Asset>
             .IsRequired()
             .HasDefaultValueSql("now()");
 
+        builder.Property(x => x.CleanupAfterUtc);
+
         // Indexes for performance
         builder.HasIndex(x => x.UserId);
 
