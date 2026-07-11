@@ -1,12 +1,16 @@
-using System.IO;
 using System.Text.Json;
-using System.Threading.Channels;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.CodeAnalysis;
+using Microsoft.Extensions.Options;
+using Microsoft.Net.Http.Headers;
 using ReplicaGuard.Api.Extensions;
 using ReplicaGuard.Application.Abstractions.Authentication;
 using ReplicaGuard.Application.Assets.CreateAsset;
+using ReplicaGuard.Application.Assets.CreateAsset.CreateLocalAsset;
+using ReplicaGuard.Application.Assets.CreateAsset.CreateRemoteAsset;
 using ReplicaGuard.Application.Assets.GetAsset;
 using ReplicaGuard.Application.Assets.ListAssets;
 using ReplicaGuard.Application.Replication.ProgressStreaming;
@@ -17,12 +21,17 @@ namespace ReplicaGuard.Api.Controllers.Assets;
 [ApiController]
 [Route("api/assets")]
 [Authorize]
-public class AssetsController(ISender sender, IReplicaEventStream stream, IUserContext userContext, IAssetRepository assets) : ControllerBase
+public class AssetController(
+    ISender sender,
+    IReplicaEventStream stream,
+    IUserContext userContext,
+    IAssetRepository assets,
+    IOptions<UserUploadsOptions> userUploadsOptions) : ControllerBase
 {
     /// <summary>
     /// Create a new asset and begin replication to the specified hosters.
     /// </summary>
-    [HttpPost]
+    [HttpPost("uploads/remote")]
     [ProducesResponseType(typeof(CreateAssetResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Create(
@@ -35,7 +44,7 @@ public class AssetsController(ISender sender, IReplicaEventStream stream, IUserC
             HosterAccountId: h.AccountId))
         .ToList();
 
-        var command = new CreateAssetCommand(
+        var command = new CreateRemoteAssetCommand(
             request.Source,
             request.FileName,
             hosters);
@@ -45,6 +54,102 @@ public class AssetsController(ISender sender, IReplicaEventStream stream, IUserC
         return result.IsSuccess
             ? CreatedAtAction(nameof(Get), new { id = result.Value.AssetId }, result.Value)
             : result.ToActionResult();
+    }
+
+    [HttpPost("uploads/local")]
+    [DisableFormValueModelBinding]
+    [DisableRequestSizeLimit]
+    [RequestSizeLimit(long.MaxValue)]
+    public async Task<IActionResult> Create(CancellationToken ct)
+    {
+        var (tempPath, fileName, hostersRaw) = await ParseMultipartAsync(Request, ct);
+
+        var hosters = hostersRaw
+            .Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Select(x => x.Split(':'))
+            .Select(x => new HosterAccountDto(Guid.Parse(x[0]), Guid.Parse(x[1])))
+            .ToList();
+
+        var command = new CreateLocalAssetCommand(
+            tempPath,
+            fileName,
+            hosters);
+
+        var result = await sender.Send(command, ct);
+        if (result.IsFailure)
+        {
+            System.IO.File.Delete(tempPath);
+            return result.ToActionResult();
+        }
+
+        return CreatedAtAction(nameof(Get), new { id = result.Value.AssetId }, result.Value);
+    }
+
+    private async Task<(string TempPath, string FileName, string HostersRaw)> ParseMultipartAsync(HttpRequest request, CancellationToken ct)
+    {
+        string? fileName = null;
+        string? hostersRaw = null;
+        string? tempPath = null;
+
+        var boundary = MultipartRequestHelper.GetBoundary(
+            MediaTypeHeaderValue.Parse(request.ContentType),
+            int.MaxValue);
+
+        var reader = new MultipartReader(boundary, request.Body);
+
+        MultipartSection? section;
+
+        while ((section = await reader.ReadNextSectionAsync(ct)) != null)
+        {
+            if (!ContentDispositionHeaderValue.TryParse(section.ContentDisposition, out var cd))
+                continue;
+
+            // FILE SECTION
+            if (MultipartRequestHelper.HasFileContentDisposition(cd))
+            {
+                if (fileName is null)
+                    throw new InvalidOperationException("fileName must be provided before file.");
+
+                var uploadsDir = userUploadsOptions.Value.UploadDirectory;
+                Directory.CreateDirectory(uploadsDir);
+
+                tempPath = Path.Combine(uploadsDir, Guid.NewGuid() + "_" + fileName);
+
+                using var fs = System.IO.File.Create(tempPath);
+                await section.Body.CopyToAsync(fs, ct);
+
+                continue;
+            }
+
+            // FORM FIELDS
+            if (MultipartRequestHelper.HasFormDataContentDisposition(cd))
+            {
+                using var sr = new StreamReader(section.Body);
+                var value = await sr.ReadToEndAsync();
+
+                switch (cd.Name.Value)
+                {
+                    case "fileName":
+                        fileName = value;
+                        break;
+
+                    case "hosters":
+                        hostersRaw = value;
+                        break;
+                }
+            }
+        }
+
+        if (tempPath is null)
+            throw new InvalidOperationException("File missing.");
+
+        if (fileName is null)
+            throw new InvalidOperationException("fileName missing.");
+
+        if (hostersRaw is null)
+            throw new InvalidOperationException("hosters missing.");
+
+        return (tempPath, fileName, hostersRaw);
     }
 
     /// <summary>
@@ -150,7 +255,7 @@ public class AssetsController(ISender sender, IReplicaEventStream stream, IUserC
         }
 
         //
-        // If asset OR replica is terminal → short‑circuit SSE
+        // If asset OR replica is terminal => short‑circuit SSE
         //
         if (assetTerminal || replicaTerminal)
         {
