@@ -22,24 +22,17 @@ internal sealed class CreateAssetCommandValidator : AbstractValidator<CreateAsse
             .Must(name => !name.Contains('/') && !name.Contains('\\'))
             .WithMessage("File name cannot contain directory separators.");
 
-        RuleFor(x => x.Hosters)
+        RuleFor(x => x.HosterAccountIds)
             .NotEmpty()
-            .WithMessage("At least one hoster is required.")
-            .Must(list => list.Count <= 10)
-            .WithMessage("Too many hosters specified. Maximum allowed is 10.")
-            .Must(list => list.Select(h => h.HosterId).Distinct().Count() == list.Count)
-            .WithMessage("Duplicate hoster ids are not allowed.")
-            .Must(list => list.Select(h => h.HosterAccountId).Distinct().Count() == list.Count)
+            .Must(list => list.Count() <= 10)
+            .WithMessage("Too many hoster account IDs specified. Maximum allowed is 10.")
+            .Must(list => list.Distinct().Count() == list.Count())
             .WithMessage("Duplicate hoster account IDs are not allowed.");
 
-        RuleForEach(x => x.Hosters)
+        RuleForEach(x => x.HosterAccountIds)
             .ChildRules(hoster =>
             {
-                hoster.RuleFor(h => h.HosterId)
-                    .NotEmpty()
-                    .WithMessage("HosterId cannot be empty.");
-
-                hoster.RuleFor(h => h.HosterAccountId)
+                hoster.RuleFor(h => h)
                     .NotEmpty()
                     .WithMessage("HosterAccountId cannot be empty.");
             });
