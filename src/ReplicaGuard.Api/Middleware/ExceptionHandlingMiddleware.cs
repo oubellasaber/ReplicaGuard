@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using ReplicaGuard.Api.Extensions;
+using ReplicaGuard.Infrastructure.Storage;
 using ValidationException = ReplicaGuard.Application.Exceptions.ValidationException;
 
 namespace ReplicaGuard.Api.Middleware;
@@ -49,6 +50,12 @@ internal sealed class ExceptionHandlingMiddleware(
                 "Validation error",
                 "One or more validation errors has occurred",
                 validationException.Errors),
+            FileTooLargeException fileTooLargeException => new ExceptionDetails(
+                StatusCodes.Status413PayloadTooLarge,
+                ResultExtensions.GetRfcUri(413),
+                "File too large",
+                $"The uploaded file exceeds the maximum allowed size of {fileTooLargeException.LimitBytes:N0} bytes.",
+                null),
             _ => new ExceptionDetails(
                 StatusCodes.Status500InternalServerError,
                 ResultExtensions.GetRfcUri(400),

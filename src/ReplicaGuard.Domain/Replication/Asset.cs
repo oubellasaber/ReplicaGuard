@@ -15,6 +15,7 @@ public sealed class Asset : Entity<Guid>
     public long? SizeBytes { get; private set; }
     public DateTime CreatedAtUtc { get; private set; }
     public DateTime UpdatedAtUtc { get; private set; }
+    public DateTime? CleanupAfterUtc { get; private set; }
 
     public IReadOnlyCollection<Replica> Replicas => _replicas;
 
@@ -147,7 +148,23 @@ public sealed class Asset : Entity<Guid>
         UpdatedAtUtc = utcNow;
     }
 
-    private AssetStatus CalculateStatus()
+    public void MarkForCleanup()
+    {
+        if (CleanupAfterUtc.HasValue)
+            return;
+
+        var utcNow = DateTime.UtcNow;
+        CleanupAfterUtc = utcNow;
+        UpdatedAtUtc = utcNow;
+    }
+
+    public void ClearCleanup()
+    {
+        CleanupAfterUtc = null;
+        UpdatedAtUtc = DateTime.UtcNow;
+    }
+
+    public AssetStatus CalculateStatus()
     {
         if (!_replicas.Any() || _replicas.All(r => r.Status == ReplicaStatus.Pending))
             return AssetStatus.Created;

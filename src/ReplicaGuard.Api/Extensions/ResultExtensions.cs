@@ -74,6 +74,7 @@ public static class ResultExtensions
         403 => "https://tools.ietf.org/html/rfc9110#section-15.5.4",
         404 => "https://tools.ietf.org/html/rfc9110#section-15.5.5",
         409 => "https://tools.ietf.org/html/rfc9110#section-15.5.10",
+        413 => "https://tools.ietf.org/html/rfc9110#section-15.5.14",
         _ => "https://tools.ietf.org/html/rfc9110#section-15.6.1"
     };
 }

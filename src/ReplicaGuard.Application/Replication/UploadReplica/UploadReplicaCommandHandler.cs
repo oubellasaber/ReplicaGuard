@@ -182,7 +182,7 @@ public sealed class UploadReplicaCommandHandler
         }
 
         var lease = await _leases.GetAsync(asset.Id, ct);
-        var spool = SpoolStateResolver.Resolve(cmd.AssetId, _fileLocator, lease);
+        var spool = SpoolStateResolver.Resolve(cmd.AssetId, asset.FileName.Value, _fileLocator, lease);
 
         return Result.Success(new UploadContext(
             cmd,
@@ -304,7 +304,7 @@ public sealed class UploadReplicaCommandHandler
             {
                 MarkWaitingResult.AlreadyCompleted =>
                     await UploadFromSpoolAsync(
-                        ctx with { Spool = SpoolStateResolver.Resolve(ctx.Cmd.AssetId, _fileLocator, null) },
+                        ctx with { Spool = SpoolStateResolver.Resolve(ctx.Cmd.AssetId, ctx.Asset.FileName.Value, _fileLocator, null) },
                         ct),
 
                 MarkWaitingResult.MarkedWaiting =>
@@ -321,7 +321,7 @@ public sealed class UploadReplicaCommandHandler
         await SaveAndPublishStateAsync(ctx.Asset, ctx.Replica, ct);
 
         var progressDelegate = CreateProgressDelegate(ctx, ctx.Asset.SizeBytes);
-        var fetched = await _fileFetcher.DownloadAsync(ctx.Asset.Id, remoteSource, progressDelegate, ct);
+        var fetched = await _fileFetcher.DownloadAsync(ctx.Asset.Id, ctx.Asset.FileName.Value, remoteSource, progressDelegate, ct);
 
         await _leases.ReleaseForAsset(ctx.Asset.Id);
         if (fetched.IsFailure)
