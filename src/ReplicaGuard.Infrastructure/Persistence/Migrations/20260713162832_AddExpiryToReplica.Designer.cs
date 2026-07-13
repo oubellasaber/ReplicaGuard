@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using ReplicaGuard.Infrastructure.Persistence;
@@ -11,9 +12,11 @@ using ReplicaGuard.Infrastructure.Persistence;
 namespace ReplicaGuard.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260713162832_AddExpiryToReplica")]
+    partial class AddExpiryToReplica
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -244,6 +247,7 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("ReplicaGuard.Application.Replication.UploadReplica.Spooling.SpoolLease", b =>
                 {
                     b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
@@ -279,6 +283,7 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("ReplicaGuard.Domain.HosterAccounts.AuthIdentity", b =>
                 {
                     b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
@@ -330,6 +335,7 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("ReplicaGuard.Domain.HosterAccounts.HosterAccount", b =>
                 {
                     b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
@@ -372,6 +378,7 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("ReplicaGuard.Domain.HosterAccounts.Secret", b =>
                 {
                     b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
@@ -412,6 +419,7 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("ReplicaGuard.Domain.HosterAccounts.SecretSet", b =>
                 {
                     b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
@@ -424,6 +432,7 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("ReplicaGuard.Domain.Hosters.Hoster", b =>
                 {
                     b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
@@ -462,6 +471,7 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("ReplicaGuard.Domain.Replication.Asset", b =>
                 {
                     b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
@@ -512,6 +522,7 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("ReplicaGuard.Domain.Replication.Replica", b =>
                 {
                     b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
@@ -520,7 +531,9 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
                         .HasColumnName("asset_id");
 
                     b.Property<int>("AvailabilityStatus")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("integer")
+                        .HasDefaultValue(1)
                         .HasColumnName("availability_status");
 
                     b.Property<DateTime>("CreatedAtUtc")
@@ -598,6 +611,7 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("ReplicaGuard.Domain.Replication.ReplicaStatusTransition", b =>
                 {
                     b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
@@ -625,6 +639,7 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("ReplicaGuard.Domain.Users.User", b =>
                 {
                     b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 

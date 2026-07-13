@@ -14,6 +14,7 @@ using ReplicaGuard.Application.Abstractions.Data;
 using ReplicaGuard.Application.Abstractions.Storage;
 using ReplicaGuard.Application.Assets.Services;
 using ReplicaGuard.Application.Replication.ProgressStreaming;
+using ReplicaGuard.Application.Replication.Recovery;
 using ReplicaGuard.Application.Replication.UploadReplica.Fetching;
 using ReplicaGuard.Application.Replication.UploadReplica.Spooling;
 using ReplicaGuard.Domain.Abstractions;
@@ -36,6 +37,7 @@ using ReplicaGuard.Infrastructure.Identity;
 using ReplicaGuard.Infrastructure.Messaging;
 using ReplicaGuard.Infrastructure.Outbox;
 using ReplicaGuard.Infrastructure.Persistence;
+using ReplicaGuard.Infrastructure.Recovery;
 using ReplicaGuard.Infrastructure.Repositories;
 using ReplicaGuard.Infrastructure.Seeding;
 using ReplicaGuard.Infrastructure.Spool;
@@ -64,6 +66,12 @@ public static class DependencyInjection
         services.AddScoped<IAssetCleanupService, AssetCleanupService>();
         services.AddHostedService<AssetCleanupBackgroundService>();
         services.Configure<StorageOptions>(configuration.GetSection(StorageOptions.SectionName));
+        services.AddSingleton<IHosterExpiryPolicy, PixeldrainExpiryPolicy>();
+        services.AddSingleton<IHosterExpiryPolicy, SendCmExpiryPolicy>();
+        services.AddSingleton<IReplicaExpiryPredictionService, ReplicaExpiryPredictionService>();
+        services.Configure<ExpirationRefreshOptions>(configuration.GetSection(ExpirationRefreshOptions.SectionName));
+        services.AddScoped<IReplicaRecoveryService, ReplicaRecoveryService>();
+        services.AddHostedService<ExpirationRefreshWorker>();
 
         //AddCaching(services, configuration);
 

@@ -14,6 +14,10 @@ internal sealed class ReplicaConfiguration : IEntityTypeConfiguration<Replica>
 
         builder.HasKey(x => x.Id);
 
+        builder.Property(x => x.Id)
+            .ValueGeneratedNever()
+            .IsRequired();
+
         builder.Property(x => x.Status)
             .HasConversion<int>()
            .IsRequired();
@@ -61,9 +65,27 @@ internal sealed class ReplicaConfiguration : IEntityTypeConfiguration<Replica>
             .UsePropertyAccessMode(PropertyAccessMode.Field)
             .HasField("_statusTransitions");
 
+        builder.HasOne<Replica>()
+            .WithMany()
+            .HasForeignKey(x => x.SourceReplicaId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.Property(x => x.AvailabilityStatus)
+            .HasConversion<int>()
+            .IsRequired();
+
+        builder.Property(x => x.PredictedExpiryAtUtc)
+            .IsRequired(false);
+
+        builder.Property(x => x.LastExpirationCheckAtUtc)
+            .IsRequired(false);
+
         // Indexes
         builder.HasIndex(x => x.AssetId);
         builder.HasIndex(x => x.HosterId);
         builder.HasIndex(x => x.HosterAccountId);
+        builder.HasIndex(x => x.SourceReplicaId);
+        builder.HasIndex(x => x.AvailabilityStatus);
+        builder.HasIndex(x => x.PredictedExpiryAtUtc);
     }
 }

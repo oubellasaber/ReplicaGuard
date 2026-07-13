@@ -12,6 +12,10 @@ public sealed class SecretConfiguration : IEntityTypeConfiguration<Secret>
 
         b.HasKey(x => x.Id);
 
+        b.Property(x => x.Id)
+            .ValueGeneratedNever()
+            .IsRequired();
+
         b.Property(x => x.Type)
             .HasConversion<int>()
             .IsRequired();

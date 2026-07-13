@@ -12,6 +12,10 @@ public sealed class AuthIdentityConfiguration : IEntityTypeConfiguration<AuthIde
 
         b.HasKey(x => x.Id);
 
+        b.Property(x => x.Id)
+            .ValueGeneratedNever()
+            .IsRequired();
+
         b.Property(x => x.Type)
             .HasConversion<int>()
             .IsRequired();

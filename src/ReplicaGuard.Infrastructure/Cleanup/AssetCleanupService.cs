@@ -89,7 +89,7 @@ internal sealed class AssetCleanupService : IAssetCleanupService
         int cleaned = 0;
 
         cleaned += CleanupDirectoryTempFiles(_fetcherOptions.SpoolDirectory, "spl_*.tmp");
-        cleaned += CleanupDirectoryTempFiles(_uploadsOptions.UploadDirectory, "upl_temp_*.tmp");
+        cleaned += CleanupDirectoryTempFiles(_uploadsOptions.UploadDirectory, "upl_*.tmp");
 
         if (cleaned > 0)
             _logger.LogInformation("Cleaned up {Count} orphaned temp files", cleaned);

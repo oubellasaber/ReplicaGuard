@@ -16,6 +16,7 @@ internal class PixeldrainCopyFileHandler : ICopyFileCapabilityHandler
 
     private readonly HttpClient _httpClient;
     private readonly ISecretEncryptionService _secretEncryptionService;
+    private readonly IHosterDefinitionResolver _resolver;
     private readonly PixeldrainOptions _options;
 
     public HosterCode HosterCode => HosterCode.Pixeldrain;
@@ -24,24 +25,32 @@ internal class PixeldrainCopyFileHandler : ICopyFileCapabilityHandler
     public PixeldrainCopyFileHandler(
         HttpClient httpClient,
         ISecretEncryptionService secretEncryptionService,
+        IHosterDefinitionResolver resolver,
         IOptions<PixeldrainOptions> options)
     {
         _httpClient = httpClient;
         _secretEncryptionService = secretEncryptionService;
+        _resolver = resolver;
         _options = options.Value;
     }
 
     public async Task<Result<CopyFileResponse>> HandleAsync(CopyFileRequest input, CancellationToken ct = default)
     {
-        var apiKeyIdentity = input.Account
-            .Identities
-            .First(id => id.Type == IdentityType.ApiKey);
+        var decryptedApiKeyResult = input.Account.GetApiKey(_secretEncryptionService);
 
-        var decryptedApiKey = apiKeyIdentity
-            .RevealSecret(SecretType.ApiKeyPair, _secretEncryptionService);
+        if (decryptedApiKeyResult.IsFailure)
+            return Result.Failure<CopyFileResponse>(decryptedApiKeyResult.Error);
 
-        var fileCode = ExtractFileCode(input.Url);
-        
+        var decryptedApiKey = decryptedApiKeyResult.Value;
+
+        var hoster = _resolver.Resolve(HosterCode.Pixeldrain);
+        var fileCodeResult = hoster.ExtractFileCode(input.Url);
+
+        if (fileCodeResult.IsFailure)
+            return Result.Failure<CopyFileResponse>(fileCodeResult.Error);
+
+        var fileCode = fileCodeResult.Value;
+
         if (string.IsNullOrEmpty(fileCode)) {
             return Result.Failure<CopyFileResponse>(PixeldrainFileCopyErrors.FileWithCodeNotFound(fileCode));
         }
@@ -74,25 +83,5 @@ internal class PixeldrainCopyFileHandler : ICopyFileCapabilityHandler
         }
 
         return Result.Success(new CopyFileResponse(copiedFileCode));
-    }
-
-    private static string ExtractFileCode(Uri url)
-    {
-        if (url is null)
-            throw new ArgumentNullException(nameof(url));
-
-        var match = Regex.Match(
-            url.ToString(),
-            @"^https?:\/\/[^\/]+\/u\/([A-Za-z0-9]+)\/?$",
-            RegexOptions.Compiled
-        );
-
-        if (!match.Success)
-            throw new ArgumentException(
-                "URL must be in the format https://<domain>/u/{id}",
-                nameof(url)
-            );
-
-        return match.Groups[1].Value;
     }
 }

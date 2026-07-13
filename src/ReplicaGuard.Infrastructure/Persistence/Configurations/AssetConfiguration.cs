@@ -14,6 +14,10 @@ internal sealed class AssetConfiguration : IEntityTypeConfiguration<Asset>
 
         builder.HasKey(x => x.Id);
 
+        builder.Property(x => x.Id)
+            .ValueGeneratedNever()
+            .IsRequired();
+
         builder.Property(x => x.UserId)
             .IsRequired();
 

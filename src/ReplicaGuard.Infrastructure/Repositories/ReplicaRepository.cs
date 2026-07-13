@@ -64,5 +64,24 @@ internal sealed class ReplicaRepository : Repository<Replica>, IReplicaRepositor
         return MarkWaitingResult.NoActiveDownloader;
     }
 
+    public async Task<IReadOnlyList<Replica>> GetReplicasNearExpiryAsync(
+        DateTime now,
+        TimeSpan window,
+        int batchSize,
+        CancellationToken ct)
+    {
+        var cutoff = now.Add(window);
 
+        return await DbContext.Set<Replica>()
+            .Where(r =>
+                ((r.AvailabilityStatus == ReplicaAvailabilityStatus.Unknown) && 
+                r.PredictedExpiryAtUtc == null && 
+                r.Status == ReplicaStatus.Completed) ||
+                r.PredictedExpiryAtUtc != null &&
+                r.PredictedExpiryAtUtc <= cutoff &&
+                (r.AvailabilityStatus == ReplicaAvailabilityStatus.Healthy))
+            .OrderBy(r => r.PredictedExpiryAtUtc)
+            .Take(batchSize)
+            .ToListAsync(ct);
+    }
 }

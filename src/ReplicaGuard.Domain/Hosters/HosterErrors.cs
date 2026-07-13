@@ -59,4 +59,11 @@ public static class HosterErrors
                 message: "No file code found in URL.",
                 type: ErrorType.Validation)
         .WithMetadata("Url", url);
+
+    public static Error InvalidFileCode(string fileCode)
+        => new Error(
+                code: "Hoster.InvalidFileCode",
+                message: "The file code is invalid.",
+                type: ErrorType.Validation)
+            .WithMetadata("FileCode", fileCode);
 }
