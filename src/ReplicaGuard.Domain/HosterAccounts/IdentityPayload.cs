@@ -15,4 +15,3 @@ public abstract record IdentityPayload
     public sealed record ApiKeyPayload(
         string ApiKey) : IdentityPayload;
 }
-

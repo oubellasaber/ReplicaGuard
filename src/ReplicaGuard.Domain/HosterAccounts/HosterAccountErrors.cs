@@ -30,7 +30,7 @@ public sealed class HosterAccountErrors
     public static Error PrimaryIdentitiesNotSatisfied(PrimaryIdentityRequirement requirement, HosterCode hoster)
         => new Error(
             code: "Hoster.PrimaryIdentitiesNotSatisfied",
-            message: $"Provided identities do not satisfy the hoster's primary identity requirement.",
+            message: $"Provided identities do not satisfy the hoster's primary identity requirements.",
             type: ErrorType.Validation)
         .WithMetadata("HosterId", hoster.ToFriendlyString())
         .WithMetadata("PrimaryIdentities", requirement);
