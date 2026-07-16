@@ -139,7 +139,7 @@ internal sealed class CreateAssetCommandHandler(
             if (!requirement.IsSatisfiedBy(verified))
             {
                 return Result.Failure(
-                    HosterAccountErrors.RequiredIdentitesNotSatisfied(
+                    HosterAccountErrors.RequiredIdentitiesNotSatisfied(
                         requirement,
                         def.Code,
                         capability));

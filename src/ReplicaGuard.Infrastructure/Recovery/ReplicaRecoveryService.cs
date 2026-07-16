@@ -6,7 +6,7 @@ using ReplicaGuard.Domain.HosterAccounts;
 using ReplicaGuard.Domain.Hosters;
 using ReplicaGuard.Domain.Replication;
 
-namespace ReplicaGuard.Application.Replication.Recovery;
+namespace ReplicaGuard.Infrastructure.Recovery;
 
 public interface IReplicaRecoveryService
 {
@@ -140,7 +140,7 @@ internal sealed class ReplicaRecoveryService : IReplicaRecoveryService
             return;
         }
 
-        var newReplica = replicaAddResult.Value;
+        replica.MarkAsTombstoned();
 
         // Predict expiry for the new backup
         //var expiryResult = await _expiryPrediction.Predict(definition, newReplica);
@@ -153,6 +153,6 @@ internal sealed class ReplicaRecoveryService : IReplicaRecoveryService
 
         _logger.LogInformation(
             "Created backup replica {NewReplicaId} (from {OriginalId}) on {HosterCode}",
-            newReplica.Id, originalId, hoster.Code);
+            replicaAddResult.Value.Id, originalId, hoster.Code);
     }
 }

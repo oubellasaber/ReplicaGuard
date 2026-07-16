@@ -30,7 +30,7 @@ internal sealed class IdentityCreatedIntegrationEventConsumer :
         if (account is null)
             return; // nothing to do
 
-        var command = new VerifiyIdentityCommand(identityId);
+        var command = new VerifyIdentityCommand(identityId);
         var result = await _sender.Send(command, context.CancellationToken);
 
         if (result.IsSuccess || result.Error.IsPermanent)

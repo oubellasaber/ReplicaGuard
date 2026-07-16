@@ -1,10 +1,10 @@
 ﻿using MassTransit;
 using Microsoft.Extensions.Logging;
-using ReplicaGuard.Application.Replication.Recovery;
 using ReplicaGuard.Contracts.IntegrationEvents;
 using ReplicaGuard.Domain.Abstractions;
 using ReplicaGuard.Domain.Replication;
 using ReplicaGuard.Infrastructure.Persistence;
+using ReplicaGuard.Infrastructure.Recovery;
 
 namespace ReplicaGuard.Infrastructure.Messaging.Consumers;
 
@@ -14,18 +14,15 @@ public sealed class ReplicaExpirationIntegrationEventConsumer :
 {
     private readonly IAssetRepository _assets;
     private readonly IReplicaRecoveryService _recovery;
-    private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<ReplicaExpirationIntegrationEventConsumer> _logger;
 
     public ReplicaExpirationIntegrationEventConsumer(
         IAssetRepository assets,
         IReplicaRecoveryService recovery,
-        IUnitOfWork unitOfWork,
         ILogger<ReplicaExpirationIntegrationEventConsumer> logger)
     {
         _assets = assets;
         _recovery = recovery;
-        _unitOfWork = unitOfWork;
         _logger = logger;
     }
 
@@ -65,10 +62,6 @@ public sealed class ReplicaExpirationIntegrationEventConsumer :
         }
 
         await _recovery.Recover(asset, replica, context.CancellationToken);
-
-        // ToDo: This shoudl be fixed (Think about it???)
-        replica.MarkAsTombstoned();
-        await _unitOfWork.SaveChangesAsync(context.CancellationToken);
     }
 }
 

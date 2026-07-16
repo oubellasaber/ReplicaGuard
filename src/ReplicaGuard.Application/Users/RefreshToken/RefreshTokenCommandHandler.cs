@@ -38,7 +38,7 @@ public class RefreshTokenCommandHandler : ICommandHandler<RefreshTokenCommand, A
 
         if (refreshToken is null || refreshToken.ExpiresAtUtc < DateTime.UtcNow)
         {
-            return Result.Failure<AccessTokensResponse>(AuthenticationErrors.InvalidRefreshToken);
+            return Result.Failure<AccessTokensResponse>(IdentityErrors.InvalidRefreshToken);
         }
 
         IList<string> roles = await _identityService.GetRolesAsync(refreshToken.User);

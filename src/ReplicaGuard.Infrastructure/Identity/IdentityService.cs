@@ -54,14 +54,14 @@ internal class IdentityService : IIdentityService
 
         if (!createResult.Succeeded)
         {
-            return Result.Failure<IdentityUser>(AuthenticationErrors.FromIdentityErrors(createResult.Errors));
+            return Result.Failure<IdentityUser>(IdentityErrors.FromIAspNetdentityErrors(createResult.Errors));
         }
 
         IdentityResult roleResult = await _userManager.AddToRoleAsync(identityUser, role);
 
         if (!roleResult.Succeeded)
         {
-            return Result.Failure<IdentityUser>(AuthenticationErrors.FromIdentityErrors(createResult.Errors));
+            return Result.Failure<IdentityUser>(IdentityErrors.FromIAspNetdentityErrors(roleResult.Errors));
         }
 
         return Result.Success(identityUser);

@@ -160,7 +160,7 @@ public sealed class UploadReplicaCommandHandler
             replica.MarkAsFailed();
             await SaveAndPublishStateAsync(asset, replica, ct);
             return Result.Failure<UploadContext>(
-                HosterAccountErrors.RequiredIdentitesNotSatisfied(
+                HosterAccountErrors.RequiredIdentitiesNotSatisfied(
                     requirement,
                     def.Code,
                     capability).AsPermanent());

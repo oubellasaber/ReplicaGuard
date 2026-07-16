@@ -10,9 +10,9 @@ public sealed class Replica : Entity<Guid>
     public Guid AssetId { get; private set; }
     public Guid HosterId { get; private set; }
     public Guid? HosterAccountId { get; private set; }
-    public ReplicaStatus Status { get; set; }
-    public Uri? Link { get; set; }
-    public Guid? WaitingForReplicaId { get; set; }
+    public ReplicaStatus Status { get; private set; }
+    public Uri? Link { get; private set; }
+    public Guid? WaitingForReplicaId { get; private set; }
     public DateTime CreatedAtUtc { get; private set; }
     public DateTime UpdatedAtUtc { get; private set; }
     public Guid? SourceReplicaId { get; private set; }

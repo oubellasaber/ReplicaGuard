@@ -35,7 +35,7 @@ public sealed class HosterAccountErrors
         .WithMetadata("HosterId", hoster.ToFriendlyString())
         .WithMetadata("PrimaryIdentities", requirement);
 
-    public static Error RequiredIdentitesNotSatisfied(CapabilityRequirement requirement, HosterCode hoster, CapabilityCode capability)
+    public static Error RequiredIdentitiesNotSatisfied(CapabilityRequirement requirement, HosterCode hoster, CapabilityCode capability)
         => new Error(
             code: "Hoster.CapabilityRequirementsNotSatisfied",
             message: $"Provided identities do not satisfy the hoster's capability requirements.",
