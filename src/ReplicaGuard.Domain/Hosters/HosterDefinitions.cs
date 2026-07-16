@@ -16,7 +16,9 @@ public interface IHosterDefinition
 
     Result ValidatePrimaryCredentials(HosterAccount account);
     Result ValidateCapability(HosterAccount account, CapabilityCode capability);
+
     Result<string> ExtractFileCode(Uri url);
+    Result<Uri> BuildFileUrl(string fileCode);
 }
 
 public abstract class HosterDefinitionBase : IHosterDefinition
@@ -59,12 +61,13 @@ public abstract class HosterDefinitionBase : IHosterDefinition
         if (!requirement.IsSatisfiedBy(account.Identities))
             return Result.Failure(
                 HosterErrors.CapabilityRequirementsNotSatisfied(account.HosterCode, capability));
+
         return Result.Success();
     }
 
     public abstract Result<string> ExtractFileCode(Uri url);
+    public abstract Result<Uri> BuildFileUrl(string fileCode);
 }
-
 
 public sealed class Pixeldrain : HosterDefinitionBase
 {
@@ -78,21 +81,17 @@ public sealed class Pixeldrain : HosterDefinitionBase
     {
         var emailUsernameGroup = new IdentityGroup(
             Code,
-            new[] { IdentityType.Email, IdentityType.Username }
-        );
+            new[] { IdentityType.Email, IdentityType.Username });
 
         var apiGroup = new IdentityGroup(
             Code,
-            new[] { IdentityType.ApiKey }
-        );
+            new[] { IdentityType.ApiKey });
 
         IdentityGroups = new[] { emailUsernameGroup, apiGroup };
 
         PrimaryIdentities = new PrimaryIdentityRequirement(new[]
         {
-            new RequirementPath(new[] { IdentityType.ApiKey }),
-            //new RequirementPath(new[] { IdentityType.Email }),
-            //new RequirementPath(new[] { IdentityType.Username })
+            new RequirementPath(new[] { IdentityType.ApiKey })
         });
 
         CapabilityRequirements = new List<CapabilityRequirement>
@@ -102,13 +101,19 @@ public sealed class Pixeldrain : HosterDefinitionBase
                 new[]
                 {
                     new RequirementPath(new[] { IdentityType.ApiKey })
+                }),
+            new CapabilityRequirement(
+                CapabilityCode.CopyFile,
+                new[]
+                {
+                    new RequirementPath(new[] { IdentityType.ApiKey })
                 })
         };
     }
 
     public override Result<string> ExtractFileCode(Uri url)
     {
-        ArgumentNullException.ThrowIfNull(url, nameof(url));
+        ArgumentNullException.ThrowIfNull(url);
 
         var host = url.Host.ToLowerInvariant();
 
@@ -116,27 +121,36 @@ public sealed class Pixeldrain : HosterDefinitionBase
             return Result.Failure<string>(
                 HosterErrors.UnsupportedHosterDomain(host));
 
-        var segments = url.AbsolutePath
-            .Split('/', StringSplitOptions.RemoveEmptyEntries);
+        var segments = url.AbsolutePath.Split(
+            '/',
+            StringSplitOptions.RemoveEmptyEntries);
 
         if (segments.Length < 2)
             return Result.Failure<string>(
                 HosterErrors.MissingFileCode(url));
 
-        if (segments.Length >= 2 &&
-            segments[0].Equals("u", StringComparison.OrdinalIgnoreCase))
-        {
+        if (segments[0].Equals("u", StringComparison.OrdinalIgnoreCase))
             return Result.Success(segments[1]);
-        }
 
         return Result.Failure<string>(
-                HosterErrors.MissingFileCode(url));
+            HosterErrors.MissingFileCode(url));
+    }
+
+    public override Result<Uri> BuildFileUrl(string fileCode)
+    {
+        if (string.IsNullOrWhiteSpace(fileCode))
+            return Result.Failure<Uri>(
+                HosterErrors.InvalidFileCode(fileCode));
+
+        return Result.Success(
+            new Uri($"https://pixeldrain.com/u/{Uri.EscapeDataString(fileCode)}"));
     }
 }
 
 public sealed class SendCm : HosterDefinitionBase
 {
     public override HosterCode Code => HosterCode.SendCm;
+
     public override PrimaryIdentityRequirement PrimaryIdentities { get; }
     public override IReadOnlyList<CapabilityRequirement> CapabilityRequirements { get; }
     public override IReadOnlyList<IdentityGroup> IdentityGroups { get; }
@@ -145,8 +159,7 @@ public sealed class SendCm : HosterDefinitionBase
     {
         var apiGroup = new IdentityGroup(
             Code,
-            new[] { IdentityType.ApiKey }
-        );
+            new[] { IdentityType.ApiKey });
 
         IdentityGroups = new[] { apiGroup };
 
@@ -168,29 +181,45 @@ public sealed class SendCm : HosterDefinitionBase
                 new[]
                 {
                     new RequirementPath(new[] { IdentityType.ApiKey })
+                }),
+            new CapabilityRequirement(
+                CapabilityCode.CopyFile,
+                new[]
+                {
+                    new RequirementPath(new[] { IdentityType.ApiKey })
                 })
         };
     }
 
     public override Result<string> ExtractFileCode(Uri url)
     {
-        ArgumentNullException.ThrowIfNull(url, nameof(url));
+        ArgumentNullException.ThrowIfNull(url);
 
-        // Ensure it's a supported host
         var host = url.Host.ToLowerInvariant();
-        if (host != "send.cm" && host != "send.now")
-            return Result.Failure<string>(HosterErrors.UnsupportedHosterDomain(host));
 
-        // Get last segment of the path
-        var segments = url.AbsolutePath
-            .Split('/', StringSplitOptions.RemoveEmptyEntries);
+        if (host != "send.cm" && host != "send.now")
+            return Result.Failure<string>(
+                HosterErrors.UnsupportedHosterDomain(host));
+
+        var segments = url.AbsolutePath.Split(
+            '/',
+            StringSplitOptions.RemoveEmptyEntries);
 
         if (segments.Length == 0)
-            return Result.Failure<string>(HosterErrors.MissingFileCode(url));
+            return Result.Failure<string>(
+                HosterErrors.MissingFileCode(url));
 
-        var code = segments[^1];
+        return Result.Success(segments[^1]);
+    }
 
-        return code;
+    public override Result<Uri> BuildFileUrl(string fileCode)
+    {
+        if (string.IsNullOrWhiteSpace(fileCode))
+            return Result.Failure<Uri>(
+                HosterErrors.InvalidFileCode(fileCode));
+
+        return Result.Success(
+            new Uri($"https://send.now/{Uri.EscapeDataString(fileCode)}"));
     }
 }
 

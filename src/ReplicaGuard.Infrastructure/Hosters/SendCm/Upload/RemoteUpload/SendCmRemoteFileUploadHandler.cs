@@ -34,16 +34,12 @@ internal class SendCmRemoteFileUploadHandler : IRemoteFileUploadHandler
 
     public async Task<Result<RemoteFileUploadResponse>> HandleAsync(RemoteFileUploadRequest input, CancellationToken ct = default)
     {
-        var apiKeyIdentity = input.Account
-            .Identities
-            .FirstOrDefault(id => id.Type == IdentityType.ApiKey);
+        var decryptedApiKeyResult = input.Account.GetApiKey(_crypto);
 
-        if (apiKeyIdentity is null || apiKeyIdentity.Status != IdentityVerificationStatus.Verified)
-        {
-            throw new InvalidOperationException("The account does not have a verified API key identity.");
-        }
-        
-        var decryptedApiKey = apiKeyIdentity.RevealSecret(SecretType.ApiKeyPair, _crypto);
+        if (decryptedApiKeyResult.IsFailure)
+            return Result.Failure<RemoteFileUploadResponse>(decryptedApiKeyResult.Error);
+
+        var decryptedApiKey = decryptedApiKeyResult.Value;
         var sessionResult = await _sessionProvider.GetSessionAsync(decryptedApiKey, ct);
         if (sessionResult.IsFailure)
             return Result.Failure<RemoteFileUploadResponse>(sessionResult.Error);

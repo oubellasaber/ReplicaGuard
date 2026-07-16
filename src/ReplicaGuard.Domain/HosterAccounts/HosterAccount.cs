@@ -294,4 +294,21 @@ public sealed class HosterAccount : Entity<Guid>
             throw new InvalidOperationException($"Identity of type {type} not found in this account.");
         return identity;
     }
+
+    public Result<string> GetApiKey(ISecretEncryptionService secretEncryptionService)
+    {
+        var apiKeyIdentity = _identities
+            .FirstOrDefault(id => id.Type == IdentityType.ApiKey);
+
+        if (apiKeyIdentity is null)
+            return Result.Failure<string>(AuthIdentityErrors.IdentityMissing(Id, IdentityType.ApiKey));
+
+        if (apiKeyIdentity.Status != IdentityVerificationStatus.Verified)
+            return Result.Failure<string>(AuthIdentityErrors.IdentityNotVerified(Id, apiKeyIdentity.Id));
+
+        var decryptedApiKey = apiKeyIdentity
+            .RevealSecret(SecretType.ApiKeyPair, secretEncryptionService);
+
+        return decryptedApiKey;
+    }
 }

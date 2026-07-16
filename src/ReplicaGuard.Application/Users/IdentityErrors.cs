@@ -1,12 +1,11 @@
-﻿using System.Net;
-using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.Identity;
 using ReplicaGuard.Domain.Abstractions;
 
 namespace ReplicaGuard.Application.Users;
 
-public static class AuthenticationErrors
+public static class IdentityErrors
 {
-    public static Error FromIdentityErrors(IEnumerable<IdentityError> errors)
+    public static Error FromIAspNetdentityErrors(IEnumerable<IdentityError> errors)
     {
         var error = new Error("Identity.ValidationFailed", "Identity validation failed")
             .WithDetail($"One or more fields are invalid.")

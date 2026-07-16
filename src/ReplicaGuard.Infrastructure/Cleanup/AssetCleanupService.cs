@@ -7,6 +7,7 @@ using ReplicaGuard.Application.Replication.UploadReplica.Spooling;
 using ReplicaGuard.Domain.Abstractions;
 using ReplicaGuard.Domain.Replication;
 using ReplicaGuard.Infrastructure.Persistence;
+using ReplicaGuard.Infrastructure.Storage;
 
 namespace ReplicaGuard.Infrastructure.Cleanup;
 
@@ -16,6 +17,7 @@ internal sealed class AssetCleanupService : IAssetCleanupService
     private readonly ISpoolFileLocator _spoolFileLocator;
     private readonly FileFetcherOptions _fetcherOptions;
     private readonly UserUploadsOptions _uploadsOptions;
+    private readonly StorageOptions _storageOptions;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<AssetCleanupService> _logger;
 
@@ -24,6 +26,7 @@ internal sealed class AssetCleanupService : IAssetCleanupService
         ISpoolFileLocator spoolFileLocator,
         IOptions<FileFetcherOptions> fetcherOptions,
         IOptions<UserUploadsOptions> uploadsOptions,
+        IOptions<StorageOptions> storageOptions,
         IUnitOfWork unitOfWork,
         ILogger<AssetCleanupService> logger)
     {
@@ -31,6 +34,7 @@ internal sealed class AssetCleanupService : IAssetCleanupService
         _spoolFileLocator = spoolFileLocator;
         _fetcherOptions = fetcherOptions.Value;
         _uploadsOptions = uploadsOptions.Value;
+        _storageOptions = storageOptions;
         _unitOfWork = unitOfWork;
         _logger = logger;
     }
@@ -54,7 +58,7 @@ internal sealed class AssetCleanupService : IAssetCleanupService
     public async Task<int> CleanupExpiredAssetsAsync(CancellationToken ct = default)
     {
         var now = DateTime.UtcNow;
-        var retentionDays = 7;
+        var retentionDays = _storageOptions.RetentionDays;
 
         var expiredAssets = await _db.Set<Asset>()
             .Where(a => a.CleanupAfterUtc != null
@@ -89,7 +93,7 @@ internal sealed class AssetCleanupService : IAssetCleanupService
         int cleaned = 0;
 
         cleaned += CleanupDirectoryTempFiles(_fetcherOptions.SpoolDirectory, "spl_*.tmp");
-        cleaned += CleanupDirectoryTempFiles(_uploadsOptions.UploadDirectory, "upl_temp_*.tmp");
+        cleaned += CleanupDirectoryTempFiles(_uploadsOptions.UploadDirectory, "upl_*.tmp");
 
         if (cleaned > 0)
             _logger.LogInformation("Cleaned up {Count} orphaned temp files", cleaned);

@@ -11,9 +11,9 @@ internal sealed class VerifiyIdentityCommandHandler(
     IHosterDefinitionResolver resolver,
     ICapabilityFactory factory,
     IUnitOfWork uow)
-    : ICommandHandler<VerifiyIdentityCommand>
+    : ICommandHandler<VerifyIdentityCommand>
 {
-    public async Task<Result> Handle(VerifiyIdentityCommand request, CancellationToken ct)
+    public async Task<Result> Handle(VerifyIdentityCommand request, CancellationToken ct)
     {
         var identityId = request.IdentityId;
 

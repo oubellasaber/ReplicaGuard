@@ -41,16 +41,10 @@ public class AssetController(
         [FromBody] CreateAssetRequest request,
         CancellationToken cancellationToken)
     {
-        var hosters = request.Hosters
-        .Select(h => new HosterAccountDto(
-            HosterId: h.HosterId,
-            HosterAccountId: h.AccountId))
-        .ToList();
-
         var command = new CreateRemoteAssetCommand(
             request.Source,
             request.FileName,
-            hosters);
+            request.HosterAccountIds);
 
         var result = await sender.Send(command, cancellationToken);
 
@@ -67,16 +61,15 @@ public class AssetController(
     {
         var (tempPath, fileName, hostersRaw) = await ParseMultipartAsync(Request, ct);
 
-        var hosters = hostersRaw
+        var hosterAccsIds = hostersRaw
             .Split(',', StringSplitOptions.RemoveEmptyEntries)
-            .Select(x => x.Split(':'))
-            .Select(x => new HosterAccountDto(Guid.Parse(x[0]), Guid.Parse(x[1])))
+            .Select(x => Guid.Parse(x))
             .ToList();
 
         var command = new CreateLocalAssetCommand(
             tempPath,
             fileName,
-            hosters);
+            hosterAccsIds);
 
         var result = await sender.Send(command, ct);
         if (result.IsFailure)
@@ -92,7 +85,7 @@ public class AssetController(
         if (tempPath != finalPath)
         {
             try { System.IO.File.Move(tempPath, finalPath, overwrite: true); }
-            catch { /* best effort */ }
+            catch { /* best effort */ } // TODO
         }
 
         return CreatedAtAction(nameof(Get), new { id = assetId }, result.Value);

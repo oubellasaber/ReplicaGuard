@@ -58,7 +58,7 @@ internal sealed class ExceptionHandlingMiddleware(
                 null),
             _ => new ExceptionDetails(
                 StatusCodes.Status500InternalServerError,
-                ResultExtensions.GetRfcUri(400),
+                ResultExtensions.GetRfcUri(500),
                 "Server error",
                 "An unexpected error has occurred",
                 null)

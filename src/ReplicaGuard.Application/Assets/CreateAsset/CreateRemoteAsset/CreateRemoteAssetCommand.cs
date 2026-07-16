@@ -2,5 +2,5 @@
 
 namespace ReplicaGuard.Application.Assets.CreateAsset.CreateRemoteAsset;
 
-public sealed record CreateRemoteAssetCommand(string Url, string FileName, List<HosterAccountDto> Hosters)
+public sealed record CreateRemoteAssetCommand(string Url, string FileName, IEnumerable<Guid> HosterAccountIds)
     : ICommand<CreateAssetResponse>;

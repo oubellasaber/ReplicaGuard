@@ -7,7 +7,7 @@ internal class CreateLocalAssetCommandHandler(ISender sender) : ICommandHandler<
 {
     public Task<Result<CreateAssetResponse>> Handle(CreateLocalAssetCommand request, CancellationToken cancellationToken)
     {
-        var cmd = new CreateAssetCommand(request.FilePath, request.FileName, request.Hosters);
+        var cmd = new CreateAssetCommand(request.FilePath, request.FileName, request.HosterAccountIds);
         return sender.Send(cmd, cancellationToken);
     }
 }

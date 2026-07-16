@@ -12,6 +12,10 @@ internal class ReplicaStatusTransitionConfiguration : IEntityTypeConfiguration<R
 
         builder.HasKey(r => r.Id);
 
+        builder.Property(x => x.Id)
+            .ValueGeneratedNever()
+            .IsRequired();
+
         builder.Property(r => r.ReplicaId)
             .IsRequired();
 

@@ -7,7 +7,7 @@ internal class CreateRemoteAssetCommandHandler(ISender sender) : ICommandHandler
 {
     public Task<Result<CreateAssetResponse>> Handle(CreateRemoteAssetCommand request, CancellationToken cancellationToken)
     {
-        var cmd = new CreateAssetCommand(request.Url, request.FileName, request.Hosters);
+        var cmd = new CreateAssetCommand(request.Url, request.FileName, request.HosterAccountIds);
         return sender.Send(cmd, cancellationToken);
     }
 }

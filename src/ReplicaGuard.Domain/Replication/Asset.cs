@@ -135,6 +135,19 @@ public sealed class Asset : Entity<Guid>
         return Result.Success(replica);
     }
 
+    public Result<Replica> AddReplicaBackup(
+        Guid assetId,
+        Guid hosterId,
+        Guid? accountId,
+        Uri link,
+        DateTime utcNow,
+        Guid sourceReplicaId)
+    {
+        Replica replica = Replica.CreateBackup(assetId, hosterId, accountId, link, utcNow, sourceReplicaId);
+        _replicas.Add(replica);
+        return Result.Success(replica);
+    }
+
     /// <summary>
     /// Records the file size once it's known (from local disk or after download).
     /// Idempotent - only sets the value if not already known.

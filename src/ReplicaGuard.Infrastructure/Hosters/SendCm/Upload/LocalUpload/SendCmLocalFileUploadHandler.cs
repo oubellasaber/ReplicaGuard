@@ -30,22 +30,12 @@ internal sealed class SendCmLocalFileUploadHandler : ILocalFileUploadHandler
 
     public async Task<Result<LocalFileUploadResponse>> HandleAsync(LocalFileUploadRequest input, CancellationToken ct = default)
     {
-        var apiKeyIdentity = input.Account
-            .Identities
-            .FirstOrDefault(id => id.Type == IdentityType.ApiKey);
+        var decryptedApiKeyResult = input.Account.GetApiKey(_crypto);
 
-        if (apiKeyIdentity is null)
-        {
-            return Result.Failure<LocalFileUploadResponse>(
-                SendCmUploadErrors.IdentityMissing(input.Account.Id, IdentityType.ApiKey));
-        }
-        else if (apiKeyIdentity.Status != IdentityVerificationStatus.Verified)
-        {
-            return Result.Failure<LocalFileUploadResponse>(
-                SendCmUploadErrors.IdentityNotVerified(input.Account.Id, apiKeyIdentity.Id));
-        }
+        if (decryptedApiKeyResult.IsFailure)
+            return Result.Failure<LocalFileUploadResponse>(decryptedApiKeyResult.Error);
 
-        var decryptedApiKey = apiKeyIdentity.RevealSecret(SecretType.ApiKeyPair, _crypto);
+        var decryptedApiKey = decryptedApiKeyResult.Value;
         var fileName = input.FileName;
         var filePath = input.Source.FilePath;
 

@@ -33,8 +33,7 @@ public static class MessagingConfiguration
             x.AddConsumers(typeof(UploadReplicaConsumer).Assembly);
             x.AddConsumer<ReplicaTerminalIntegrationEventConsumer>();
             EndpointConvention.Map<UploadReplicaCommand>(new Uri("queue:upload-replica"));
-
-
+            x.AddConsumer<ReplicaExpirationIntegrationEventConsumer, ReplicaExpirationIntegrationEventConsumerDefinition>();
 
             // 2. Configure EF Outbox (transactional)
             x.AddEntityFrameworkOutbox<ApplicationDbContext>(o =>

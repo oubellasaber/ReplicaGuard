@@ -12,6 +12,10 @@ public class SpoolLeaseConfiguration : IEntityTypeConfiguration<SpoolLease>
 
         builder.HasKey(x => x.Id);
 
+        builder.Property(x => x.Id)
+            .ValueGeneratedNever()
+            .IsRequired();
+
         builder.Property(x => x.Version)
             .IsRequired()
             .IsConcurrencyToken()

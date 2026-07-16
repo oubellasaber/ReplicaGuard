@@ -7,4 +7,6 @@ public enum CapabilityCode : short
     IdentityVerification = 3,
     CopyFile = 4,
     GenerateDownloadUrl = 5,
+    GetFileInfo = 6,
+    GetLastDownloadDate = 7
 }

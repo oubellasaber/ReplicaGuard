@@ -41,9 +41,12 @@ internal sealed class PixeldrainLocalFileUploadHandler : ILocalFileUploadHandler
         ArgumentException.ThrowIfNullOrEmpty(fileName);
         ArgumentNullException.ThrowIfNull(source);
 
-        var decryptedApiKey = account
-            .GetAuthIdentity(IdentityType.ApiKey)
-            .RevealSecret(SecretType.ApiKeyPair, _secretEncryptionService);
+        var decryptedApiKeyResult = input.Account.GetApiKey(_secretEncryptionService);
+
+        if (decryptedApiKeyResult.IsFailure)
+            return Result.Failure<LocalFileUploadResponse>(decryptedApiKeyResult.Error);
+
+        var decryptedApiKey = decryptedApiKeyResult.Value;
 
         if (!File.Exists(source.FilePath))
         {

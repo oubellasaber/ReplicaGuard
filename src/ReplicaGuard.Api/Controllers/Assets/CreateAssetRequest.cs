@@ -3,6 +3,5 @@ namespace ReplicaGuard.Api.Controllers.Assets;
 public sealed record CreateAssetRequest(
     string Source,
     string FileName,
-    List<HosterDto> Hosters);
+    List<Guid> HosterAccountIds);
 
-public sealed record HosterDto(Guid HosterId, Guid AccountId);

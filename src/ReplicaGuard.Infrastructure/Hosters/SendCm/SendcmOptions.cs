@@ -8,4 +8,5 @@ internal class SendCmOptions
     public required string UploadServerEndpoint { get; init; }
     public required string RenameFileEndpoint { get; init; }
     public required string FileCloneEndpoint { get; init; }
+    public required string FileInfoEndpoint { get; init; }
 }

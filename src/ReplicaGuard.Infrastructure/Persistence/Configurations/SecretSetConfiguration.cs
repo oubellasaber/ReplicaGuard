@@ -11,6 +11,10 @@ public sealed class SecretSetConfiguration : IEntityTypeConfiguration<SecretSet>
         b.ToTable("secret_sets");
 
         b.HasKey(x => x.Id);
+        
+        b.Property(x => x.Id)
+            .ValueGeneratedNever()
+            .IsRequired();
 
         b.HasMany(x => x.Secrets)
             .WithOne()

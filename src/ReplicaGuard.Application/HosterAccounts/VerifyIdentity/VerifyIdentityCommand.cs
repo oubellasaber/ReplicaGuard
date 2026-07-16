@@ -2,4 +2,4 @@
 
 namespace ReplicaGuard.Application.HosterAccounts.VerifiyIdentity;
 
-public sealed record VerifiyIdentityCommand(Guid IdentityId) : ICommand;
+public sealed record VerifyIdentityCommand(Guid IdentityId) : ICommand;

@@ -49,16 +49,4 @@ internal static class SendCmUploadErrors
             .WithType(ErrorType.Failure)
             .WithMetadata(nameof(url), url)
             .WithMetadata("status_code", (int)status);
-
-    public static Error IdentityNotVerified(Guid accountId, Guid identityId) =>
-        new Error($"Hoster.{Code}.Upload.IdentityNotVerified", "The hoster account identity is not verified.")
-            .WithType(ErrorType.Forbidden)
-            .WithMetadata(nameof(accountId), accountId)
-            .WithMetadata(nameof(identityId), identityId);
-
-    public static Error IdentityMissing(Guid accountId, IdentityType identityType) =>
-        new Error($"Hoster.{Code}.Upload.IdentityMissing", "The hoster account is missing a required identity.")
-            .WithType(ErrorType.Forbidden)
-            .WithMetadata(nameof(accountId), accountId)
-            .WithMetadata(nameof(identityType), identityType.ToString());
 }

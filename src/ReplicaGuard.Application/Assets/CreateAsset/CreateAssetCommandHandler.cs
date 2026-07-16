@@ -32,7 +32,7 @@ internal sealed class CreateAssetCommandHandler(
             return Result.Failure<CreateAssetResponse>(fileNameResult.Error);
 
         // 2. Load accounts by HosterAccountId
-        var accountsResult = await LoadAccounts(request.Hosters, userId, ct);
+        var accountsResult = await LoadAccounts(request.HosterAccountIds, userId, ct);
         if (accountsResult.IsFailure)
             return Result.Failure<CreateAssetResponse>(accountsResult.Error);
 
@@ -50,9 +50,10 @@ internal sealed class CreateAssetCommandHandler(
             return Result.Failure<CreateAssetResponse>(capabilityResult.Error);
 
         // 5. Create asset with replicas
-        var replicas = request.Hosters
-            .Select(h => (h.HosterId, (Guid?)h.HosterAccountId))
+        var replicas = accounts
+            .Select(a => (a.HosterId, (Guid?)a.Id))
             .ToList();
+
         var assetResult = CreateAsset(
             userId,
             request.Source,
@@ -68,7 +69,7 @@ internal sealed class CreateAssetCommandHandler(
 
         logger.LogInformation(
             "Asset {AssetId} created with {ReplicaCount} replicas for user {UserId}",
-            asset.Id, request.Hosters.Count, userId);
+            asset.Id, request.HosterAccountIds.Count(), userId);
 
         return Result.Success(new CreateAssetResponse(
             asset.Id,
@@ -82,19 +83,16 @@ internal sealed class CreateAssetCommandHandler(
         => FileName.Create(fileName);
 
     private async Task<Result<List<HosterAccount>>> LoadAccounts(
-        List<HosterAccountDto> hosters,
+        IEnumerable<Guid> accountIds,
         Guid userId,
         CancellationToken ct)
     {
-        var accountIds = hosters.Select(h => h.HosterAccountId).ToList();
-
         var accounts = await accountRepository.GetAccountsByIds(userId, accountIds, ct);
 
-        if (accounts.Count() != hosters.Count)
+        if (accounts.Count() != accountIds.Count())
         {
-            var missing = hosters
-                .Where(h => !accounts.Any(a => a.Id == h.HosterAccountId))
-                .Select(h => h.HosterAccountId);
+            var missing = accountIds
+                .Where(id => !accounts.Any(a => a.Id == id));
 
             return Result.Failure<List<HosterAccount>>(
                 HosterAccountErrors.NotFound(missing.First()));
@@ -141,7 +139,7 @@ internal sealed class CreateAssetCommandHandler(
             if (!requirement.IsSatisfiedBy(verified))
             {
                 return Result.Failure(
-                    HosterAccountErrors.RequiredIdentitesNotSatisfied(
+                    HosterAccountErrors.RequiredIdentitiesNotSatisfied(
                         requirement,
                         def.Code,
                         capability));

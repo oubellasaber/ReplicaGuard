@@ -13,6 +13,10 @@ internal sealed class HosterAccountConfiguration
 
         b.HasKey(x => x.Id);
 
+        b.Property(x => x.Id)
+            .ValueGeneratedNever()
+            .IsRequired();
+
         b.Property(x => x.HosterId)
             .IsRequired();
 

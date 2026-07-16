@@ -244,7 +244,6 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("ReplicaGuard.Application.Replication.UploadReplica.Spooling.SpoolLease", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
@@ -280,7 +279,6 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("ReplicaGuard.Domain.HosterAccounts.AuthIdentity", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
@@ -332,7 +330,6 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("ReplicaGuard.Domain.HosterAccounts.HosterAccount", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
@@ -375,7 +372,6 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("ReplicaGuard.Domain.HosterAccounts.Secret", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
@@ -416,7 +412,6 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("ReplicaGuard.Domain.HosterAccounts.SecretSet", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
@@ -429,7 +424,6 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("ReplicaGuard.Domain.Hosters.Hoster", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
@@ -468,7 +462,6 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("ReplicaGuard.Domain.Replication.Asset", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
@@ -519,13 +512,16 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("ReplicaGuard.Domain.Replication.Replica", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
                     b.Property<Guid>("AssetId")
                         .HasColumnType("uuid")
                         .HasColumnName("asset_id");
+
+                    b.Property<int>("AvailabilityStatus")
+                        .HasColumnType("integer")
+                        .HasColumnName("availability_status");
 
                     b.Property<DateTime>("CreatedAtUtc")
                         .ValueGeneratedOnAdd()
@@ -541,10 +537,22 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("hoster_id");
 
+                    b.Property<DateTime?>("LastExpirationCheckAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_expiration_check_at_utc");
+
                     b.Property<string>("Link")
                         .HasMaxLength(2048)
                         .HasColumnType("character varying(2048)")
                         .HasColumnName("link");
+
+                    b.Property<DateTime?>("PredictedExpiryAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("predicted_expiry_at_utc");
+
+                    b.Property<Guid?>("SourceReplicaId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("source_replica_id");
 
                     b.Property<int>("Status")
                         .HasColumnType("integer")
@@ -566,11 +574,20 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
                     b.HasIndex("AssetId")
                         .HasDatabaseName("ix_replicas_asset_id");
 
+                    b.HasIndex("AvailabilityStatus")
+                        .HasDatabaseName("ix_replicas_availability_status");
+
                     b.HasIndex("HosterAccountId")
                         .HasDatabaseName("ix_replicas_hoster_account_id");
 
                     b.HasIndex("HosterId")
                         .HasDatabaseName("ix_replicas_hoster_id");
+
+                    b.HasIndex("PredictedExpiryAtUtc")
+                        .HasDatabaseName("ix_replicas_predicted_expiry_at_utc");
+
+                    b.HasIndex("SourceReplicaId")
+                        .HasDatabaseName("ix_replicas_source_replica_id");
 
                     b.HasIndex("WaitingForReplicaId")
                         .HasDatabaseName("ix_replicas_waiting_for_replica_id");
@@ -581,7 +598,6 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("ReplicaGuard.Domain.Replication.ReplicaStatusTransition", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
@@ -609,7 +625,6 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("ReplicaGuard.Domain.Users.User", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
@@ -734,6 +749,12 @@ namespace ReplicaGuard.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_replicas_hosters_hoster_id");
+
+                    b.HasOne("ReplicaGuard.Domain.Replication.Replica", null)
+                        .WithMany()
+                        .HasForeignKey("SourceReplicaId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_replicas_replicas_source_replica_id");
 
                     b.HasOne("ReplicaGuard.Domain.Replication.Replica", null)
                         .WithMany()
