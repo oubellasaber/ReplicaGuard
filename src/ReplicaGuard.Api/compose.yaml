@@ -1,0 +1,44 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: replicaguard
+      POSTGRES_USER: replicaguard
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U replicaguard -d replicaguard"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build:
+      context: ..
+      dockerfile: src/ReplicaGuard.Api/Dockerfile
+    ports:
+      - "8080:8080"
+      - "8081:8081"
+    env_file: .env
+    environment:
+      ConnectionStrings__Database: "Host=postgres;Port=5432;Database=replicaguard;Username=replicaguard;Password=${POSTGRES_PASSWORD}"
+      Jwt__Key: ${JWT_KEY}
+      Encryption__Base64Key: ${ENCRYPTION_KEY}
+      Jwt__Issuer: "ReplicaGuard"
+      Jwt__Audience: "ReplicaGuard.Api"
+      Spool__SpoolDirectory: "/app/spool"
+      UserUploads__UploadDirectory: "/app/uploads"
+      ASPNETCORE_ENVIRONMENT: "Production"
+    volumes:
+      - spool:/app/spool
+      - uploads:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  spool:
+  uploads:
