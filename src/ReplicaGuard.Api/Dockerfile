@@ -1,32 +1,36 @@
-# See https://aka.ms/customizecontainer to learn how to customize your debug container and how Visual Studio uses this Dockerfile to build your images for faster debugging.
+# Build stage
+FROM mcr.microsoft.com/dotnet/sdk:8.0-alpine AS build
+ARG BUILD_CONFIGURATION=Release
+WORKDIR /src
 
-# This stage is used when running from VS in fast mode (Default for Debug configuration)
-FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
-USER $APP_UID
+# Cache dependencies
+COPY Directory.Packages.props Directory.Build.props ./
+COPY src/ReplicaGuard.Api/ReplicaGuard.Api.csproj src/ReplicaGuard.Api/
+COPY src/ReplicaGuard.Application/ReplicaGuard.Application.csproj src/ReplicaGuard.Application/
+COPY src/ReplicaGuard.Domain/ReplicaGuard.Domain.csproj src/ReplicaGuard.Domain/
+COPY src/ReplicaGuard.Infrastructure/ReplicaGuard.Infrastructure.csproj src/ReplicaGuard.Infrastructure/
+COPY src/ReplicaGuard.Contracts/ReplicaGuard.Contracts.csproj src/ReplicaGuard.Contracts/
+
+RUN dotnet restore src/ReplicaGuard.Api/ReplicaGuard.Api.csproj
+
+# Build - copy all source
+COPY . .
+WORKDIR /src/src/ReplicaGuard.Api
+RUN dotnet publish ReplicaGuard.Api.csproj -c $BUILD_CONFIGURATION -o /app/publish \
+    /p:UseAppHost=false \
+    /p:SelfContained=false
+
+# Runtime stage
+FROM mcr.microsoft.com/dotnet/aspnet:8.0-alpine AS final
 WORKDIR /app
+
+RUN addgroup -g 1000 appgroup && adduser -u 1000 -G appgroup -s /bin/sh -D appuser
+USER appuser
+
+COPY --from=build --chown=appuser:appgroup /app/publish .
+
+VOLUME ["/app/spool", "/app/uploads"]
 EXPOSE 8080
 EXPOSE 8081
 
-
-# This stage is used to build the service project
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
-ARG BUILD_CONFIGURATION=Release
-WORKDIR /src
-COPY ["Directory.Packages.props", "."]
-COPY ["Directory.Build.props", "."]
-COPY ["ReplicaGuard.Api/ReplicaGuard.Api.csproj", "ReplicaGuard.Api/"]
-RUN dotnet restore "./ReplicaGuard.Api/ReplicaGuard.Api.csproj"
-COPY . .
-WORKDIR "/src/ReplicaGuard.Api"
-RUN dotnet build "./ReplicaGuard.Api.csproj" -c $BUILD_CONFIGURATION -o /app/build
-
-# This stage is used to publish the service project to be copied to the final stage
-FROM build AS publish
-ARG BUILD_CONFIGURATION=Release
-RUN dotnet publish "./ReplicaGuard.Api.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
-
-# This stage is used in production or when running from VS in regular mode (Default when not using the Debug configuration)
-FROM base AS final
-WORKDIR /app
-COPY --from=publish /app/publish .
 ENTRYPOINT ["dotnet", "ReplicaGuard.Api.dll"]
