@@ -1,29 +1,27 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.JsonWebTokens;
 using ReplicaGuard.Application.Abstractions.Authentication;
-using ReplicaGuard.Application.Abstractions.Data;
 using ReplicaGuard.Application.Exceptions;
 using ReplicaGuard.Application.Users;
 using ReplicaGuard.Application.Users.LogInUser;
 using ReplicaGuard.Application.Users.RefreshToken;
 using ReplicaGuard.Application.Users.RegisterUser;
-using ReplicaGuard.Core.Abstractions;
-using ReplicaGuard.Core.Users;
+using ReplicaGuard.Domain.Abstractions;
+using ReplicaGuard.Domain.Users;
 using ReplicaGuard.TestInfrastructure.Fixtures;
 using ReplicaGuard.TestInfrastructure.Infrastructure;
 using ReplicaGuard.TestInfrastructure.Utilities;
 
-namespace ReplicaGuard.Application.IntegrationTests.Users;
+namespace ReplicaGuard.Application.IntegrationTests;
 
 [Collection(PostgresIntegrationCollection.Name)]
 public sealed class UserAuthenticationIntegrationTests
 {
     [Fact]
-    public async Task Register_Login_Refresh_RotatesRefreshToken_AndSetsDayBasedExpiry()
+    public async Task register_login_refresh_rotates_token_and_sets_day_based_expiry()
     {
-        // Arrange
         DateTime fixedNow = new(2026, 4, 2, 12, 0, 0, DateTimeKind.Utc);
         await using var harness = await IntegrationHarness.CreateAsync(fixedNow);
         await harness.ResetStateAsync();
@@ -56,7 +54,6 @@ public sealed class UserAuthenticationIntegrationTests
         {
             ISender sender = actScope.ServiceProvider.GetRequiredService<ISender>();
 
-            // Act
             Result<AccessTokensResponse> refreshResult = await sender.Send(
                 new RefreshTokenCommand(oldRefreshToken),
                 CancellationToken.None);
@@ -65,7 +62,6 @@ public sealed class UserAuthenticationIntegrationTests
             refreshedTokens = refreshResult.Value;
         }
 
-        // Assert
         registrationTokens.AccessToken.Should().NotBeNullOrWhiteSpace();
         registrationTokens.RefreshToken.Should().NotBeNullOrWhiteSpace();
 
@@ -84,9 +80,8 @@ public sealed class UserAuthenticationIntegrationTests
     }
 
     [Fact]
-    public async Task Refresh_WithExpiredToken_ReturnsInvalidRefreshTokenError()
+    public async Task refresh_with_expired_token_returns_invalid_refresh_token()
     {
-        // Arrange
         DateTime fixedNow = new(2026, 4, 2, 12, 0, 0, DateTimeKind.Utc);
         await using var harness = await IntegrationHarness.CreateAsync(fixedNow);
         await harness.ResetStateAsync();
@@ -119,21 +114,18 @@ public sealed class UserAuthenticationIntegrationTests
         {
             ISender sender = actScope.ServiceProvider.GetRequiredService<ISender>();
 
-            // Act
             refreshResult = await sender.Send(
                 new RefreshTokenCommand(refreshToken),
                 CancellationToken.None);
         }
 
-        // Assert
         refreshResult.IsFailure.Should().BeTrue();
-        refreshResult.Error.Code.Should().Be(AuthenticationErrors.InvalidRefreshToken.Code);
+        refreshResult.Error.Code.Should().Be(IdentityErrors.InvalidRefreshToken.Code);
     }
 
     [Fact]
-    public async Task LogIn_WithUnknownEmail_ReturnsInvalidCredentialsError()
+    public async Task login_with_unknown_email_returns_invalid_credentials()
     {
-        // Arrange
         DateTime fixedNow = new(2026, 4, 2, 12, 0, 0, DateTimeKind.Utc);
         await using var harness = await IntegrationHarness.CreateAsync(fixedNow);
         await harness.ResetStateAsync();
@@ -144,21 +136,18 @@ public sealed class UserAuthenticationIntegrationTests
         {
             ISender sender = scope.ServiceProvider.GetRequiredService<ISender>();
 
-            // Act
             logInResult = await sender.Send(
                 new LogInUserCommand("missing@example.com", "Pass123!"),
                 CancellationToken.None);
         }
 
-        // Assert
         logInResult.IsFailure.Should().BeTrue();
         logInResult.Error.Code.Should().Be(UserErrors.InvalidCredentials.Code);
     }
 
     [Fact]
-    public async Task LogIn_WithWrongPassword_ReturnsInvalidCredentialsError()
+    public async Task login_with_wrong_password_returns_invalid_credentials()
     {
-        // Arrange
         DateTime fixedNow = new(2026, 4, 2, 12, 0, 0, DateTimeKind.Utc);
         await using var harness = await IntegrationHarness.CreateAsync(fixedNow);
         await harness.ResetStateAsync();
@@ -175,21 +164,18 @@ public sealed class UserAuthenticationIntegrationTests
 
             registerResult.IsSuccess.Should().BeTrue();
 
-            // Act
             logInResult = await sender.Send(
                 new LogInUserCommand("john@example.com", "WrongPass123!"),
                 CancellationToken.None);
         }
 
-        // Assert
         logInResult.IsFailure.Should().BeTrue();
         logInResult.Error.Code.Should().Be(UserErrors.InvalidCredentials.Code);
     }
 
     [Fact]
-    public async Task Refresh_WithUnknownToken_ReturnsInvalidRefreshTokenError()
+    public async Task refresh_with_unknown_token_returns_invalid_refresh_token()
     {
-        // Arrange
         DateTime fixedNow = new(2026, 4, 2, 12, 0, 0, DateTimeKind.Utc);
         await using var harness = await IntegrationHarness.CreateAsync(fixedNow);
         await harness.ResetStateAsync();
@@ -200,21 +186,18 @@ public sealed class UserAuthenticationIntegrationTests
         {
             ISender sender = scope.ServiceProvider.GetRequiredService<ISender>();
 
-            // Act
             refreshResult = await sender.Send(
                 new RefreshTokenCommand("not-a-real-refresh-token"),
                 CancellationToken.None);
         }
 
-        // Assert
         refreshResult.IsFailure.Should().BeTrue();
-        refreshResult.Error.Code.Should().Be(AuthenticationErrors.InvalidRefreshToken.Code);
+        refreshResult.Error.Code.Should().Be(IdentityErrors.InvalidRefreshToken.Code);
     }
 
     [Fact]
-    public async Task Refresh_WhenOldTokenIsReused_ReturnsInvalidRefreshTokenError()
+    public async Task refresh_when_old_token_is_reused_returns_invalid_refresh_token()
     {
-        // Arrange
         DateTime fixedNow = new(2026, 4, 2, 12, 0, 0, DateTimeKind.Utc);
         await using var harness = await IntegrationHarness.CreateAsync(fixedNow);
         await harness.ResetStateAsync();
@@ -244,24 +227,21 @@ public sealed class UserAuthenticationIntegrationTests
                 new RefreshTokenCommand(oldRefreshToken),
                 CancellationToken.None);
 
-            // Act
             secondRefreshResult = await sender.Send(
                 new RefreshTokenCommand(oldRefreshToken),
                 CancellationToken.None);
         }
 
-        // Assert
         firstRefreshResult.IsSuccess.Should().BeTrue();
         firstRefreshResult.Value.RefreshToken.Should().NotBe(oldRefreshToken);
 
         secondRefreshResult.IsFailure.Should().BeTrue();
-        secondRefreshResult.Error.Code.Should().Be(AuthenticationErrors.InvalidRefreshToken.Code);
+        secondRefreshResult.Error.Code.Should().Be(IdentityErrors.InvalidRefreshToken.Code);
     }
 
     [Fact]
-    public async Task LogIn_WhenCalledTwice_IssuesDistinctRefreshTokens()
+    public async Task login_when_called_twice_issues_distinct_refresh_tokens()
     {
-        // Arrange
         DateTime fixedNow = new(2026, 4, 2, 12, 0, 0, DateTimeKind.Utc);
         await using var harness = await IntegrationHarness.CreateAsync(fixedNow);
         await harness.ResetStateAsync();
@@ -283,22 +263,19 @@ public sealed class UserAuthenticationIntegrationTests
                 new LogInUserCommand("repeat-login@example.com", "Pass123!"),
                 CancellationToken.None);
 
-            // Act
             secondLogInResult = await sender.Send(
                 new LogInUserCommand("repeat-login@example.com", "Pass123!"),
                 CancellationToken.None);
         }
 
-        // Assert
         firstLogInResult.IsSuccess.Should().BeTrue();
         secondLogInResult.IsSuccess.Should().BeTrue();
         secondLogInResult.Value.RefreshToken.Should().NotBe(firstLogInResult.Value.RefreshToken);
     }
 
     [Fact]
-    public async Task Register_WithWeakPassword_ReturnsIdentityValidationFailedError()
+    public async Task register_with_weak_password_returns_validation_failed()
     {
-        // Arrange
         DateTime fixedNow = new(2026, 4, 2, 12, 0, 0, DateTimeKind.Utc);
         await using var harness = await IntegrationHarness.CreateAsync(fixedNow);
         await harness.ResetStateAsync();
@@ -309,26 +286,22 @@ public sealed class UserAuthenticationIntegrationTests
         {
             ISender sender = scope.ServiceProvider.GetRequiredService<ISender>();
 
-            // Act
             registerResult = await sender.Send(
                 new RegisterUserCommand("weak-pass-user", "weak-pass@example.com", "123", "123"),
                 CancellationToken.None);
         }
 
-        // Assert
         registerResult.IsFailure.Should().BeTrue();
         registerResult.Error.Code.Should().Be("Identity.ValidationFailed");
     }
 
     [Fact]
-    public async Task Register_WithMismatchedConfirmationPassword_ThrowsValidationException()
+    public async Task register_with_mismatched_confirmation_password_throws_validation_exception()
     {
-        // Arrange
         DateTime fixedNow = new(2026, 4, 2, 12, 0, 0, DateTimeKind.Utc);
         await using var harness = await IntegrationHarness.CreateAsync(fixedNow);
         await harness.ResetStateAsync();
 
-        // Act
         Func<Task> act = async () =>
         {
             using IServiceScope scope = harness.ServiceProvider.CreateScope();
@@ -339,22 +312,19 @@ public sealed class UserAuthenticationIntegrationTests
                 CancellationToken.None);
         };
 
-        // Assert
-        ValidationException exception = (await act.Should().ThrowAsync<ValidationException>()).Which;
+        var exception = (await act.Should().ThrowAsync<ValidationException>()).Which;
         exception.Errors.Should().Contain(error =>
             error.PropertyName == nameof(RegisterUserCommand.ConfirmationPassword) &&
             error.ErrorMessage == "Passwords do not match");
     }
 
     [Fact]
-    public async Task LogIn_WithInvalidEmailFormat_ThrowsValidationException()
+    public async Task login_with_invalid_email_format_throws_validation_exception()
     {
-        // Arrange
         DateTime fixedNow = new(2026, 4, 2, 12, 0, 0, DateTimeKind.Utc);
         await using var harness = await IntegrationHarness.CreateAsync(fixedNow);
         await harness.ResetStateAsync();
 
-        // Act
         Func<Task> act = async () =>
         {
             using IServiceScope scope = harness.ServiceProvider.CreateScope();
@@ -365,17 +335,15 @@ public sealed class UserAuthenticationIntegrationTests
                 CancellationToken.None);
         };
 
-        // Assert
-        ValidationException exception = (await act.Should().ThrowAsync<ValidationException>()).Which;
+        var exception = (await act.Should().ThrowAsync<ValidationException>()).Which;
         exception.Errors.Should().Contain(error =>
             error.PropertyName == nameof(LogInUserCommand.Email) &&
             error.ErrorMessage == "Must be a valid email address");
     }
 
     [Fact]
-    public async Task Register_WithExistingEmail_ReturnsEmailAlreadyTakenError()
+    public async Task register_with_existing_email_returns_email_already_taken()
     {
-        // Arrange
         DateTime fixedNow = new(2026, 4, 2, 12, 0, 0, DateTimeKind.Utc);
         await using var harness = await IntegrationHarness.CreateAsync(fixedNow);
         await harness.ResetStateAsync();
@@ -390,7 +358,6 @@ public sealed class UserAuthenticationIntegrationTests
                 new RegisterUserCommand("john", "john@example.com", "Pass123!", "Pass123!"),
                 CancellationToken.None);
 
-            // Act
             duplicateRegistrationResult = await sender.Send(
                 new RegisterUserCommand("john-second", "john@example.com", "Pass123!", "Pass123!"),
                 CancellationToken.None);
@@ -398,15 +365,13 @@ public sealed class UserAuthenticationIntegrationTests
             firstRegisterResult.IsSuccess.Should().BeTrue();
         }
 
-        // Assert
         duplicateRegistrationResult.IsFailure.Should().BeTrue();
         duplicateRegistrationResult.Error.Code.Should().Be(UserErrors.EmailAlreadyTaken(string.Empty).Code);
     }
 
     [Fact]
-    public async Task Register_WithExistingUsername_ReturnsUsernameAlreadyTakenError()
+    public async Task register_with_existing_username_returns_username_already_taken()
     {
-        // Arrange
         DateTime fixedNow = new(2026, 4, 2, 12, 0, 0, DateTimeKind.Utc);
         await using var harness = await IntegrationHarness.CreateAsync(fixedNow);
         await harness.ResetStateAsync();
@@ -421,7 +386,6 @@ public sealed class UserAuthenticationIntegrationTests
                 new RegisterUserCommand("john", "john@example.com", "Pass123!", "Pass123!"),
                 CancellationToken.None);
 
-            // Act
             duplicateRegistrationResult = await sender.Send(
                 new RegisterUserCommand("john", "another@example.com", "Pass123!", "Pass123!"),
                 CancellationToken.None);
@@ -429,7 +393,6 @@ public sealed class UserAuthenticationIntegrationTests
             firstRegisterResult.IsSuccess.Should().BeTrue();
         }
 
-        // Assert
         duplicateRegistrationResult.IsFailure.Should().BeTrue();
         duplicateRegistrationResult.Error.Code.Should().Be(UserErrors.UsernameAlreadyTaken(string.Empty).Code);
     }
@@ -437,10 +400,8 @@ public sealed class UserAuthenticationIntegrationTests
     private static void AssertAccessTokenSubject(string accessToken, string expectedIdentityUserId)
     {
         var jwt = new JsonWebToken(accessToken);
-
         jwt.Claims.Should().ContainSingle(claim =>
             claim.Type == JwtRegisteredClaimNames.Sub &&
             claim.Value == expectedIdentityUserId);
     }
-
 }

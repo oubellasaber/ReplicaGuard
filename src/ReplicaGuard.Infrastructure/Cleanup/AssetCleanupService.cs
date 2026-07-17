@@ -34,7 +34,7 @@ internal sealed class AssetCleanupService : IAssetCleanupService
         _spoolFileLocator = spoolFileLocator;
         _fetcherOptions = fetcherOptions.Value;
         _uploadsOptions = uploadsOptions.Value;
-        _storageOptions = storageOptions;
+        _storageOptions = storageOptions.Value;
         _unitOfWork = unitOfWork;
         _logger = logger;
     }

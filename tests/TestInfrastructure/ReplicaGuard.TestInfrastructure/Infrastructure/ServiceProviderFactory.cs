@@ -7,10 +7,12 @@ using ReplicaGuard.Application;
 using ReplicaGuard.Application.Abstractions.Authentication;
 using ReplicaGuard.Application.Abstractions.Clock;
 using ReplicaGuard.Application.Abstractions.Data;
-using ReplicaGuard.Core.Abstractions;
-using ReplicaGuard.Core.Hosters;
-using ReplicaGuard.Core.Replication;
+using ReplicaGuard.Domain.Abstractions;
+using ReplicaGuard.Domain.HosterAccounts;
+using ReplicaGuard.Domain.Hosters;
+using ReplicaGuard.Domain.Replication;
 using ReplicaGuard.Infrastructure.Authentication;
+using ReplicaGuard.Infrastructure.Encryption;
 using ReplicaGuard.Infrastructure.Identity;
 using ReplicaGuard.Infrastructure.Persistence;
 using ReplicaGuard.Infrastructure.Repositories;
@@ -61,8 +63,8 @@ internal static class ServiceProviderFactory
         services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IHosterRepository, HosterRepository>();
-        services.AddScoped<IHosterCredentialsRepository, HosterCredentialsRepository>();
         services.AddScoped<IAssetRepository, AssetRepository>();
+        services.AddScoped<IHosterAccountRepository, HosterAccountRepository>();
 
         services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<ApplicationDbContext>());
         services.AddScoped<IUserContext>(_ => new FixedUserContext(currentUserId, identityId));
@@ -71,7 +73,14 @@ internal static class ServiceProviderFactory
         services.AddScoped<CrossContextUnitOfWork>();
         services.AddScoped<IIdentityUnitOfWork>(sp => sp.GetRequiredService<CrossContextUnitOfWork>());
         services.AddScoped<AppSeeder>();
+        services.AddTransient<ISecretEncryptionService, AesGcmSecretEncryptionService>();
+        services.Configure<EncryptionOptions>(o =>
+        {
+            // 32-byte (256-bit) key encoded as Base64 valid for AesGcm
+            o.Base64Key = "dGhpcyBpcyBhIHRlc3Qga2V5IDMyIGJ5dGVzIGxvbmc=";
+        });
 
+        services.AddSingleton<IHosterDefinitionResolver, HosterDefinitionResolver>();
         return services.BuildServiceProvider(validateScopes: true);
     }
 

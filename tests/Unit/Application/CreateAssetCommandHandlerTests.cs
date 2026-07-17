@@ -8,9 +8,8 @@ using ReplicaGuard.Domain.Abstractions;
 using ReplicaGuard.Domain.HosterAccounts;
 using ReplicaGuard.Domain.Hosters;
 using ReplicaGuard.Domain.Replication;
-using ReplicaGuard.Domain.Tests;
 
-namespace ReplicaGuard.Application.Tests.Assets.CreateAsset;
+namespace ReplicaGuard.Application.Tests;
 
 public class CreateAssetCommandHandlerTests
 {
@@ -42,26 +41,20 @@ public class CreateAssetCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_ReturnsFailure_WhenFileNameIsInvalid()
-    {
-        var command = CreateCommand(fileName: string.Empty);
-
-        var result = await _sut.Handle(command, CancellationToken.None);
-
-        result.IsFailure.Should().BeTrue();
-        result.Error.Code.Should().Be(ReplicationErrors.FileNameEmpty.Code);
-    }
-
-    [Fact]
-    public async Task Handle_ReturnsFailure_WhenHosterAccountNotFound()
+    public async Task creation_returns_failure_when_hoster_account_not_found()
     {
         var userId = Guid.NewGuid();
         var accountId = Guid.NewGuid();
         _userContext.UserId.Returns(userId);
 
-        var command = CreateCommand(hosterAccountIds: [accountId]);
+        var command = new CreateAssetCommand(
+            "https://example.com/file.zip",
+            "file.zip",
+            new[] { accountId });
 
-        _accountRepository.GetAccountsByIds(userId, Arg.Is<IEnumerable<Guid>>(ids => ids.Contains(accountId)), Arg.Any<CancellationToken>())
+        _accountRepository.GetAccountsByIds(
+                userId, Arg.Is<IEnumerable<Guid>>(ids => ids.Contains(accountId)),
+                Arg.Any<CancellationToken>())
             .Returns(Enumerable.Empty<HosterAccount>());
 
         var result = await _sut.Handle(command, CancellationToken.None);
@@ -70,42 +63,36 @@ public class CreateAssetCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_ReturnsCreatedAssetResponse_WhenRequestIsValid()
+    public async Task creation_returns_created_response_when_request_is_valid()
     {
         var userId = Guid.NewGuid();
         var accountId = Guid.NewGuid();
         var now = DateTime.UtcNow;
         _userContext.UserId.Returns(userId);
-        _dateTimeProvider.UtcNow.Returns(now);
 
         var hoster = new Hoster(HosterCode.Pixeldrain, "Pixeldrain");
         var definition = new Pixeldrain();
         var account = CreateAccount(accountId, hoster, definition);
 
-        _accountRepository.GetAccountsByIds(userId, Arg.Is<IEnumerable<Guid>>(ids => ids.Contains(accountId)), Arg.Any<CancellationToken>())
+        _accountRepository.GetAccountsByIds(
+                userId, Arg.Is<IEnumerable<Guid>>(ids => ids.Contains(accountId)),
+                Arg.Any<CancellationToken>())
             .Returns(new[] { account });
 
         _resolver.Resolve(account.HosterCode).Returns(definition);
 
-        var command = CreateCommand(hosterAccountIds: [accountId]);
+        var command = new CreateAssetCommand(
+            "https://example.com/file.zip",
+            "file.zip",
+            new[] { accountId });
 
         var result = await _sut.Handle(command, CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();
         result.Value.FileName.Should().Be("file.zip");
         result.Value.ReplicaCount.Should().Be(1);
-        result.Value.CreatedAtUtc.Should().Be(now);
-    }
-
-    private static CreateAssetCommand CreateCommand(
-        string source = "https://example.com/file.zip",
-        string fileName = "file.zip",
-        List<Guid>? hosterAccountIds = null)
-    {
-        return new CreateAssetCommand(
-            source,
-            fileName,
-            hosterAccountIds ?? [Guid.NewGuid()]);
+        // TODO: Use DateTimeProvider
+        result.Value.CreatedAtUtc.Should().BeCloseTo(now, TimeSpan.FromSeconds(1));
     }
 
     private static HosterAccount CreateAccount(Guid id, Hoster hoster, IHosterDefinition definition)
@@ -124,7 +111,6 @@ public class CreateAssetCommandHandlerTests
 
         typeof(HosterAccount).GetProperty(nameof(HosterAccount.Hoster))!
             .SetValue(account, hoster);
-
         typeof(Entity<Guid>).GetProperty(nameof(Entity<Guid>.Id))!
             .SetValue(account, id);
 

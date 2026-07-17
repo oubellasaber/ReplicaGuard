@@ -1,5 +1,7 @@
 using Xunit;
 
+[assembly: CollectionBehavior(DisableTestParallelization = true)]
+
 namespace ReplicaGuard.TestInfrastructure.Fixtures;
 
 [System.Diagnostics.CodeAnalysis.SuppressMessage(
