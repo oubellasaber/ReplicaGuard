@@ -13,4 +13,9 @@
     <ProjectReference Include="..\ReplicaGuard.Contracts\ReplicaGuard.Contracts.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="ReplicaGuard.Domain.Tests" />
+    <InternalsVisibleTo Include="DynamicProxyGenAssembly2" />
+  </ItemGroup>
+
 </Project>

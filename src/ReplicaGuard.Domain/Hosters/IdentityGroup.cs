@@ -1,6 +1,6 @@
-﻿using ReplicaGuard.Domain.Hosters;
+﻿using ReplicaGuard.Domain.HosterAccounts;
 
-namespace ReplicaGuard.Domain.HosterAccounts;
+namespace ReplicaGuard.Domain.Hosters;
 
 public class IdentityGroup
 {

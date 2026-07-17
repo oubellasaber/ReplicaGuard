@@ -260,7 +260,7 @@ public sealed class HosterAccount : Entity<Guid>
     {
         var identity = _identities.Single(i => i.Type == identityType);
 
-        // Convert plaintext → encrypted
+        // Convert plaintext => encrypted
         var encrypted = plaintextSecrets.ToDictionary(
             kv => kv.Key,
             kv => SecretValue.CreateFromPlaintext(kv.Value, encryptionService)
@@ -270,17 +270,6 @@ public sealed class HosterAccount : Entity<Guid>
         identity.SecretSet.UpdateSecrets(encrypted);
 
         //AddDomainEvent(new SecretBundleUpdated(Id, identityType));
-    }
-
-
-    // Validate primary credentials (OR-of-ANDs)
-    public bool HasValidPrimaryIdentities(IHosterDefinition hoster)
-    {
-        if (hoster.Code != Hoster.Code)
-            throw new InvalidOperationException("The provided hoster does not match the hoster account's hoster.");
-
-        var requirement = hoster.PrimaryIdentities;
-        return requirement.IsVerifiedSatisfiedBy(_identities);
     }
 
     // Check if the account can perform a specific capability by validating the associated requirement against the account's identities. (OR-of-ANDs)

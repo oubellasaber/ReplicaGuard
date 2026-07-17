@@ -13,6 +13,7 @@ internal sealed class CreateAssetCommandValidator : AbstractValidator<CreateAsse
             .WithMessage("Source cannot exceed 2048 characters.");
 
         RuleFor(x => x.FileName)
+            .Cascade(CascadeMode.Stop)
             .NotEmpty()
             .WithMessage("File name is required.")
             .MaximumLength(255)

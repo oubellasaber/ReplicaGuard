@@ -14,4 +14,10 @@
     <PackageReference Include="Serilog" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="ReplicaGuard.Application.Tests" />
+    <InternalsVisibleTo Include="ReplicaGuard.Application.IntegrationTests" />
+    <InternalsVisibleTo Include="DynamicProxyGenAssembly2" />
+  </ItemGroup>
+
 </Project>

@@ -84,4 +84,10 @@ public static class ReplicationErrors
             ErrorType.InvalidInput)
         .WithMetadata("FileLength", length)
         .WithMetadata("AllowedLength", 255);
+
+    public static Error AssetHasNoReplicas(Guid assetId) =>
+        new Error("Asset.NoReplicas",
+            "The asset has no replicas defined.",
+            ErrorType.InvalidInput)
+        .WithMetadata("AssetId", assetId);
 }

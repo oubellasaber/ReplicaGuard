@@ -44,6 +44,9 @@ public sealed class Asset : Entity<Guid>
         IEnumerable<(Guid hosterId, Guid? accountId)> replicas)
     {
         Asset asset = new Asset(userId, source, fileName, createdAtUtc);
+        
+        if (!replicas.Any())
+            return Result.Failure<Asset>(ReplicationErrors.AssetHasNoReplicas(asset.Id));
 
         foreach (var (hosterId, accountId) in replicas)
         {
