@@ -22,14 +22,21 @@ RUN dotnet publish ReplicaGuard.Api.csproj -c $BUILD_CONFIGURATION -o /app/publi
 
 # Runtime stage
 FROM mcr.microsoft.com/dotnet/aspnet:8.0-alpine AS final
+
 WORKDIR /app
 
-RUN addgroup -g 1000 appgroup && adduser -u 1000 -G appgroup -s /bin/sh -D appuser
-USER appuser
+RUN addgroup -g 1000 appgroup \
+ && adduser -u 1000 -G appgroup -s /bin/sh -D appuser
+
+RUN mkdir -p /app/spool /app/uploads \
+ && chown -R appuser:appgroup /app
 
 COPY --from=build --chown=appuser:appgroup /app/publish .
 
+USER appuser
+
 VOLUME ["/app/spool", "/app/uploads"]
+
 EXPOSE 8080
 EXPOSE 8081
 
