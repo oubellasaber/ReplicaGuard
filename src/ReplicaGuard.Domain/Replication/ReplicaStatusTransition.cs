@@ -13,7 +13,7 @@ public class ReplicaStatusTransition : Entity<Guid>
     internal ReplicaStatusTransition(
         Guid replicaId,
         ReplicaStatus status,
-        DateTime occurredAt)
+        DateTime occurredAt) : base(Guid.NewGuid())
     {
         ReplicaId = replicaId;
         Status = status;
