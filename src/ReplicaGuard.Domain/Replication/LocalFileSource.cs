@@ -63,6 +63,11 @@ public sealed record LocalFileSource : FileSource
         }
     }
 
+    public static LocalFileSource Create(string filePath)
+    {
+        return new LocalFileSource(filePath);
+    }
+
     /// <summary>
     /// Gets the file name from the path.
     /// </summary>

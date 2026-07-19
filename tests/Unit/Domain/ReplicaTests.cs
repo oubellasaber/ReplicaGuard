@@ -185,8 +185,6 @@ public sealed class ReplicaTests
         var replica = CreateDefaultReplica();
 
         replica.UpdateExpiry(DateTime.UtcNow.AddDays(-1), TimeSpan.FromDays(7));
-        var eventCount = replica.GetDomainEvents().OfType<ReplicaExpiredDomainEvent>().Count();
-
         replica.UpdateExpiry(DateTime.UtcNow.AddDays(-2), TimeSpan.FromDays(7));
 
         // Still only one expired event

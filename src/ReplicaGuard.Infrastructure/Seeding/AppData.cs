@@ -4,7 +4,10 @@ namespace ReplicaGuard.Infrastructure.Seeding;
 
 public static class AppData
 {
-    // Roles
+    //
+    // 
+
+
     public static readonly string[] AppRoles = new[]
     {
         Roles.Admin,

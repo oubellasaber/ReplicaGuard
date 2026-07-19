@@ -190,7 +190,7 @@ public class AssetController(
 
         return (tempPath, fileName, hostersRaw);
 
-        string SanitizeFileName(string fileName)
+        static string SanitizeFileName(string fileName)
         {           
             var name = Path.GetFileName(fileName);
             var invalid = Path.GetInvalidFileNameChars();  

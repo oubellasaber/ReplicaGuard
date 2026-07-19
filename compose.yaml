@@ -7,6 +7,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - pgdata:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U replicaguard -d replicaguard"]
       interval: 5s
@@ -15,7 +16,7 @@ services:
 
   api:
     build:
-      context: ..
+      context: .
       dockerfile: src/ReplicaGuard.Api/Dockerfile
     ports:
       - "8080:8080"
@@ -30,6 +31,7 @@ services:
       Spool__SpoolDirectory: "/app/spool"
       UserUploads__UploadDirectory: "/app/uploads"
       ASPNETCORE_ENVIRONMENT: "Production"
+      ASPNETCORE_URLS: "http://+:8080;https://+:8081"
     volumes:
       - spool:/app/spool
       - uploads:/app/uploads
@@ -41,4 +43,5 @@ services:
 volumes:
   pgdata:
   spool:
-  uploads:
+  uploads:  
+    

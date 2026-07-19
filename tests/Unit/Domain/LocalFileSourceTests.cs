@@ -9,7 +9,7 @@ public sealed class LocalFileSourceTests
     [Fact]
     public void create_with_valid_path_succeeds()
     {
-        var result = LocalFileSource.Create(BaseDirectory, "/home/user/file.bin");
+        var result = LocalFileSource.Create(BaseDirectory, "/base/file.bin");
 
         Assert.True(result.IsSuccess);
         Assert.True(result.Value.IsLocal);
@@ -36,7 +36,7 @@ public sealed class LocalFileSourceTests
     [Fact]
     public void get_file_name_extracts_from_path()
     {
-        var source = LocalFileSource.Create(BaseDirectory, "/home/user/document.pdf").Value;
+        var source = LocalFileSource.Create(BaseDirectory, "/base/document.pdf").Value;
 
         Assert.Equal("document.pdf", source.GetFileName());
     }

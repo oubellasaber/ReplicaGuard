@@ -1,10 +1,11 @@
 using System.Text.Json.Serialization.Metadata;
+using HealthChecks.UI.Client;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.OpenApi.Models;
-using ReplicaGuard.Api.Controllers.Assets;
 using ReplicaGuard.Api.Extensions;
 using ReplicaGuard.Api.Middleware;
 using ReplicaGuard.Application;
-using ReplicaGuard.Application.Replication.UploadReplica.Fetching;
+using ReplicaGuard.Application.Abstractions.Authentication;
 using ReplicaGuard.Infrastructure;
 using ReplicaGuard.Infrastructure.Seeding;
 
@@ -51,6 +52,17 @@ builder.Services.AddSwaggerGen(options =>
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddApplication();
 
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("AdminOrMonitoringPolicy", policy =>
+    {
+        // The request must be authenticated AND meet one of these conditions
+        policy.RequireAuthenticatedUser();
+        policy.RequireAssertion(context =>
+            context.User.IsInRole(Roles.Admin));
+    });
+});
+
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
@@ -60,6 +72,15 @@ if (app.Environment.IsDevelopment())
     await app.ApplyMigrationsAsync();
     await app.SeedDataAsync();
 }
+
+// 1. Public Liveness Check (Fast, zero details)
+app.MapHealthChecks("/healthz");
+
+// 2. Protected Readiness Check (Deep dependencies)
+app.MapHealthChecks("/ready", new HealthCheckOptions
+{
+    ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
+}).RequireAuthorization("AdminOrMonitoringPolicy");
 
 app.UseMiddleware<RequestContextLoggingMiddleware>();
 app.UseMiddleware<ExceptionHandlingMiddleware>();

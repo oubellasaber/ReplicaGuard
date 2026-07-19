@@ -69,7 +69,7 @@ public class CreateAssetCommandValidatorTests
         var command = CreateCommand(fileName: "folder/file.zip");
         var result = _sut.TestValidate(command);
         result.ShouldHaveValidationErrorFor(x => x.FileName)
-            .WithErrorMessage("File name cannot contain directory separators.");
+            .WithErrorMessage("File name contains invalid characters.");
     }
 
     [Fact]

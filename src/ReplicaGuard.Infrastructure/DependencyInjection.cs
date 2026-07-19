@@ -86,6 +86,8 @@ public static class DependencyInjection
 
         services.AddScoped<AppSeeder>();
 
+        AddHealthChecks(services, configuration);
+
         return services;
     }
 
@@ -243,5 +245,16 @@ public static class DependencyInjection
         services.AddScoped<IJwtAuthOptionsProvider, JwtAuthOptionsProvider>();
         services.AddScoped<IIdentityService, IdentityService>();
         services.AddScoped<ITokenProvider, TokenProvider>();
+    }
+
+    private static void AddHealthChecks(IServiceCollection services, IConfiguration configuration)
+    {
+        string connectionString = configuration.GetConnectionString("Database") ??
+                                  throw new ArgumentNullException(nameof(configuration));
+
+        services.AddHealthChecks()
+            .AddNpgSql(connectionString)
+            .AddDbContextCheck<ApplicationDbContext>()
+            .AddDbContextCheck<AppIdentityDbContext>();
     }
 }

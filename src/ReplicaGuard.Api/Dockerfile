@@ -33,11 +33,13 @@ RUN mkdir -p /app/spool /app/uploads \
 
 COPY --from=build --chown=appuser:appgroup /app/publish .
 
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost:8080/healthz || exit 1
+
 USER appuser
 
 VOLUME ["/app/spool", "/app/uploads"]
 
-EXPOSE 8080
-EXPOSE 8081
+EXPOSE 8080 8081
 
 ENTRYPOINT ["dotnet", "ReplicaGuard.Api.dll"]
