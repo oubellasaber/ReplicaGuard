@@ -18,9 +18,10 @@ public interface IReplicaRepository
         CancellationToken ct);
 
     Task<IReadOnlyList<Replica>> GetReplicasNearExpiryAsync(
-        DateTime utcNow,
+        DateTime now,
         TimeSpan window,
         int batchSize,
+        int recoveryBackoffMinutes,
         CancellationToken ct);
 }
 

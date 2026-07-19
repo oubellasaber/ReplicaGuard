@@ -19,6 +19,8 @@ public sealed class Replica : Entity<Guid>
     public DateTime? PredictedExpiryAtUtc { get; private set; }
     public DateTime? LastExpirationCheckAtUtc { get; private set; }
     public ReplicaAvailabilityStatus AvailabilityStatus { get; private set; }
+    public DateTime? LastRecoveryAttemptAtUtc { get; private set; }
+    public int RecoveryAttemptCount { get; private set; }
 
     public IReadOnlyCollection<ReplicaStatusTransition> StatusTransitions => _statusTransitions;
 
@@ -149,7 +151,7 @@ public sealed class Replica : Entity<Guid>
                     ? ReplicaAvailabilityStatus.ExpiringSoon
                     : ReplicaAvailabilityStatus.Healthy;
 
-        if (AvailabilityStatus == newStatus)
+        if (AvailabilityStatus == newStatus && newStatus == ReplicaAvailabilityStatus.Healthy)
             return;
 
         AvailabilityStatus = newStatus;
@@ -169,6 +171,20 @@ public sealed class Replica : Entity<Guid>
     public void MarkAsTombstoned()
     {
         AvailabilityStatus = ReplicaAvailabilityStatus.Tombstoned;
+        UpdatedAtUtc = DateTime.UtcNow;
+    }
+
+    public void RecordRecoveryAttempt()
+    {
+        var utcNow = DateTime.UtcNow;
+        LastRecoveryAttemptAtUtc = utcNow;
+        RecoveryAttemptCount++;
+        UpdatedAtUtc = utcNow;
+    }
+
+    public void CheckExpirationDone()
+    {
+        LastExpirationCheckAtUtc = DateTime.UtcNow;
         UpdatedAtUtc = DateTime.UtcNow;
     }
 

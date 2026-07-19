@@ -36,6 +36,13 @@ internal sealed class ReplicaConfiguration : IEntityTypeConfiguration<Replica>
             .IsRequired()
             .HasDefaultValueSql("now()");
 
+        builder.Property(x => x.LastRecoveryAttemptAtUtc)
+            .IsRequired(false);
+
+        builder.Property(x => x.RecoveryAttemptCount)
+            .IsRequired()
+            .HasDefaultValue(0);
+
         builder.HasOne<Asset>()
             .WithMany(a => a.Replicas)
             .HasForeignKey(x => x.AssetId)

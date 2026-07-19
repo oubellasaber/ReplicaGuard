@@ -1,7 +1,6 @@
 ﻿using MassTransit;
 using Microsoft.Extensions.Logging;
 using ReplicaGuard.Contracts.IntegrationEvents;
-using ReplicaGuard.Domain.Abstractions;
 using ReplicaGuard.Domain.Replication;
 using ReplicaGuard.Infrastructure.Persistence;
 using ReplicaGuard.Infrastructure.Recovery;
@@ -28,11 +27,20 @@ public sealed class ReplicaExpirationIntegrationEventConsumer :
 
     public async Task Consume(ConsumeContext<ReplicaExpiredIntegrationEvent> context)
     {
-        _logger.LogWarning(
-            "Replica {ReplicaId} expired on hoster {HosterId}",
-            context.Message.ReplicaId, context.Message.HosterId);
+        var msg = context.Message;
+        _logger.LogCritical("Replica {ReplicaId} expired on hoster {HosterId} — attempting recovery", msg.ReplicaId, msg.HosterId);
 
-        await Task.CompletedTask;
+        var asset = await _assets.GetByReplicaIdWithReplicasAsync(msg.ReplicaId, context.CancellationToken);
+        if (asset is null)
+        {
+            _logger.LogWarning("Asset not found for expired replica {ReplicaId}", msg.ReplicaId);
+            return;
+        }
+
+        var replica = asset.Replicas.FirstOrDefault(r => r.Id == msg.ReplicaId);
+        if (replica is null) return;
+
+        await _recovery.Recover(asset, replica, context.CancellationToken);
     }
 
     public async Task Consume(ConsumeContext<ReplicaExpiringSoonIntegrationEvent> context)

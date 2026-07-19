@@ -23,7 +23,10 @@ public class ReplicaExpiryPredictionService
 
     public Task<Result<DateTime>> Predict(IHosterDefinition hoster, Replica replica)
     {
-        var policy = _policies[hoster.Code];
+        if (!_policies.TryGetValue(hoster.Code, out var policy))
+            return Task.FromResult(Result.Failure<DateTime>(
+                new Error("NoExpiryPolicy", $"No expiry policy registered for hoster {hoster.Code}")
+                    .AsPermanent()));
 
         return policy.Predict(replica);
     }

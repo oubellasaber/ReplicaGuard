@@ -15,4 +15,7 @@ public sealed class ExpirationRefreshOptions
 
     /// Max replicas per batch. Default 10.
     public int BatchSize { get; init; } = 10;
+
+    /// Base minutes for recovery backoff Default 30.
+    public int RecoveryBackoffBaseMinutes { get; init; } = 720;
 }

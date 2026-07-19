@@ -1,5 +1,4 @@
 ﻿using Microsoft.Extensions.Logging;
-using ReplicaGuard.Application.Assets.Services;
 using ReplicaGuard.Domain.Abstractions;
 using ReplicaGuard.Domain.Capabilities;
 using ReplicaGuard.Domain.HosterAccounts;
@@ -18,7 +17,6 @@ internal sealed class ReplicaRecoveryService : IReplicaRecoveryService
     private readonly IHosterAccountRepository _accountRepo;
     private readonly IHosterRepository _hosterRepo;
     private readonly IHosterDefinitionResolver _hosterDefinitions;
-    private readonly IReplicaExpiryPredictionService _expiryPrediction;
     private readonly ICapabilityFactory _capabilityFactory;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<ReplicaRecoveryService> _logger;
@@ -27,7 +25,6 @@ internal sealed class ReplicaRecoveryService : IReplicaRecoveryService
         IHosterAccountRepository accountRepo,
         IHosterRepository hosterRepo,
         IHosterDefinitionResolver hosterDefinitions,
-        IReplicaExpiryPredictionService expiryPrediction,
         ICapabilityFactory capabilityFactory,
         IUnitOfWork unitOfWork,
         ILogger<ReplicaRecoveryService> logger)
@@ -35,7 +32,6 @@ internal sealed class ReplicaRecoveryService : IReplicaRecoveryService
         _accountRepo = accountRepo;
         _hosterRepo = hosterRepo;
         _hosterDefinitions = hosterDefinitions;
-        _expiryPrediction = expiryPrediction;
         _capabilityFactory = capabilityFactory;
         _unitOfWork = unitOfWork;
         _logger = logger;
@@ -43,116 +39,104 @@ internal sealed class ReplicaRecoveryService : IReplicaRecoveryService
 
     public async Task Recover(Asset asset, Replica replica, CancellationToken ct)
     {
-        // First check if file is still laive never trust the stuas if not makr as dead nd return
-        if (replica.AvailabilityStatus == ReplicaAvailabilityStatus.Expired)
-            return;
-
         var originalId = replica.SourceReplicaId ?? replica.Id;
 
         var hoster = await _hosterRepo.GetByIdAsync(replica.HosterId, ct);
-        if (hoster == null)
-            return;
+        if (hoster == null) return;
 
         var definition = _hosterDefinitions.Resolve(hoster.Code);
+        bool recoveryFailed = false;
 
-        // CopyFile requires an account — anonymous replicas can't be recovered this way
+        // Can't recover without a Link
+        if (replica.Link is null)
+        {
+            _logger.LogWarning("Replica {ReplicaId} has no Link — cannot copy.", replica.Id);
+            recoveryFailed = true;
+        }
+
+        // CopyFile requires an account
         if (!replica.HosterAccountId.HasValue)
         {
-            _logger.LogWarning(
-                "Replica {ReplicaId} has no account — cannot copy. Marking as Tombstoned.",
-                replica.Id);
-            replica.MarkAsTombstoned();
-            return;
+            _logger.LogWarning("Replica {ReplicaId} has no account — cannot copy.", replica.Id);
+            recoveryFailed = true;
         }
 
         // Check if hoster supports CopyFile
         var copyRequirement = definition.GetRequirement(CapabilityCode.CopyFile);
         if (copyRequirement is null)
         {
-            _logger.LogWarning(
-                "Hoster {HosterCode} does not support CopyFile — cannot recover replica {ReplicaId}. Marking as Tombstoned.",
-                hoster.Code, replica.Id);
-            replica.MarkAsTombstoned();
-            return;
+            _logger.LogWarning("Hoster {Code} does not support CopyFile — cannot recover replica {Id}.", hoster.Code, replica.Id);
+            recoveryFailed = true;
         }
 
-        // Load account with secrets
-        var account = await _accountRepo.GetByIdAsync(replica.HosterAccountId.Value, ct);
-        if (account is null)
+        HosterAccount? account = null;
+        if (!recoveryFailed)
         {
-            _logger.LogWarning(
-                "Account {AccountId} not found for replica {ReplicaId}. Marking as Tombstoned.",
-                replica.HosterAccountId.Value, replica.Id);
-            replica.MarkAsTombstoned();
-            return;
+            account = await _accountRepo.GetByIdAsync(replica.HosterAccountId!.Value, ct);
+            if (account is null)
+            {
+                _logger.LogWarning("Account {AccountId} not found for replica {ReplicaId}.", replica.HosterAccountId.Value, replica.Id);
+                recoveryFailed = true;
+            }
         }
 
-        // Validate account can perform CopyFile
-        var validation = definition.ValidateCapability(account, CapabilityCode.CopyFile);
-        if (validation.IsFailure)
+        if (!recoveryFailed)
         {
-            _logger.LogWarning(
-                "Account validation failed for CopyFile on replica {ReplicaId}: {Error}. Marking as Tombstoned.",
-                replica.Id, validation.Error);
-            replica.MarkAsTombstoned();
-            return;
+            var validation = definition.ValidateCapability(account!, CapabilityCode.CopyFile);
+            if (validation.IsFailure)
+            {
+                _logger.LogWarning("Account validation failed for CopyFile on replica {Id}: {Error}.", replica.Id, validation.Error);
+                recoveryFailed = true;
+            }
         }
 
-        // Attempt copy
-        var copyHandler = _capabilityFactory.Get<ICopyFileCapabilityHandler>(hoster.Code);
-        var copyResult = await copyHandler.HandleAsync(
-            new CopyFileRequest(account, replica.Link!), ct);
-
-        if (copyResult.IsFailure)
+        if (!recoveryFailed)
         {
-            _logger.LogWarning(
-                "CopyFile failed for replica {ReplicaId}: {Error}. Marking as Tombstoned.",
-                replica.Id, copyResult.Error);
-            replica.MarkAsTombstoned();
-            return;
+            var copyHandler = _capabilityFactory.Get<ICopyFileCapabilityHandler>(hoster.Code);
+            var copyResult = await copyHandler.HandleAsync(new CopyFileRequest(account!, replica.Link!), ct);
+
+            if (copyResult.IsFailure)
+            {
+                _logger.LogWarning("CopyFile failed for replica {Id}: {Error}.", replica.Id, copyResult.Error);
+                recoveryFailed = true;
+            }
+            else
+            {
+                var urlResult = definition.BuildFileUrl(copyResult.Value.FileCode);
+                if (urlResult.IsFailure)
+                {
+                    _logger.LogWarning("BuildFileUrl failed for replica {Id}: {Error}", replica.Id, urlResult.Error);
+                    recoveryFailed = true;
+                }
+                else
+                {
+                    var addResult = asset.AddReplicaBackup(
+                        replica.HosterId,
+                        replica.HosterAccountId,
+                        urlResult.Value,
+                        DateTime.UtcNow,
+                        originalId);
+
+                    if (addResult.IsFailure)
+                    {
+                        _logger.LogWarning("Failed to create backup replica for {OriginalId} on {Code}", originalId, hoster.Code);
+                        recoveryFailed = true;
+                    }
+                    else
+                    {
+                        replica.MarkAsTombstoned();
+                        _logger.LogInformation("Created backup replica {NewId} (from {OriginalId}) on {Code}", addResult.Value.Id, originalId, hoster.Code);
+                    }
+                }
+            }
         }
 
-        // Build new URL from file code
-        var urlResult = definition.BuildFileUrl(copyResult.Value.FileCode);
-        if (urlResult.IsFailure)
+        if (recoveryFailed)
         {
-            _logger.LogWarning(
-                "BuildFileUrl failed for replica {ReplicaId}: {Error}",
-                replica.Id, urlResult.Error);
-            replica.MarkAsTombstoned();
-            return;
+            replica.RecordRecoveryAttempt();
+            _logger.LogWarning("Recovery attempt {N} failed for replica {Id}", replica.RecoveryAttemptCount, replica.Id);
         }
-
-        // Create backup replica
-        var replicaAddResult = asset.AddReplicaBackup(
-            asset.Id,
-            replica.HosterId,
-            replica.HosterAccountId,
-            urlResult.Value,
-            DateTime.UtcNow,
-            originalId);
-
-        if (replicaAddResult.IsFailure)
-        {
-            _logger.LogWarning(
-                "Failed to create backup replica for {OriginalId} on {HosterCode}",
-                originalId, hoster.Code);
-            return;
-        }
-
-        replica.MarkAsTombstoned();
-
-        // Predict expiry for the new backup
-        //var expiryResult = await _expiryPrediction.Predict(definition, newReplica);
-        //if (expiryResult.IsSuccess)
-        //    newReplica.SetPredictedExpiry(expiryResult.Value, DateTime.UtcNow);
-
-        //_repo.Add(newReplica);
 
         await _unitOfWork.SaveChangesAsync(ct);
-
-        _logger.LogInformation(
-            "Created backup replica {NewReplicaId} (from {OriginalId}) on {HosterCode}",
-            replicaAddResult.Value.Id, originalId, hoster.Code);
     }
 }

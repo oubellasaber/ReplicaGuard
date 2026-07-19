@@ -4,7 +4,6 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ReplicaGuard.Application.Assets.Services;
 using ReplicaGuard.Domain.Abstractions;
-using ReplicaGuard.Domain.Capabilities;
 using ReplicaGuard.Domain.Hosters;
 using ReplicaGuard.Domain.Replication;
 
@@ -17,20 +16,17 @@ internal class ExpirationRefreshWorker : BackgroundService
     // 3. If the expiration date is set, we will check if it is expired or about to expire. If it is, we get a new predicted exp date
     // 4. If the new predicted exp date is not in the danger zone, we will update the expiration date in the database. If it is in the danger zone
     // we will mark the replica as expiring soon
-    // 5. if replica is already expired, we will mark it as expired and schedule a recovery job for it
+    // 5. if replica is already expired or about to expire, we will mark it as expired and schedule a recovery job for it
     private readonly IServiceScopeFactory _scopeFactory;
-    private readonly ICapabilityFactory _capabilityFactory;
     private readonly ExpirationRefreshOptions _options;
     private readonly ILogger<ExpirationRefreshWorker> _logger;
 
     public ExpirationRefreshWorker(
         IServiceScopeFactory scopeFactory,
-        ICapabilityFactory capabilityFactory,
         IOptions<ExpirationRefreshOptions> options,
         ILogger<ExpirationRefreshWorker> logger)
     {
         _scopeFactory = scopeFactory;
-        _capabilityFactory = capabilityFactory;
         _options = options.Value;
         _logger = logger;
     }
@@ -72,7 +68,7 @@ internal class ExpirationRefreshWorker : BackgroundService
         var scanWindow = TimeSpan.FromDays(_options.ScanWindowDays);
         var expiringSoonThreshold = TimeSpan.FromDays(_options.ExpiringSoonThresholdDays);
 
-        var replicas = await repo.GetReplicasNearExpiryAsync(now, scanWindow, _options.BatchSize, ct);
+        var replicas = await repo.GetReplicasNearExpiryAsync(now, scanWindow, _options.BatchSize, _options.RecoveryBackoffBaseMinutes, ct);
 
         _logger.LogInformation("Found {Count} replicas near expiry", replicas.Count);
 
@@ -80,37 +76,42 @@ internal class ExpirationRefreshWorker : BackgroundService
         {
             try
             {
+                if (r.LastRecoveryAttemptAtUtc.HasValue)
+                {
+                    var backoff = TimeSpan.FromMinutes(_options.RecoveryBackoffBaseMinutes * (r.RecoveryAttemptCount + 1));
+                    if (now - r.LastRecoveryAttemptAtUtc.Value < backoff)
+                        continue;
+                }
+
                 var hoster = await hosterRepo.GetByIdAsync(r.HosterId, ct);
                 if (hoster == null) continue;
 
                 var definition = hosterDefs.Resolve(hoster.Code);
 
-                // ToDo: use proper capability to dertmine the availability of the file.
-                var getFileInfoCapability = _capabilityFactory.Get<IGetFileInfoCapabilityHandler>(hoster.Code);
-                var fileInfoResult = await getFileInfoCapability.HandleAsync(new GetFileInfoRequest(r), ct);
-                if (fileInfoResult.IsFailure)
-                {
-                    _logger.LogWarning(
-                        "File info check failed for replica {ReplicaId}: {Error}",
-                        r.Id, fileInfoResult.Error);
-                    r.MarkAsTombstoned();
-                    continue;
-                }
-
                 var expiryResult = await expiryPrediction.Predict(definition, r);
 
+                r.CheckExpirationDone();
                 if (expiryResult.IsFailure)
                 {
-                    _logger.LogWarning(
-                        "Expiration check failed for replica {ReplicaId}: {Error}",
-                        r.Id, expiryResult.Error);
+                    if (expiryResult.Error.IsPermanent)
+                    {
+                        _logger.LogWarning(
+                            "Permanent predict failure for replica {ReplicaId}: {Error} - tombstoning.",
+                            r.Id, expiryResult.Error);
+                        r.MarkAsTombstoned();
+                        await unitOfWork.SaveChangesAsync(ct);
+                    }
+                    else
+                    {
+                        _logger.LogWarning(
+                            "Transient predict failure for replica {ReplicaId}: {Error} — will retry next cycle.",
+                            r.Id, expiryResult.Error);
+                    }
+
                     continue;
                 }
 
-                var actualExpiry = expiryResult.Value;
-
-                r.UpdateExpiry(actualExpiry, expiringSoonThreshold);
-
+                r.UpdateExpiry(expiryResult.Value, expiringSoonThreshold);
                 await unitOfWork.SaveChangesAsync(ct);
             }
             catch (Exception ex)

@@ -144,14 +144,13 @@ public sealed class Asset : Entity<Guid>
     }
 
     public Result<Replica> AddReplicaBackup(
-        Guid assetId,
         Guid hosterId,
         Guid? accountId,
         Uri link,
         DateTime utcNow,
         Guid sourceReplicaId)
     {
-        Replica replica = Replica.CreateBackup(assetId, hosterId, accountId, link, utcNow, sourceReplicaId);
+        Replica replica = Replica.CreateBackup(Id, hosterId, accountId, link, utcNow, sourceReplicaId);
         _replicas.Add(replica);
         return Result.Success(replica);
     }

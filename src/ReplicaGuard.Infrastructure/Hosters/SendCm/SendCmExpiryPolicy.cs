@@ -25,6 +25,8 @@ internal class SendCmExpiryPolicy : IHosterExpiryPolicy
             return Result.Failure<DateTime>(result.Error);
 
         var ttl = replica.HosterAccountId is null ? 15 : 30;
-        return result.Value.LastDownloadDate!.Value.AddDays(ttl);
+        if (result.Value.LastDownloadDate is null)
+            return replica.CreatedAtUtc.AddDays(ttl);
+        return result.Value.LastDownloadDate.Value.AddDays(ttl);
     }
 }

@@ -50,24 +50,26 @@ internal sealed class PixeldrainGetLastDownloadDateHandler : IGetLastDownloadDat
     {
         var now = DateTime.UtcNow;
 
-        var day = await FindLastActivityAsync(
+        var dayResult = await FindLastActivityAsync(
             fileId,
             now.AddDays(-30),
             now,
             1440,
             ct);
+        var day = dayResult.Value;
 
         if (day is null)
             return null;
 
         var dayStart = day.Value.Date;
 
-        var hour = await FindLastActivityAsync(
+        var hourResult = await FindLastActivityAsync(
             fileId,
             dayStart,
             dayStart.AddDays(1),
             60,
             ct);
+        var hour = hourResult.Value;
 
         if (hour is null)
             return day;
@@ -81,58 +83,49 @@ internal sealed class PixeldrainGetLastDownloadDateHandler : IGetLastDownloadDat
             0,
             DateTimeKind.Utc);
 
-        var minute = await FindLastActivityAsync(
+        var minuteResult = await FindLastActivityAsync(
             fileId,
             hourStart,
             hourStart.AddHours(1),
             1,
             ct);
+        var minute = minuteResult.Value;
 
         return minute ?? hour;
     }
 
-    private async Task<DateTime?> FindLastActivityAsync(
+    private async Task<Result<DateTime?>> FindLastActivityAsync(
         string fileId,
         DateTime start,
         DateTime end,
         int interval,
         CancellationToken ct)
     {
-        var url =
-            $"{_options.ApiBaseUrl}/api/file/{fileId}/timeseries";
+        var url = $"{_options.ApiBaseUrl}/api/file/{fileId}/timeseries";
+        var query = $"?start={start:yyyy-MM-ddTHH:mm:ss.fffZ}&end={end:yyyy-MM-ddTHH:mm:ss.fffZ}&interval={interval}";
 
-        var query =
-            $"?start={start:yyyy-MM-ddTHH:mm:ss.fffZ}" +
-            $"&end={end:yyyy-MM-ddTHH:mm:ss.fffZ}" +
-            $"&interval={interval}";
+        using var response = await _httpClient.GetAsync(url + query, ct);
 
-        using var response = await _httpClient.GetAsync(
-            url + query,
-            ct);
+        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            return Result.Failure<DateTime?>(
+                PixeldrainGetLastDownloadDateErrors.FileNotFound(fileId));
+
+        response.EnsureSuccessStatusCode();
 
         var body = await response.Content.ReadAsStringAsync(ct);
-
         using var json = JsonDocument.Parse(body);
 
-        var downloads =
-            json.RootElement.GetProperty("downloads");
-
-        var timestamps =
-            downloads.GetProperty("timestamps");
-
-        var amounts =
-            downloads.GetProperty("amounts");
+        var downloads = json.RootElement.GetProperty("downloads");
+        var timestamps = downloads.GetProperty("timestamps");
+        var amounts = downloads.GetProperty("amounts");
 
         for (var i = timestamps.GetArrayLength() - 1; i >= 0; i--)
         {
             if (amounts[i].GetInt32() > 0)
-            {
-                return timestamps[i]
-                    .GetDateTime();
-            }
+                return Result.Success<DateTime?>(timestamps[i].GetDateTime());
         }
 
-        return null;
+        return Result.Success<DateTime?>(null);
     }
 }
 

@@ -68,18 +68,36 @@ internal sealed class ReplicaRepository : Repository<Replica>, IReplicaRepositor
         DateTime now,
         TimeSpan window,
         int batchSize,
+        int recoveryBackoffMinutes,
         CancellationToken ct)
     {
         var cutoff = now.Add(window);
 
         return await DbContext.Set<Replica>()
             .Where(r =>
-                ((r.AvailabilityStatus == ReplicaAvailabilityStatus.Unknown) && 
-                r.PredictedExpiryAtUtc == null && 
-                r.Status == ReplicaStatus.Completed) ||
-                r.PredictedExpiryAtUtc != null &&
-                r.PredictedExpiryAtUtc <= cutoff &&
-                (r.AvailabilityStatus == ReplicaAvailabilityStatus.Healthy))
+                r.Status == ReplicaStatus.Completed &&
+                r.AvailabilityStatus != ReplicaAvailabilityStatus.Tombstoned &&
+                r.AvailabilityStatus != ReplicaAvailabilityStatus.Processing &&
+
+                // Backoff: skip if a recent recovery attempt is still cooling down
+                (r.LastRecoveryAttemptAtUtc == null ||
+                 r.LastRecoveryAttemptAtUtc.Value.AddMinutes(
+                     recoveryBackoffMinutes * (r.RecoveryAttemptCount + 1)) <= now) &&
+
+                // Need attention:
+                (
+                    // 1) Never checked
+                    (r.AvailabilityStatus == ReplicaAvailabilityStatus.Unknown &&
+                     r.PredictedExpiryAtUtc == null) ||
+
+                    // 2) Healthy but approaching expiry
+                    (r.AvailabilityStatus == ReplicaAvailabilityStatus.Healthy &&
+                     r.PredictedExpiryAtUtc != null &&
+                     r.PredictedExpiryAtUtc <= cutoff) ||
+
+                    // 3) In danger — always check (backoff already applied above)
+                    (r.AvailabilityStatus == ReplicaAvailabilityStatus.ExpiringSoon || r.AvailabilityStatus == ReplicaAvailabilityStatus.Expired)
+                ))
             .OrderBy(r => r.PredictedExpiryAtUtc)
             .Take(batchSize)
             .ToListAsync(ct);

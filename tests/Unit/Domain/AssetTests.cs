@@ -234,7 +234,6 @@ public sealed class AssetTests
         var sourceReplicaId = sut.Replicas.First().Id;
 
         var backupResult = sut.AddReplicaBackup(
-            sut.Id,
             hosterId,
             null,
             new Uri("https://backup.example.com/file.bin"),
