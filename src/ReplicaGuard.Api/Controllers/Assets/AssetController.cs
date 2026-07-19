@@ -31,6 +31,9 @@ public class AssetController(
     IOptions<UserUploadsOptions> userUploadsOptions,
     IOptions<StorageOptions> storageOptions) : ControllerBase
 {
+    private readonly UserUploadsOptions _userUploadsOptions = userUploadsOptions.Value;
+    private readonly StorageOptions _storageOptions = storageOptions.Value;
+
     /// <summary>
     /// Create a new asset and begin replication to the specified hosters.
     /// </summary>
@@ -59,39 +62,61 @@ public class AssetController(
     [RequestSizeLimit(long.MaxValue)]
     public async Task<IActionResult> Create(CancellationToken ct)
     {
-        var (tempPath, fileName, hostersRaw) = await ParseMultipartAsync(Request, ct);
+        var assetId = Guid.NewGuid();
+        string? finalPath = null;
 
-        var hosterAccsIds = hostersRaw
-            .Split(',', StringSplitOptions.RemoveEmptyEntries)
-            .Select(x => Guid.Parse(x))
-            .ToList();
-
-        var command = new CreateLocalAssetCommand(
-            tempPath,
-            fileName,
-            hosterAccsIds);
-
-        var result = await sender.Send(command, ct);
-        if (result.IsFailure)
+        try
         {
-            System.IO.File.Delete(tempPath);
-            return result.ToActionResult();
+            (var tempPath, var fileName, var hostersRaw) = await ParseMultipartAsync(Request, assetId, ct);
+
+            finalPath = tempPath.EndsWith(".tmp", StringComparison.OrdinalIgnoreCase)
+                ? tempPath[..^4]
+                : tempPath;
+
+            if (finalPath != tempPath)
+            {
+                System.IO.File.Move(tempPath, finalPath);
+            }
+
+            List<Guid> hosterAccsIds;
+            try
+            {
+                hosterAccsIds = hostersRaw
+                    .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                    .Select(x => Guid.Parse(x))
+                    .ToList();
+            }
+            catch (FormatException)
+            {
+                System.IO.File.Delete(finalPath);
+                return BadRequest(new { error = "Invalid hoster account ID format." });
+            }
+
+            var command = new CreateLocalAssetCommand(assetId, _userUploadsOptions.UploadDirectory, finalPath, fileName, hosterAccsIds);
+            var result = await sender.Send(command, ct);
+
+            if (result.IsFailure)
+            {
+                System.IO.File.Delete(finalPath);
+                return result.ToActionResult();
+            }
+
+            return CreatedAtAction(nameof(Get), new { id = result.Value.AssetId }, result.Value);
         }
-
-        var assetId = result.Value.AssetId;
-        var uploadsDir = userUploadsOptions.Value.UploadDirectory;
-        var finalPath = Path.Combine(uploadsDir, $"upl_{assetId}_{fileName}");
-
-        if (tempPath != finalPath)
+        catch (InvalidOperationException ex)
         {
-            try { System.IO.File.Move(tempPath, finalPath, overwrite: true); }
-            catch { /* best effort */ } // TODO
+            return BadRequest(new { error = ex.Message });
         }
-
-        return CreatedAtAction(nameof(Get), new { id = assetId }, result.Value);
+        catch
+        {
+            if (finalPath is not null)
+                System.IO.File.Delete(finalPath);
+            throw;
+        }
     }
 
-    private async Task<(string TempPath, string FileName, string HostersRaw)> ParseMultipartAsync(HttpRequest request, CancellationToken ct)
+    private async Task<(string TempPath, string FileName, string HostersRaw)> ParseMultipartAsync(
+       HttpRequest request, Guid assetId, CancellationToken ct)
     {
         string? fileName = null;
         string? hostersRaw = null;
@@ -110,24 +135,32 @@ public class AssetController(
             if (!ContentDispositionHeaderValue.TryParse(section.ContentDisposition, out var cd))
                 continue;
 
-            // FILE SECTION
             if (MultipartRequestHelper.HasFileContentDisposition(cd))
             {
                 if (fileName is null)
                     throw new InvalidOperationException("fileName must be provided before file.");
 
-                var uploadsDir = userUploadsOptions.Value.UploadDirectory;
+                var uploadsDir = _userUploadsOptions.UploadDirectory;
                 Directory.CreateDirectory(uploadsDir);
 
-                tempPath = Path.Combine(uploadsDir, $"upl_temp_{Guid.NewGuid()}_{fileName}.tmp");
-                using var fs = System.IO.File.Create(tempPath);
-                using var countingStream = new CountingStream(fs, storageOptions.Value.MaxFileSizeBytes);
-                await section.Body.CopyToAsync(countingStream, ct);
+                tempPath = Path.Combine(uploadsDir, $"upl_{assetId}_{SanitizeFileName(fileName)}.tmp");
+
+                try
+                {
+                    using var fs = System.IO.File.Create(tempPath);
+                    using var countingStream = new CountingStream(fs, _storageOptions.MaxFileSizeBytes);
+                    await section.Body.CopyToAsync(countingStream, ct);
+                }
+                catch
+                {
+                    if (tempPath is not null)
+                        System.IO.File.Delete(tempPath);
+                    throw;
+                }
 
                 continue;
             }
 
-            // FORM FIELDS
             if (MultipartRequestHelper.HasFormDataContentDisposition(cd))
             {
                 using var sr = new StreamReader(section.Body);
@@ -156,6 +189,13 @@ public class AssetController(
             throw new InvalidOperationException("hosters missing.");
 
         return (tempPath, fileName, hostersRaw);
+
+        string SanitizeFileName(string fileName)
+        {           
+            var name = Path.GetFileName(fileName);
+            var invalid = Path.GetInvalidFileNameChars();  
+            return string.Join("_", name.Split(invalid, StringSplitOptions.RemoveEmptyEntries));
+        }
     }
 
     /// <summary>

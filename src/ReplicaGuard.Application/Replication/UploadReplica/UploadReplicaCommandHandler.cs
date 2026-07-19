@@ -26,8 +26,8 @@ public sealed class UploadReplicaCommandHandler
     private readonly ISpoolFileLocator _fileLocator;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IDateTimeProvider _dateTimeProvider;
-    private readonly ILogger<UploadReplicaCommandHandler> _logger;
     private readonly IReplicaEventStream _eventStream;
+    private readonly ILogger<UploadReplicaCommandHandler> _logger;
 
     public UploadReplicaCommandHandler(
         IReplicaRepository replicas,
@@ -349,7 +349,16 @@ public sealed class UploadReplicaCommandHandler
         var progressDelegate = CreateProgressDelegate(ctx, totalBytes);
 
         var handler = (ILocalFileUploadHandler)ctx.Uploader;
-        var request = new LocalFileUploadRequest(ctx.Account, ctx.Asset.FileName.Value, LocalFileSource.Create(ctx.Spool.FilePath).Value, progressDelegate);
+        var localResult = LocalFileSource.Create(
+            Path.GetDirectoryName(ctx.Spool.FilePath)!,
+            Path.GetFileName(ctx.Spool.FilePath));
+        if (localResult.IsFailure)
+            return Result.Failure(localResult.Error);
+        var request = new LocalFileUploadRequest(
+            ctx.Account, 
+            ctx.Asset.FileName.Value,
+            localResult.Value, 
+            progressDelegate);
         var result = await handler.HandleAsync(request, ct);
 
         if (result.IsFailure)

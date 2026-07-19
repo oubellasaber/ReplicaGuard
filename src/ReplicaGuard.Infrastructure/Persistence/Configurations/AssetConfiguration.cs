@@ -123,6 +123,8 @@ internal sealed class AssetConfiguration : IEntityTypeConfiguration<Asset>
     private static LocalFileSource DeserializeLocalFileSource(JObject data)
     {
         string filePath = data["FilePath"]!.ToString();
-        return LocalFileSource.Create(filePath).Value;
+        return LocalFileSource.Create(
+            Path.GetDirectoryName(filePath)!,
+            Path.GetFileName(filePath)).Value;
     }
 }

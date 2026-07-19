@@ -8,7 +8,8 @@ public sealed class AssetTests
     private static readonly string s_fileName = "file.bin";
     private static readonly string s_filePath = @"/home/user/file.bin";
     private static readonly string s_remoteUrl = "https://example.com/file.bin";
-
+    private static readonly string s_baseDirectory = "/base/";
+    
     private static Asset CreateAsset(
         params (Guid hosterId, Guid? accountId, ReplicaStatus status)[] replicas)
     {
@@ -64,6 +65,7 @@ public sealed class AssetTests
         
         var result = Asset.CreateFromLocalPath(
             userId,
+            s_baseDirectory,
             s_filePath,
             FileName.Create(s_fileName).Value,
             new[] { (Guid.NewGuid(), (Guid?)null) });

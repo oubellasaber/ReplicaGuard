@@ -58,7 +58,9 @@ internal sealed class CreateAssetCommandHandler(
             userId,
             request.Source,
             fileNameResult.Value,
-            replicas);
+            replicas,
+            request.AssetId,
+            request.BaseDirectory);
         if (assetResult.IsFailure)
             return Result.Failure<CreateAssetResponse>(assetResult.Error);
 
@@ -153,13 +155,21 @@ internal sealed class CreateAssetCommandHandler(
         Guid userId,
         string source,
         FileName fileName,
-        IEnumerable<(Guid hosterId, Guid? accountId)> replicas)
+        IEnumerable<(Guid hosterId, Guid? accountId)> replicas,
+        Guid? assetId = null,
+        string? baseDirectory = null)
     {
-        bool isRemote = IsUrl(source);
+        if (IsUrl(source))
+        {
+            return Asset.CreateFromRemoteUrl(userId, source, fileName, replicas);
+        }
 
-        return isRemote
-            ? Asset.CreateFromRemoteUrl(userId, source, fileName, replicas)
-            : Asset.CreateFromLocalPath(userId, source, fileName, replicas);
+        if (string.IsNullOrWhiteSpace(baseDirectory))
+        {
+            throw new ArgumentException("Base directory must be provided for local file uploads.", nameof(baseDirectory));
+        }
+
+        return Asset.CreateFromLocalPath(userId, baseDirectory, source, fileName, replicas, assetId);
     }
 
     private static bool IsUrl(string source)

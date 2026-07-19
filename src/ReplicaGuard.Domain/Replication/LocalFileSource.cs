@@ -25,17 +25,42 @@ public sealed record LocalFileSource : FileSource
     /// <summary>
     /// Creates a local file source from a file path.
     /// </summary>
-    public static Result<LocalFileSource> Create(string filePath)
+    public static Result<LocalFileSource> Create(string baseDirectory, string userSubmittedPath)
     {
-        if (string.IsNullOrWhiteSpace(filePath))
-            return Result.Failure<LocalFileSource>(
-                ReplicationErrors.FilePathEmpty);
+        if (string.IsNullOrWhiteSpace(userSubmittedPath))
+            return Result.Failure<LocalFileSource>(ReplicationErrors.FilePathEmpty);
 
-        // Normalize path separators for cross-platform compatibility
-        string normalizedPath = filePath.Replace('\\', Path.DirectorySeparatorChar)
-                                        .Replace('/', Path.DirectorySeparatorChar);
+        try
+        {
+            // 1. Get absolute, fully resolved path of the base directory sandbox
+            string absoluteBase = Path.GetFullPath(baseDirectory);
 
-        return new LocalFileSource(normalizedPath);
+            // Ensure it ends with a directory separator so "/app/spool-hacker" doesn't bypass "/app/spool"
+            if (!absoluteBase.EndsWith(Path.DirectorySeparatorChar))
+            {
+                absoluteBase += Path.DirectorySeparatorChar;
+            }
+
+            // 2. Combine and resolve the full path (this evaluates and flattens all ".." parts)
+            string combinedPath = Path.Combine(absoluteBase, userSubmittedPath);
+            string absoluteFinalPath = Path.GetFullPath(combinedPath);
+
+            // 3. Security Boundary Check: Does the final path still live inside the base sandbox?
+            if (!absoluteFinalPath.StartsWith(absoluteBase, StringComparison.OrdinalIgnoreCase))
+            {
+                return Result.Failure<LocalFileSource>(ReplicationErrors.PathTraversalAttempted);
+            }
+
+            // 4. Basic character sanitization
+            if (absoluteFinalPath.IndexOfAny(Path.GetInvalidPathChars()) >= 0)
+                return Result.Failure<LocalFileSource>(ReplicationErrors.InvalidPathCharacters);
+
+            return new LocalFileSource(absoluteFinalPath);
+        }
+        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
+        {
+            return Result.Failure<LocalFileSource>(ReplicationErrors.MalformedFilePath);
+        }
     }
 
     /// <summary>

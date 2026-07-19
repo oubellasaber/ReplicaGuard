@@ -64,13 +64,13 @@ public static class DependencyInjection
         services.AddSingleton<IStorageMonitor, DiskSpaceMonitor>();
         services.AddScoped<IAssetCleanupService, AssetCleanupService>();
         services.AddHostedService<AssetCleanupBackgroundService>();
-        services.Configure<StorageOptions>(configuration.GetSection(StorageOptions.SectionName));
         services.AddSingleton<IHosterExpiryPolicy, PixeldrainExpiryPolicy>();
         services.AddSingleton<IHosterExpiryPolicy, SendCmExpiryPolicy>();
         services.AddSingleton<IReplicaExpiryPredictionService, ReplicaExpiryPredictionService>();
         services.Configure<ExpirationRefreshOptions>(configuration.GetSection(ExpirationRefreshOptions.SectionName));
         services.AddScoped<IReplicaRecoveryService, ReplicaRecoveryService>();
         services.AddHostedService<ExpirationRefreshWorker>();
+        services.Configure<UserUploadsOptions>(configuration.GetSection(UserUploadsOptions.SectionName));
 
         //AddCaching(services, configuration);
 

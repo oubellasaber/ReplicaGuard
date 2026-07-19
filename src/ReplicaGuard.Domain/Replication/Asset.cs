@@ -20,14 +20,15 @@ public sealed class Asset : Entity<Guid>
     public IReadOnlyCollection<Replica> Replicas => _replicas;
 
     // EF Core
-    private Asset() : base(Guid.NewGuid()) { }
+    private Asset() : base() { }
 
     private Asset(
         Guid userId,
         FileSource source,
         FileName fileName,
-        DateTime createdAtUtc)
-        : base(Guid.NewGuid())
+        DateTime createdAtUtc,
+        Guid? id = null)
+        : base(id ?? Guid.NewGuid())
     {
         UserId = userId;
         Source = source;
@@ -41,9 +42,10 @@ public sealed class Asset : Entity<Guid>
         FileSource source,
         FileName fileName,
         DateTime createdAtUtc,
-        IEnumerable<(Guid hosterId, Guid? accountId)> replicas)
+        IEnumerable<(Guid hosterId, Guid? accountId)> replicas,
+        Guid? assetId = null)
     {
-        Asset asset = new Asset(userId, source, fileName, createdAtUtc);
+        Asset asset = new Asset(userId, source, fileName, createdAtUtc, assetId);
         
         if (!replicas.Any())
             return Result.Failure<Asset>(ReplicationErrors.AssetHasNoReplicas(asset.Id));
@@ -101,9 +103,10 @@ public sealed class Asset : Entity<Guid>
         Guid userId,
         LocalFileSource source,
         FileName fileName,
-        IEnumerable<(Guid hosterId, Guid? accountId)> replicas)
+        IEnumerable<(Guid hosterId, Guid? accountId)> replicas,
+        Guid? assetId = null)
     {
-        var result = Create(userId, source, fileName, DateTime.UtcNow, replicas);
+        var result = Create(userId, source, fileName, DateTime.UtcNow, replicas, assetId);
         if (result.IsFailure)
             return Result.Failure<Asset>(result.Error);
 
@@ -115,15 +118,17 @@ public sealed class Asset : Entity<Guid>
     /// </summary>
     public static Result<Asset> CreateFromLocalPath(
         Guid userId,
+        string baseDirectory,
         string filePath,
         FileName fileName,
-        IEnumerable<(Guid hosterId, Guid? accountId)> replicas)
+        IEnumerable<(Guid hosterId, Guid? accountId)> replicas,
+        Guid? assetId = null)
     {
-        Result<LocalFileSource> sourceResult = LocalFileSource.Create(filePath);
+        Result<LocalFileSource> sourceResult = LocalFileSource.Create(baseDirectory, filePath);
         if (sourceResult.IsFailure)
             return Result.Failure<Asset>(sourceResult.Error);
 
-        return CreateFromLocalPath(userId, sourceResult.Value, fileName, replicas);
+        return CreateFromLocalPath(userId, sourceResult.Value, fileName, replicas, assetId);
     }
 
     private Result<Replica> AddReplica(Guid hosterId, Guid? accountId, DateTime utcNow)

@@ -45,8 +45,10 @@ internal sealed class AssetCleanupService : IAssetCleanupService
             .Where(a => a.Id == assetId)
             .FirstAsync(ct);
 
-        if (TryDelete($"upl_{assetId}_{fileName}", "user upload"))
-            TryDelete($"upl_{assetId}_{fileName}.tmp", "temp spool");
+        if (asset?.Source is LocalFileSource local)
+        {
+            TryDelete(local.FilePath, "user upload");
+        }
 
         if (asset?.Source is RemoteFileSource)
         {

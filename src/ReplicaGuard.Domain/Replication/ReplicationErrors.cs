@@ -90,4 +90,24 @@ public static class ReplicationErrors
             "The asset has no replicas defined.",
             ErrorType.InvalidInput)
         .WithMetadata("AssetId", assetId);
+
+    public static Error PathTraversalAttempted => new(
+        "Replication.PathTraversalAttempted",
+        "The requested file path points outside the permitted application storage boundary.",
+        ErrorType.Validation);
+
+    public static Error InvalidPathCharacters => new(
+        "Replication.InvalidPathCharacters",
+        "The file path contains characters that are illegal on this operating system.",
+        ErrorType.Validation);
+
+    public static Error InvalidFileNameCharacters => new(
+        "Replication.InvalidFileNameCharacters",
+        "The target filename contains characters that are illegal on this operating system.",
+        ErrorType.Validation);
+
+    public static Error MalformedFilePath => new(
+        "Replication.MalformedFilePath",
+        "The file path structure is system-incompatible or has an invalid drive format.",
+        ErrorType.Validation);
 }
