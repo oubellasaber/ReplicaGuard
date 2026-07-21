@@ -18,7 +18,7 @@ internal sealed class VerifiyIdentityCommandHandler(
         var identityId = request.IdentityId;
 
         // 1. Load hoster account by identity ID
-        var account = await accounts.GetByIdentityIdAsync(identityId, ct);
+        var account = await accounts.GetByIdentityId(identityId, ct);
         if (account is null)
             return Result.Failure(AuthIdentityErrors.NotFound(identityId));
 

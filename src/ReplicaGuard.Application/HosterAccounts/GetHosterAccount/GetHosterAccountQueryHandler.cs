@@ -1,24 +1,20 @@
-﻿using ReplicaGuard.Application.Abstractions.Messaging;
+﻿using ReplicaGuard.Application.Abstractions.Authentication;
+using ReplicaGuard.Application.Abstractions.Messaging;
 using ReplicaGuard.Domain.Abstractions;
 using ReplicaGuard.Domain.HosterAccounts;
 
 namespace ReplicaGuard.Application.HosterAccounts.GetHosterAccount;
 
-public sealed class GetHosterAccountQueryHandler
+public sealed class GetHosterAccountQueryHandler(
+    IHosterAccountRepository hosterAccountsRepo,
+    IUserContext userContext)
     : IQueryHandler<GetHosterAccountQuery, GetHosterAccountResponse>
 {
-    private readonly IHosterAccountRepository _repository;
-
-    public GetHosterAccountQueryHandler(IHosterAccountRepository repository)
-    {
-        _repository = repository;
-    }
-
     public async Task<Result<GetHosterAccountResponse>> Handle(
         GetHosterAccountQuery request,
         CancellationToken cancellationToken)
     {
-        var account = await _repository.GetByIdAsync(request.HosterAccountId, cancellationToken);
+        var account = await hosterAccountsRepo.GetByIdAsync(request.HosterAccountId, userContext.UserId, cancellationToken);
 
         if (account is null)
             return Result.Failure<GetHosterAccountResponse>(
@@ -27,7 +23,7 @@ public sealed class GetHosterAccountQueryHandler
         var identities = account.Identities
             .Select(i => new IdentityResponseDto(
                 i.Type,
-                i.Value ?? i.Type.ToString(),
+                i.Value,
                 i.Status))
             .ToList();
 

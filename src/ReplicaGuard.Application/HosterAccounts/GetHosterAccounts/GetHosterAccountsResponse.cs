@@ -1,0 +1,5 @@
+﻿using ReplicaGuard.Application.HosterAccounts.GetHosterAccount;
+
+namespace ReplicaGuard.Application.HosterAccounts.GetHosterAccounts;
+
+public sealed record GetHosterAccountsResponse(IReadOnlyList<GetHosterAccountResponse> HosterAccounts);

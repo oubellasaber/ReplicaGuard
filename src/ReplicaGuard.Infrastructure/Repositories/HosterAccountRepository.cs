@@ -10,10 +10,22 @@ internal sealed class HosterAccountRepository : Repository<HosterAccount>, IHost
     {
     }
 
+    // stopped
     public new async Task<HosterAccount?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         return await DbContext.Set<HosterAccount>()
             .Where(a => a.Id == id)
+            .Include(a => a.Hoster)
+            .Include(a => a.Identities)
+                .ThenInclude(i => i.SecretSet)
+                    .ThenInclude(s => s.Secrets)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    public async Task<HosterAccount?> GetByIdAsync(Guid id, Guid userId, CancellationToken cancellationToken = default)
+    {
+        return await DbContext.Set<HosterAccount>()
+            .Where(a => a.Id == id && a.UserId == userId)
             .Include(a => a.Hoster)
             .Include(a => a.Identities)
                 .ThenInclude(i => i.SecretSet)
@@ -32,7 +44,7 @@ internal sealed class HosterAccountRepository : Repository<HosterAccount>, IHost
             .ToListAsync(cancellationToken);
     }
 
-    public async Task<HosterAccount?> GetByIdentityIdAsync(Guid identityId, CancellationToken cancellationToken = default)
+    public async Task<HosterAccount?> GetByIdentityId(Guid identityId, CancellationToken cancellationToken = default)
     {
         return await DbContext.Set<HosterAccount>()
             .Where(a => a.Identities.Any(i => i.Id == identityId))
@@ -41,5 +53,17 @@ internal sealed class HosterAccountRepository : Repository<HosterAccount>, IHost
                 .ThenInclude(i => i.SecretSet)
                     .ThenInclude(s => s.Secrets)
             .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    public async Task<IEnumerable<HosterAccount>> GetAccounts(Guid userId, CancellationToken cancellationToken = default)
+    {
+        return await DbContext.Set<HosterAccount>()
+            .Where(a => a.UserId == userId)
+            .Include(a => a.Hoster)
+            .Include(a => a.Identities)
+                .ThenInclude(i => i.SecretSet)
+                    .ThenInclude(s => s.Secrets)
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
     }
 }

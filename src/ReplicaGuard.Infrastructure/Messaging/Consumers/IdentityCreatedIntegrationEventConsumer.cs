@@ -26,7 +26,7 @@ internal sealed class IdentityCreatedIntegrationEventConsumer :
     {
         var identityId = context.Message.IdentityId;
 
-        var account = await _accounts.GetByIdentityIdAsync(identityId);
+        var account = await _accounts.GetByIdentityId(identityId);
         if (account is null)
             return; // nothing to do
 
@@ -59,7 +59,7 @@ internal sealed class IdentityCreatedIntegrationEventFaultConsumer :
     {
         var identityId = context.Message.Message.IdentityId;
 
-        var account = await _accounts.GetByIdentityIdAsync(identityId);
+        var account = await _accounts.GetByIdentityId(identityId);
         if (account is null)
             return;
 

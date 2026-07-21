@@ -120,7 +120,7 @@ public sealed class UploadReplicaCommandHandler
             return Result.Failure<UploadContext>(HosterErrors.NotFound(replica.HosterId).AsPermanent());
         }
 
-        var account = await _accounts.GetByIdAsync(replica.HosterAccountId!.Value, ct);
+        var account = await _accounts.GetByIdAsync(replica.HosterAccountId!.Value, cmd.UserId, ct);
         if (account is null)
             return Result.Failure<UploadContext>(HosterAccountErrors.NotFound(replica.HosterAccountId!.Value).AsPermanent());
 

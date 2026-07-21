@@ -1,13 +1,16 @@
 ﻿using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ReplicaGuard.Api.Extensions;
 using ReplicaGuard.Application.HosterAccounts.CreateHosterAccount;
 using ReplicaGuard.Application.HosterAccounts.GetHosterAccount;
+using ReplicaGuard.Application.HosterAccounts.GetHosterAccounts;
 
 namespace ReplicaGuard.Api.Controllers.HosterAccounts;
 
 [ApiController]
 [Route("api/hoster-accounts")]
+[Authorize]
 public sealed class HosterAccountController : ControllerBase
 {
     private readonly ISender _sender;
@@ -53,6 +56,20 @@ public sealed class HosterAccountController : ControllerBase
     public async Task<IActionResult> Get(Guid id, CancellationToken cancellationToken)
     {
         var query = new GetHosterAccountQuery(id);
+        var result = await _sender.Send(query, cancellationToken);
+
+        return result.IsSuccess
+            ? Ok(result.Value)
+            : result.ToActionResult();
+    }
+
+    /// <summary>
+    /// Gets All HosterAccounts
+    /// </summary>
+    [HttpGet]
+    public async Task<IActionResult> Get(CancellationToken cancellationToken)
+    {
+        var query = new GetHosterAccountsQuery();
         var result = await _sender.Send(query, cancellationToken);
 
         return result.IsSuccess
