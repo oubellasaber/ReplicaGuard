@@ -19,7 +19,7 @@ services:
       context: .
       dockerfile: src/ReplicaGuard.Api/Dockerfile
     ports:
-      - "8081:8081"
+      - "8081:8080"
     env_file: .env
     environment:
       ConnectionStrings__Database: "Host=postgres;Port=5432;Database=replicaguard;Username=replicaguard;Password=${POSTGRES_PASSWORD}"
@@ -29,8 +29,6 @@ services:
       Jwt__Audience: "ReplicaGuard.Api"
       Spool__SpoolDirectory: "/app/spool"
       UserUploads__UploadDirectory: "/app/uploads"
-      ASPNETCORE_ENVIRONMENT: "Production"
-      ASPNETCORE_URLS: "http://+:8080"
     volumes:
       - spool:/app/spool
       - uploads:/app/uploads

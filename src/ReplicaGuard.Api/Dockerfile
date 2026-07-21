@@ -40,6 +40,6 @@ USER appuser
 
 VOLUME ["/app/spool", "/app/uploads"]
 
-EXPOSE 8080 8081
+EXPOSE 8080
 
 ENTRYPOINT ["dotnet", "ReplicaGuard.Api.dll"]
