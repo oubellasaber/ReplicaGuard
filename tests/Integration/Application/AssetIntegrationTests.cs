@@ -3,6 +3,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using ReplicaGuard.Application.Abstractions.Common;
 using ReplicaGuard.Application.Assets.CreateAsset;
 using ReplicaGuard.Application.Assets.GetAsset;
 using ReplicaGuard.Application.Assets.ListAssets;
@@ -206,18 +207,18 @@ public sealed class AssetIntegrationTests
                 "https://example.com/other.zip");
         }
 
-        Result<List<AssetSummaryResponse>> listResult;
+        Result<PagedList<AssetSummaryResponse>> listResult;
 
         using (IServiceScope actScope = harness.ServiceProvider.CreateScope())
         {
             ISender sender = actScope.ServiceProvider.GetRequiredService<ISender>();
 
-            listResult = await sender.Send(new ListAssetsQuery(), CancellationToken.None);
+            listResult = await sender.Send(new ListAssetsQuery(new ResourceParameters { PageSize = 2 }), CancellationToken.None);
         }
 
         listResult.IsSuccess.Should().BeTrue();
-        listResult.Value.Should().Contain(asset => asset.Id == currentUserAssetId);
-        listResult.Value.Should().NotContain(asset => asset.Id == otherUserAssetId);
+        listResult.Value.Items.Should().Contain(asset => asset.Id == currentUserAssetId);
+        listResult.Value.Items.Should().NotContain(asset => asset.Id == otherUserAssetId);
     }
 
     [Fact]

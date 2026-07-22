@@ -10,6 +10,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using ReplicaGuard.Application.Abstractions.Authentication;
 using ReplicaGuard.Application.Abstractions.Clock;
+using ReplicaGuard.Application.Abstractions.Common;
 using ReplicaGuard.Application.Abstractions.Data;
 using ReplicaGuard.Application.Abstractions.Storage;
 using ReplicaGuard.Application.Assets.Services;
@@ -27,6 +28,7 @@ using ReplicaGuard.Infrastructure.Cleanup;
 using ReplicaGuard.Infrastructure.Clock;
 using ReplicaGuard.Infrastructure.Data;
 using ReplicaGuard.Infrastructure.Encryption;
+using ReplicaGuard.Infrastructure.Filtering;
 using ReplicaGuard.Infrastructure.Hosters;
 using ReplicaGuard.Infrastructure.Hosters.Abstractions;
 using ReplicaGuard.Infrastructure.Hosters.Pixeldrain;
@@ -42,6 +44,8 @@ using ReplicaGuard.Infrastructure.Seeding;
 using ReplicaGuard.Infrastructure.Spool;
 using ReplicaGuard.Infrastructure.Storage;
 using ReplicaGuard.Infrastructure.Streaming;
+using Sieve.Models;
+using Sieve.Services;
 
 namespace ReplicaGuard.Infrastructure;
 
@@ -238,6 +242,16 @@ public static class DependencyInjection
         {
             cfg.RegisterServicesFromAssemblyContaining<AssetCreatedDomainEventHandler>();
         });
+        services.AddScoped<IApplicationDbContext>(sp =>
+        sp.GetRequiredService<ApplicationDbContext>());
+
+        // Filtering using Sieve
+        // 1. Bind Sieve Options from appsettings.json
+        services.Configure<SieveOptions>(configuration.GetSection("Sieve"));
+        // 2. Register Custom SieveProcessor
+        services.AddScoped<ISieveProcessor, ApplicationSieveProcessor>();
+        // 3. Register Generic Grid Query Executor
+        services.AddScoped<IGridQueryExecutor, GridQueryExecutor>();
     }
 
     private static void AddApplicationServices(IServiceCollection services, IConfiguration configuration)

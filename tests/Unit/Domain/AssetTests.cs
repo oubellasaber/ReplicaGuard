@@ -6,7 +6,7 @@ namespace ReplicaGuard.Domain.Tests;
 public sealed class AssetTests
 {
     private static readonly string s_fileName = "file.bin";
-    private static readonly string s_filePath = @"/home/user/file.bin";
+    private static readonly string s_filePath = @"/base/folder/file.bin";
     private static readonly string s_remoteUrl = "https://example.com/file.bin";
     private static readonly string s_baseDirectory = "/base/";
     

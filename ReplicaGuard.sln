@@ -42,8 +42,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Integration", "Integration"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ReplicaGuard.Application.IntegrationTests", "tests\Integration\Application\ReplicaGuard.Application.IntegrationTests.csproj", "{6E21DBC8-110E-1DDA-CBD7-8CC80FDA9E51}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ReplicaGuard.Web", "ReplicaGuard.Web\ReplicaGuard.Web.csproj", "{EC953EBF-B30D-4399-BC7F-564343743615}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -86,10 +84,6 @@ Global
 		{6E21DBC8-110E-1DDA-CBD7-8CC80FDA9E51}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6E21DBC8-110E-1DDA-CBD7-8CC80FDA9E51}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6E21DBC8-110E-1DDA-CBD7-8CC80FDA9E51}.Release|Any CPU.Build.0 = Release|Any CPU
-		{EC953EBF-B30D-4399-BC7F-564343743615}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{EC953EBF-B30D-4399-BC7F-564343743615}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{EC953EBF-B30D-4399-BC7F-564343743615}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{EC953EBF-B30D-4399-BC7F-564343743615}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -107,7 +101,6 @@ Global
 		{E2D19FF7-0AD1-483C-66B5-C2139653A287} = {F41EF37E-0B93-41FA-A2FC-6EEE0BA253E0}
 		{63F7223C-7A9C-4FEC-9E4C-4C4525EE345B} = {E79B088E-9123-4AF4-977F-54C51E74FAFA}
 		{6E21DBC8-110E-1DDA-CBD7-8CC80FDA9E51} = {63F7223C-7A9C-4FEC-9E4C-4C4525EE345B}
-		{EC953EBF-B30D-4399-BC7F-564343743615} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {69DC1423-D28D-486E-9A4A-81F9187AA246}

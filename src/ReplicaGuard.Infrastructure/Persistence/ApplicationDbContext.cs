@@ -1,12 +1,13 @@
 ﻿using MassTransit;
 using Microsoft.EntityFrameworkCore;
+using ReplicaGuard.Application.Abstractions.Data;
 using ReplicaGuard.Domain.Abstractions;
 using ConcurrencyException = ReplicaGuard.Application.Exceptions.ConcurrencyException;
 
 namespace ReplicaGuard.Infrastructure.Persistence;
 
 public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
-    : DbContext(options), IUnitOfWork
+    : DbContext(options), IUnitOfWork, IApplicationDbContext
 {
     protected override void OnModelCreating(ModelBuilder builder)
     {

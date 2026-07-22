@@ -28,12 +28,13 @@ internal sealed class AssetConfiguration : IEntityTypeConfiguration<Asset>
                 json => DeserializeFileSource(json))
             .HasColumnType("jsonb");
 
-        builder.Property(x => x.FileName)
-            .HasConversion(
-                fn => fn.Value,
-                value => FileName.Create(value).Value)
-            .HasMaxLength(255)
-            .IsRequired();
+        builder.OwnsOne(a => a.FileName, fn =>
+        {
+            fn.Property(x => x.Value)
+                .HasColumnName("FileName")
+                .HasMaxLength(255)
+                .IsRequired();
+        });
 
         builder.Ignore(a => a.Status);
 

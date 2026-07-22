@@ -8,6 +8,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.Net.Http.Headers;
 using ReplicaGuard.Api.Extensions;
 using ReplicaGuard.Application.Abstractions.Authentication;
+using ReplicaGuard.Application.Abstractions.Common;
 using ReplicaGuard.Application.Assets.CreateAsset;
 using ReplicaGuard.Application.Assets.CreateAsset.CreateLocalAsset;
 using ReplicaGuard.Application.Assets.CreateAsset.CreateRemoteAsset;
@@ -218,13 +219,15 @@ public class AssetController(
     }
 
     /// <summary>
-    /// List all assets for the current user.
+    /// List all assets for the current user with support for filtering, sorting, and pagination.
     /// </summary>
     [HttpGet]
-    [ProducesResponseType(typeof(List<AssetSummaryResponse>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> List(CancellationToken cancellationToken)
+    [ProducesResponseType(typeof(PagedList<AssetSummaryResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> List(
+        [FromQuery] ResourceParameters parameters,
+        CancellationToken cancellationToken)
     {
-        var query = new ListAssetsQuery();
+        var query = new ListAssetsQuery(parameters);
 
         var result = await sender.Send(query, cancellationToken);
 

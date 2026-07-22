@@ -25,6 +25,7 @@
     <PackageReference Include="MassTransit.EntityFrameworkCore" />
     <PackageReference Include="MassTransit.SqlTransport.PostgreSQL" />
     <PackageReference Include="EFCore.NamingConventions" />
+    <PackageReference Include="Sieve" />
   </ItemGroup>
 
 </Project>
