@@ -151,9 +151,6 @@ public sealed class Replica : Entity<Guid>
                     ? ReplicaAvailabilityStatus.ExpiringSoon
                     : ReplicaAvailabilityStatus.Healthy;
 
-        if (AvailabilityStatus == newStatus || newStatus == ReplicaAvailabilityStatus.Healthy)
-            return;
-
         AvailabilityStatus = newStatus;
 
         switch (newStatus)

@@ -1,8 +1,10 @@
 ﻿using FluentAssertions;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
+using ReplicaGuard.Application.Abstractions.Common;
 using ReplicaGuard.Application.HosterAccounts.CreateHosterAccount;
 using ReplicaGuard.Application.HosterAccounts.GetHosterAccount;
+using ReplicaGuard.Application.HosterAccounts.GetHosterAccounts;
 using ReplicaGuard.Application.Hosters;
 using ReplicaGuard.Application.Hosters.ListHosters;
 using ReplicaGuard.Domain.Abstractions;
@@ -113,7 +115,7 @@ public sealed class HosterAccountIntegrationTests
             accountId = createResult.Value.HosterAccountId;
         }
 
-        Result<GetHosterAccountResponse> getResult;
+        Result<HosterAccountResponse> getResult;
 
         using (IServiceScope actScope = harness.ServiceProvider.CreateScope())
         {
@@ -125,7 +127,7 @@ public sealed class HosterAccountIntegrationTests
         }
 
         getResult.IsSuccess.Should().BeTrue();
-        getResult.Value.HosterAccountId.Should().Be(accountId);
+        getResult.Value.Id.Should().Be(accountId);
         getResult.Value.Identities.Should().ContainSingle(i => i.Type == IdentityType.ApiKey);
         getResult.Value.Identities.Single().Status.Should().Be(IdentityVerificationStatus.Pending);
     }
@@ -138,7 +140,7 @@ public sealed class HosterAccountIntegrationTests
         await harness.ResetStateAsync();
 
         Guid missingId = Guid.NewGuid();
-        Result<GetHosterAccountResponse> getResult;
+        Result<HosterAccountResponse> getResult;
 
         using (IServiceScope scope = harness.ServiceProvider.CreateScope())
         {

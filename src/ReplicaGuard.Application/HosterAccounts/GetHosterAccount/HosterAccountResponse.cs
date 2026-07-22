@@ -3,9 +3,10 @@ using ReplicaGuard.Domain.Hosters;
 
 namespace ReplicaGuard.Application.HosterAccounts.GetHosterAccount;
 
-public sealed record GetHosterAccountResponse(
-    Guid HosterAccountId,
-    HosterCode HosterId,
+public sealed record HosterAccountResponse(
+    Guid Id,
+    HosterCode HosterCode,
+    string HosterDisplayName,
     string Alias,
     string? Description,
     DateTime CreatedAtUtc,
@@ -13,6 +14,7 @@ public sealed record GetHosterAccountResponse(
     List<IdentityResponseDto> Identities);
 
 public sealed record IdentityResponseDto(
+    Guid Id,
     IdentityType Type,
     string? Value,
     IdentityVerificationStatus Status);

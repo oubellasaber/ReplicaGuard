@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ReplicaGuard.Api.Extensions;
+using ReplicaGuard.Application.Abstractions.Common;
 using ReplicaGuard.Application.HosterAccounts.CreateHosterAccount;
 using ReplicaGuard.Application.HosterAccounts.GetHosterAccount;
 using ReplicaGuard.Application.HosterAccounts.GetHosterAccounts;
@@ -67,9 +68,11 @@ public sealed class HosterAccountController : ControllerBase
     /// Gets All HosterAccounts
     /// </summary>
     [HttpGet]
-    public async Task<IActionResult> Get(CancellationToken cancellationToken)
+    public async Task<IActionResult> List(
+    [FromQuery] PagedResourceParameters parameters,
+    CancellationToken cancellationToken)
     {
-        var query = new GetHosterAccountsQuery();
+        var query = new GetHosterAccountsQuery(parameters);
         var result = await _sender.Send(query, cancellationToken);
 
         return result.IsSuccess

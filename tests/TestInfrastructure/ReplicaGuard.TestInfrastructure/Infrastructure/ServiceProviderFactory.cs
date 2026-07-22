@@ -1,11 +1,13 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using ReplicaGuard.Application;
 using ReplicaGuard.Application.Abstractions.Authentication;
 using ReplicaGuard.Application.Abstractions.Clock;
+using ReplicaGuard.Application.Abstractions.Common;
 using ReplicaGuard.Application.Abstractions.Data;
 using ReplicaGuard.Domain.Abstractions;
 using ReplicaGuard.Domain.HosterAccounts;
@@ -13,10 +15,13 @@ using ReplicaGuard.Domain.Hosters;
 using ReplicaGuard.Domain.Replication;
 using ReplicaGuard.Infrastructure.Authentication;
 using ReplicaGuard.Infrastructure.Encryption;
+using ReplicaGuard.Infrastructure.Filtering;
 using ReplicaGuard.Infrastructure.Identity;
 using ReplicaGuard.Infrastructure.Persistence;
 using ReplicaGuard.Infrastructure.Repositories;
 using ReplicaGuard.Infrastructure.Seeding;
+using Sieve.Models;
+using Sieve.Services;
 
 namespace ReplicaGuard.TestInfrastructure.Infrastructure;
 
@@ -40,6 +45,15 @@ internal static class ServiceProviderFactory
             Audience = "replicaguard-tests",
             ExpirationInMinutes = 15,
             RefreshTokenExpirationInDays = refreshTokenExpirationInDays,
+        };
+
+        SieveOptions sieveOptions = new()
+        {
+            CaseSensitive = false,
+            DefaultPageSize = 10,
+            MaxPageSize = 100,
+            ThrowExceptions = true,
+            IgnoreNullsOnNotEqual = true
         };
 
         services.AddSingleton<IOptions<JwtAuthOptions>>(Options.Create(jwtOptions));
@@ -67,6 +81,11 @@ internal static class ServiceProviderFactory
         services.AddScoped<IHosterAccountRepository, HosterAccountRepository>();
 
         services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<ApplicationDbContext>());
+        services.AddScoped<IApplicationDbContext>(sp =>
+            sp.GetRequiredService<ApplicationDbContext>());
+        services.AddSingleton<IOptions<SieveOptions>>(Options.Create(sieveOptions));
+        services.AddScoped<ISieveProcessor, ApplicationSieveProcessor>();
+        services.AddScoped<IGridQueryExecutor, GridQueryExecutor>();
         services.AddScoped<IUserContext>(_ => new FixedUserContext(currentUserId, identityId));
 
         services.AddSingleton<IDateTimeProvider>(new FixedDateTimeProvider(utcNow));

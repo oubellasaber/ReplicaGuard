@@ -1,37 +1,52 @@
-﻿using ReplicaGuard.Application.Abstractions.Authentication;
+﻿using Microsoft.EntityFrameworkCore;
+using ReplicaGuard.Application.Abstractions.Authentication;
+using ReplicaGuard.Application.Abstractions.Common;
+using ReplicaGuard.Application.Abstractions.Data;
 using ReplicaGuard.Application.Abstractions.Messaging;
-using ReplicaGuard.Application.HosterAccounts.GetHosterAccount;
 using ReplicaGuard.Domain.Abstractions;
 using ReplicaGuard.Domain.HosterAccounts;
 
 namespace ReplicaGuard.Application.HosterAccounts.GetHosterAccounts;
 
 public sealed class GetHosterAccountsQueryHandler(
-    IHosterAccountRepository accountsRepo,
-    IUserContext userContext) : IQueryHandler<GetHosterAccountsQuery, GetHosterAccountsResponse>
+    IApplicationDbContext dbContext,
+    IUserContext userContext,
+    IGridQueryExecutor gridQueryExecutor)
+    : IQueryHandler<GetHosterAccountsQuery, PagedList<HosterAccountSummaryResponse>>
 {
-    public async Task<Result<GetHosterAccountsResponse>> Handle(GetHosterAccountsQuery request, CancellationToken cancellationToken)
+    public async Task<Result<PagedList<HosterAccountSummaryResponse>>> Handle(
+        GetHosterAccountsQuery request,
+        CancellationToken cancellationToken)
     {
-        var accs = await accountsRepo.GetAccounts(userContext.UserId, cancellationToken);
-        return new GetHosterAccountsResponse(accs.Select(MapToResponse).ToList());
-    }
+        var p = new ResourceParameters 
+        { 
+            Sorts = $"-{nameof(HosterAccount.CreatedAtUtc)}", 
+            Page = request.Parameters.Page, 
+            PageSize = request.Parameters.PageSize 
+        };
 
-    private GetHosterAccountResponse MapToResponse(HosterAccount account)
-    {
-        var identities = account.Identities
-            .Select(i => new IdentityResponseDto(
-                i.Type,
-                i.Value,
-                i.Status))
-            .ToList();
+        var query = dbContext.Set<HosterAccount>()
+            .Where(a => a.UserId == userContext.UserId)
+            .Include(a => a.Hoster)
+            .AsNoTracking();
 
-        return new GetHosterAccountResponse(
-            account.Id,
-            account.HosterCode,
-            account.Alias,
-            account.Description,
-            account.CreatedAtUtc,
-            account.UpdatedAtUtc,
-            identities);
+        var paged = await gridQueryExecutor.ToPagedListAsync(
+            query,
+            p,
+            a => new HosterAccountSummaryResponse(
+                a.Id,
+                a.Hoster.Code,
+                a.Hoster.DisplayName,
+                a.Alias,
+                a.Description,
+                a.Identities.Count,
+                a.CreatedAtUtc,
+                a.UpdatedAtUtc),
+            customSearch: string.IsNullOrWhiteSpace(p.Search)
+                ? null
+                : a => a.Alias.ToLower().Contains(p.Search.Trim().ToLower()),
+            cancellationToken: cancellationToken);
+
+        return Result.Success(paged);
     }
 }
