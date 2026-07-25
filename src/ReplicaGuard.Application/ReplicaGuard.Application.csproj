@@ -20,4 +20,8 @@
     <InternalsVisibleTo Include="DynamicProxyGenAssembly2" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Replicas\GenerateDownloadUrl\" />
+  </ItemGroup>
+
 </Project>

@@ -9,6 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using ReplicaGuard.Application.Abstractions.Authentication;
+using ReplicaGuard.Application.Abstractions.Caching;
 using ReplicaGuard.Application.Abstractions.Clock;
 using ReplicaGuard.Application.Abstractions.Common;
 using ReplicaGuard.Application.Abstractions.Data;
@@ -24,6 +25,8 @@ using ReplicaGuard.Domain.Hosters;
 using ReplicaGuard.Domain.Replication;
 using ReplicaGuard.Domain.Replication.DomainEvents;
 using ReplicaGuard.Infrastructure.Authentication;
+using ReplicaGuard.Infrastructure.Caching;
+using ReplicaGuard.Infrastructure.Captcha;
 using ReplicaGuard.Infrastructure.Cleanup;
 using ReplicaGuard.Infrastructure.Clock;
 using ReplicaGuard.Infrastructure.Data;
@@ -76,7 +79,7 @@ public static class DependencyInjection
         services.AddHostedService<ExpirationRefreshWorker>();
         services.Configure<UserUploadsOptions>(configuration.GetSection(UserUploadsOptions.SectionName));
 
-        //AddCaching(services, configuration);
+        AddCaching(services, configuration);
 
         AddAuthentication(services, configuration);
 
@@ -87,6 +90,8 @@ public static class DependencyInjection
         AddApplicationServices(services, configuration);
 
         AddInfrastructureServices(services, configuration);
+
+        AddCaptchaSolving(services, configuration);
 
         services.AddScoped<AppSeeder>();
 
@@ -259,6 +264,33 @@ public static class DependencyInjection
         services.AddScoped<IJwtAuthOptionsProvider, JwtAuthOptionsProvider>();
         services.AddScoped<IIdentityService, IdentityService>();
         services.AddScoped<ITokenProvider, TokenProvider>();
+    }
+
+    private static void AddCaching(IServiceCollection services, IConfiguration configuration)
+    {
+        // This registers IDistributedCache with an in-memory provider.
+        // Later, We can swap it later with services.AddStackExchangeRedisCache(...)
+        // when there is a need for distributed caching across multiple instances.
+        services.AddDistributedMemoryCache();
+        services.AddSingleton<ICacheService, CacheService>();
+    }
+
+    private static void AddCaptchaSolving(IServiceCollection services, IConfiguration configuration)
+    {
+        // Register the Captcha Solver (Trawl)
+        var captchaBaseUrl = configuration.GetValue<string>("Captcha:BaseUrl") ?? 
+            throw new InvalidOperationException("Captcha base URL is not configured.");
+        services.AddHttpClient<ICaptchaSolver, TrawlCaptchaSolver>(client =>
+        {
+            client.BaseAddress = new Uri(captchaBaseUrl);
+
+            // Trawl's maxTimeout payload is 60s. 
+            // The .NET client must wait slightly longer to avoid aborting early.
+            client.Timeout = TimeSpan.FromSeconds(65);
+        });
+
+        // 4. Register the Resilient Wrapper Client
+        services.AddHttpClient<ScraperHttpClient>();
     }
 
     private static void AddHealthChecks(IServiceCollection services, IConfiguration configuration)

@@ -15,6 +15,7 @@ using ReplicaGuard.Application.Assets.CreateAsset.CreateRemoteAsset;
 using ReplicaGuard.Application.Assets.GetAsset;
 using ReplicaGuard.Application.Assets.ListAssets;
 using ReplicaGuard.Application.Replication.ProgressStreaming;
+using ReplicaGuard.Application.Replicas.GenerateDownloadUrl;
 using ReplicaGuard.Domain.Replication;
 using ReplicaGuard.Infrastructure.Cleanup;
 using ReplicaGuard.Infrastructure.Storage;
@@ -259,6 +260,26 @@ public class AssetController(
             assetId,
             replicaId,
             ct);
+    }
+
+    /// <summary>
+    /// Generate a direct download URL for the specified replica.
+    /// </summary>
+    [HttpPost("{assetId:guid}/replicas/{replicaId:guid}/download-url")]
+    [ProducesResponseType(typeof(GenerateDownloadUrlResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GenerateDownloadUrl(
+        [FromRoute] Guid assetId,
+        [FromRoute] Guid replicaId,
+        CancellationToken cancellationToken)
+    {
+        var command = new GenerateDownloadUrlCommand(assetId, replicaId);
+        var result = await sender.Send(command, cancellationToken);
+
+        return result.IsSuccess
+            ? Ok(result.Value)
+            : result.ToActionResult();
     }
 
     private async Task StreamAssetEvents(
