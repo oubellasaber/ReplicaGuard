@@ -13,6 +13,16 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+  
+  trawl:
+    image: ghcr.io/germondai/trawl:latest
+    container_name: trawl
+    environment:
+      - BROWSER_POOL_SIZE=1
+    ports:
+      - "8191:8191"
+    shm_size: "1gb"
+    restart: unless-stopped
 
   api:
     build:
@@ -35,6 +45,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      trawl:
+        condition: service_started
     restart: unless-stopped
 
 volumes:
