@@ -53,6 +53,7 @@ internal sealed class GenerateDownloadUrlHandler : IGenerateDownloadUrlCapabilit
                 return request;
             },
             RunParallelWarmupRequests,
+            "https://send.now/login",
             ct);
 
             var headers = new Dictionary<string, string>()

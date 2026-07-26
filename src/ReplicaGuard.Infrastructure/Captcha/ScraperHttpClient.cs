@@ -26,6 +26,7 @@ internal class ScraperHttpClient
     public async Task<HttpResponseMessage> SendAsync(
         Func<HttpRequestMessage> requestFactory,
         Func<Task>? onBeforeSolve = null,
+        string? targetUrl = null,
         CancellationToken ct = default)
     {
         using var initialRequest = requestFactory();
@@ -53,7 +54,7 @@ internal class ScraperHttpClient
             await _cacheService.RemoveAsync(cacheKey, ct);
 
             // 4: Solve Captcha
-            session = await _captchaSolver.SolveAsync(targetRootUrl, onBeforeSolve: onBeforeSolve, ct);
+            session = await _captchaSolver.SolveAsync(targetUrl ?? targetRootUrl, onBeforeSolve: onBeforeSolve, ct);
 
             // 5: Update Cache
             await _cacheService.SetAsync(cacheKey, session, TimeSpan.FromMinutes(25), ct);
