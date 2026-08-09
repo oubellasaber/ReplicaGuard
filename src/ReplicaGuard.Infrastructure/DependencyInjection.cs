@@ -26,7 +26,6 @@ using ReplicaGuard.Domain.Replication;
 using ReplicaGuard.Domain.Replication.DomainEvents;
 using ReplicaGuard.Infrastructure.Authentication;
 using ReplicaGuard.Infrastructure.Caching;
-using ReplicaGuard.Infrastructure.Captcha;
 using ReplicaGuard.Infrastructure.Cleanup;
 using ReplicaGuard.Infrastructure.Clock;
 using ReplicaGuard.Infrastructure.Data;
@@ -90,8 +89,6 @@ public static class DependencyInjection
         AddApplicationServices(services, configuration);
 
         AddInfrastructureServices(services, configuration);
-
-        AddCaptchaSolving(services, configuration);
 
         services.AddScoped<AppSeeder>();
 
@@ -273,24 +270,6 @@ public static class DependencyInjection
         // when there is a need for distributed caching across multiple instances.
         services.AddDistributedMemoryCache();
         services.AddSingleton<ICacheService, CacheService>();
-    }
-
-    private static void AddCaptchaSolving(IServiceCollection services, IConfiguration configuration)
-    {
-        // Register the Captcha Solver (Trawl)
-        var captchaBaseUrl = configuration.GetValue<string>("Captcha:BaseUrl") ?? 
-            throw new InvalidOperationException("Captcha base URL is not configured.");
-        services.AddHttpClient<ICaptchaSolver, TrawlCaptchaSolver>(client =>
-        {
-            client.BaseAddress = new Uri(captchaBaseUrl);
-
-            // Trawl's maxTimeout payload is 60s. 
-            // The .NET client must wait slightly longer to avoid aborting early.
-            client.Timeout = TimeSpan.FromSeconds(65);
-        });
-
-        // 4. Register the Resilient Wrapper Client
-        services.AddHttpClient<ScraperHttpClient>();
     }
 
     private static void AddHealthChecks(IServiceCollection services, IConfiguration configuration)

@@ -15,27 +15,51 @@ internal sealed class PixeldrainGenerateDownloadUrlCapabilityHandler : IGenerate
     public CapabilityCode CapabilityCode => CapabilityCode.GenerateDownloadUrl;
 
     public PixeldrainGenerateDownloadUrlCapabilityHandler(
-        HttpClient httpClient,
+        IHttpClientFactory httpClientFactory,
         IHosterDefinitionResolver resolver,
         IOptions<PixeldrainOptions> options)
     {
-        _httpClient = httpClient;
+        _httpClient = httpClientFactory.CreateClient(HosterCode.Pixeldrain.ToFriendlyString());
         _resolver = resolver;
         _options = options.Value;
     }
 
-    public Task<Result<DownloadFileResponse>> HandleAsync(DownloadFileRequest input, CancellationToken ct = default)
+    public async Task<Result<DownloadFileResponse>> HandleAsync(DownloadFileRequest input, CancellationToken ct = default)
     {
         var hoster = _resolver.Resolve(HosterCode.Pixeldrain);
-
         var fileCodeResult = hoster.ExtractFileCode(input.Url);
 
         if (fileCodeResult.IsFailure)
-            return Task.FromResult(Result.Failure<DownloadFileResponse>(fileCodeResult.Error));
+            return Result.Failure<DownloadFileResponse>(fileCodeResult.Error);
 
-        var directUrl = new Uri($"{_options.ApiBaseUrl.TrimEnd('/')}/api/file/{fileCodeResult.Value}");
+        var apiUrl = new Uri($"{_options.ApiBaseUrl.TrimEnd('/')}/api/file/{fileCodeResult.Value}");
 
-        var headers = new Dictionary<string, string>();
-        return Task.FromResult(Result.Success(new DownloadFileResponse(directUrl, headers)));
+        try
+        {
+            using var response = await _httpClient.GetAsync(apiUrl, ct);
+
+            var headers = new Dictionary<string, string>();
+
+            if (response.StatusCode == System.Net.HttpStatusCode.Redirect)
+            {
+                var directUrl = response.Headers.Location?.ToString();
+                if (string.IsNullOrEmpty(directUrl))
+                    return Result.Failure<DownloadFileResponse>(
+                        new Error("Pixeldrain.MissingLocation", "Received redirect but Location header was empty."));
+
+                return Result.Success(new DownloadFileResponse(new Uri(directUrl), headers));
+            }
+
+            if (response.IsSuccessStatusCode)
+                return Result.Success(new DownloadFileResponse(apiUrl, headers));
+
+            return Result.Failure<DownloadFileResponse>(
+                new Error("Pixeldrain.HttpError", $"Unexpected status code: {response.StatusCode}"));
+        }
+        catch (Exception ex)
+        {
+            return Result.Failure<DownloadFileResponse>(
+                new Error("Pixeldrain.Exception", ex.Message));
+        }
     }
 }
